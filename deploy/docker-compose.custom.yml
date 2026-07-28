@@ -1,0 +1,4 @@
+services:
+  sub2api:
+    image: ghcr.io/kkkk1723/sub2api:custom-upstream-balance
+    pull_policy: always
