@@ -359,6 +359,22 @@
               @probe="handleProbeUpstreamBilling(row)"
             />
           </template>
+          <template #header-upstream_balance="{ column }">
+            <div class="flex items-center gap-1">
+              <span>{{ column.label }}</span>
+              <span @click.stop>
+                <HelpTooltip :content="t('admin.accounts.upstreamBalance.columnHint')" width-class="w-80" />
+              </span>
+            </div>
+          </template>
+          <template #cell-upstream_balance="{ row }">
+            <UpstreamBalanceCell
+              :account="row"
+              :now="upstreamBillingNow"
+              :probing="probingUpstreamBalance.has(row.id)"
+              @probe="handleProbeUpstreamBalance(row)"
+            />
+          </template>
           <template #cell-priority="{ value }">
             <span class="text-sm text-gray-700 dark:text-gray-300">{{ value }}</span>
           </template>
@@ -501,6 +517,7 @@ import AccountTodayStatsCell from '@/components/account/AccountTodayStatsCell.vu
 import AccountGroupsCell from '@/components/account/AccountGroupsCell.vue'
 import AccountCapacityCell from '@/components/account/AccountCapacityCell.vue'
 import UpstreamBillingRateCell from '@/components/account/UpstreamBillingRateCell.vue'
+import UpstreamBalanceCell from '@/components/account/UpstreamBalanceCell.vue'
 import PlatformTypeBadge from '@/components/common/PlatformTypeBadge.vue'
 import Icon from '@/components/icons/Icon.vue'
 import ErrorPassthroughRulesModal from '@/components/admin/ErrorPassthroughRulesModal.vue'
@@ -511,7 +528,18 @@ import { proxyExpiryBadgeClass, proxyExpiryLabelKey } from '@/utils/proxyExpiry'
 import { extractApiErrorMessage } from '@/utils/apiError'
 import { sanitizeUrl } from '@/utils/url'
 import { getFloatingPanelPosition } from '@/utils/floatingPanel'
-import type { Account, AccountPlatform, AccountSchedulerGroupScore, AccountType, Proxy as AccountProxy, AdminGroup, WindowStats, ClaudeModel, UpstreamBillingProbeSnapshot } from '@/types'
+import type {
+  Account,
+  AccountPlatform,
+  AccountSchedulerGroupScore,
+  AccountType,
+  Proxy as AccountProxy,
+  AdminGroup,
+  WindowStats,
+  ClaudeModel,
+  UpstreamBillingProbeSnapshot,
+  UpstreamBalanceProbeSnapshot
+} from '@/types'
 
 const { t } = useI18n()
 const appStore = useAppStore()
@@ -590,6 +618,7 @@ const togglingSchedulable = ref<number | null>(null)
 const menu = reactive<{show:boolean, acc:Account|null, pos:{top:number, left:number}|null}>({ show: false, acc: null, pos: null })
 const exportingData = ref(false)
 const probingUpstreamBilling = reactive(new Set<number>())
+const probingUpstreamBalance = reactive(new Set<number>())
 const upstreamBillingProbeGloballyEnabled = ref<boolean | undefined>(undefined)
 const upstreamBillingNow = ref(Date.now())
 let lastUpstreamBillingSortRefreshMinute = -1
@@ -613,11 +642,20 @@ const accountToolsDropdownStyle = computed(() => ({
   width: `${accountToolsDropdownPosition.width}px`
 }))
 const hiddenColumns = reactive<Set<string>>(new Set())
-const DEFAULT_HIDDEN_COLUMNS = ['today_stats', 'proxy', 'notes', 'priority', 'scheduler_score', 'rate_multiplier']
+const DEFAULT_HIDDEN_COLUMNS = [
+  'today_stats',
+  'proxy',
+  'notes',
+  'priority',
+  'scheduler_score',
+  'rate_multiplier',
+  'upstream_balance'
+]
 const HIDDEN_COLUMNS_KEY = 'account-hidden-columns'
-// One-time migration: hide scheduler score for existing admins too, because showing it opt-ins to heavy backend scoring.
+// One-time migration for columns introduced after users may have saved their layout.
 const HIDDEN_COLUMNS_VERSION_KEY = 'account-hidden-columns-version'
-const HIDDEN_COLUMNS_CURRENT_VERSION = 'scheduler-score-hidden-by-default'
+const HIDDEN_COLUMNS_SCHEDULER_SCORE_VERSION = 'scheduler-score-hidden-by-default'
+const HIDDEN_COLUMNS_CURRENT_VERSION = 'upstream-balance-hidden-by-default'
 
 // Sorting settings
 const ACCOUNT_SORT_STORAGE_KEY = 'account-table-sort'
@@ -774,9 +812,17 @@ const loadSavedColumns = () => {
       parsed.forEach(key => {
         hiddenColumns.add(key)
       })
-      // Older saved column layouts may have scheduler_score visible; migrate them to the new safe default once.
-      if (localStorage.getItem(HIDDEN_COLUMNS_VERSION_KEY) !== HIDDEN_COLUMNS_CURRENT_VERSION) {
+      const savedVersion = localStorage.getItem(HIDDEN_COLUMNS_VERSION_KEY)
+      // Unknown and unversioned layouts predate the scheduler score migration.
+      if (
+        savedVersion !== HIDDEN_COLUMNS_SCHEDULER_SCORE_VERSION &&
+        savedVersion !== HIDDEN_COLUMNS_CURRENT_VERSION
+      ) {
         hiddenColumns.add('scheduler_score')
+      }
+      // Layouts at the scheduler migration still need the newly introduced balance column hidden.
+      if (savedVersion !== HIDDEN_COLUMNS_CURRENT_VERSION) {
+        hiddenColumns.add('upstream_balance')
         localStorage.setItem(HIDDEN_COLUMNS_KEY, JSON.stringify([...hiddenColumns]))
         localStorage.setItem(HIDDEN_COLUMNS_VERSION_KEY, HIDDEN_COLUMNS_CURRENT_VERSION)
       }
@@ -1414,6 +1460,7 @@ const allColumns = computed(() => {
     { key: 'scheduler_score', label: t('admin.accounts.columns.schedulerScore'), sortable: false },
     { key: 'rate_multiplier', label: t('admin.accounts.columns.billingRateMultiplier'), sortable: true },
     { key: 'upstream_billing_rate', label: t('admin.accounts.columns.upstreamBillingRate'), sortable: true },
+    { key: 'upstream_balance', label: t('admin.accounts.columns.upstreamBalance'), sortable: false },
     { key: 'last_used_at', label: t('admin.accounts.columns.lastUsed'), sortable: true },
     { key: 'created_at', label: t('admin.accounts.columns.createdAt'), sortable: true },
     { key: 'expires_at', label: t('admin.accounts.columns.expiresAt'), sortable: true },
@@ -1831,6 +1878,30 @@ const handleProbeUpstreamBilling = async (account: Account) => {
     appStore.showError(extractApiErrorMessage(error, t('admin.accounts.upstreamBilling.probeFailed')))
   } finally {
     probingUpstreamBilling.delete(account.id)
+  }
+}
+const patchUpstreamBalanceSnapshot = (accountID: number, snapshot: UpstreamBalanceProbeSnapshot) => {
+  const account = accounts.value.find(item => item.id === accountID)
+  if (!account) return
+  upstreamBillingNow.value = Date.now()
+  patchAccountInList({
+    ...account,
+    extra: { ...account.extra, upstream_balance_probe: snapshot }
+  })
+}
+const handleProbeUpstreamBalance = async (account: Account) => {
+  if (probingUpstreamBalance.has(account.id)) return
+  probingUpstreamBalance.add(account.id)
+  try {
+    const result = await adminAPI.accounts.probeUpstreamBalance(account.id)
+    if (result.snapshot) {
+      patchUpstreamBalanceSnapshot(account.id, result.snapshot)
+    }
+  } catch (error) {
+    console.error('Failed to probe upstream balance:', error)
+    appStore.showError(extractApiErrorMessage(error, t('admin.accounts.upstreamBalance.probeFailed')))
+  } finally {
+    probingUpstreamBalance.delete(account.id)
   }
 }
 const handleAccountUpdated = (updatedAccount: Account) => {
