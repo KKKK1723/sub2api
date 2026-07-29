@@ -259,6 +259,11 @@ onMounted(() => {
   min-width: 0;
   background: var(--canvas);
   color: var(--ink);
+  font-family: "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", system-ui, sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-rendering: optimizeLegibility;
 }
 
 .landing-page[data-palette='graphite'] {
@@ -330,8 +335,8 @@ onMounted(() => {
   display: block;
   overflow: hidden;
   color: var(--ink);
-  font-size: 15px;
-  font-weight: 750;
+  font-size: 17px;
+  font-weight: 800;
   line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -339,11 +344,11 @@ onMounted(() => {
 
 .brand-caption {
   display: block;
-  margin-top: 3px;
+  margin-top: 4px;
   color: var(--muted);
-  font-size: 9px;
-  font-weight: 750;
-  line-height: 1;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.15;
 }
 
 .nav-controls {
@@ -365,11 +370,11 @@ onMounted(() => {
 }
 
 .landing-icon-control {
-  width: 38px;
-  height: 38px;
+  width: 42px;
+  height: 42px;
   border: 1px solid var(--line);
   background: var(--surface);
-  color: #596174;
+  color: #4d586b;
 }
 
 .landing-icon-control:hover,
@@ -380,11 +385,13 @@ onMounted(() => {
 }
 
 .landing-nav-action {
-  min-height: 38px;
-  gap: 7px;
-  padding-inline: 14px;
+  min-height: 42px;
+  gap: 8px;
+  padding-inline: 16px;
   background: var(--accent);
   color: #fff;
+  font-size: 14px;
+  font-weight: 750;
 }
 
 .landing-nav-action:hover,
@@ -416,9 +423,9 @@ onMounted(() => {
   align-items: center;
   gap: 10px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
-  line-height: 1;
+  line-height: 1.2;
 }
 
 .eyebrow span {
@@ -428,26 +435,27 @@ onMounted(() => {
 .hero-copy h1 {
   margin-top: 26px;
   color: var(--ink);
-  font-size: 62px;
-  font-weight: 760;
+  font-size: 68px;
+  font-weight: 820;
   line-height: 1.04;
 }
 
 .hero-lead {
-  max-width: 490px;
+  max-width: 510px;
   margin-top: 22px;
   color: #242b38;
-  font-size: 25px;
-  font-weight: 680;
-  line-height: 1.42;
+  font-size: 27px;
+  font-weight: 760;
+  line-height: 1.4;
 }
 
 .hero-description {
-  max-width: 500px;
-  margin-top: 12px;
+  max-width: 510px;
+  margin-top: 13px;
   color: var(--muted);
-  font-size: 15px;
-  line-height: 1.8;
+  font-size: 16px;
+  font-weight: 550;
+  line-height: 1.78;
 }
 
 .hero-actions {
@@ -458,9 +466,11 @@ onMounted(() => {
 
 .landing-primary-action,
 .landing-secondary-action {
-  min-height: 46px;
-  gap: 8px;
-  padding-inline: 18px;
+  min-height: 50px;
+  gap: 9px;
+  padding-inline: 21px;
+  font-size: 15px;
+  font-weight: 750;
 }
 
 .landing-primary-action {
@@ -514,8 +524,8 @@ onMounted(() => {
 .provider-origin small {
   display: block;
   color: var(--muted);
-  font-size: 9px;
-  font-weight: 750;
+  font-size: 10px;
+  font-weight: 800;
   line-height: 1;
 }
 
@@ -523,20 +533,21 @@ onMounted(() => {
 .provider-origin code {
   display: block;
   overflow: hidden;
-  margin-top: 5px;
+  margin-top: 6px;
   color: #2c3544;
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.1;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .hero-ready {
   flex: none;
-  gap: 6px;
+  gap: 7px;
   color: var(--accent);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
 }
 
@@ -579,8 +590,8 @@ onMounted(() => {
 
 .workbench-header strong {
   color: #242c3a;
-  font-size: 14px;
-  font-weight: 750;
+  font-size: 15px;
+  font-weight: 800;
 }
 
 .workbench-status {
@@ -722,8 +733,8 @@ onMounted(() => {
 .route-copy strong {
   overflow: hidden;
   color: #273042;
-  font-size: 12px;
-  font-weight: 750;
+  font-size: 13px;
+  font-weight: 800;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -847,16 +858,17 @@ onMounted(() => {
 .conversion-inner h2 {
   margin-top: 18px;
   color: var(--ink);
-  font-size: 42px;
-  font-weight: 750;
+  font-size: 46px;
+  font-weight: 800;
   line-height: 1.16;
 }
 
 .section-heading > p {
-  max-width: 370px;
+  max-width: 390px;
   margin-bottom: 4px;
   color: var(--muted);
-  font-size: 15px;
+  font-size: 16px;
+  font-weight: 550;
   line-height: 1.75;
 }
 
@@ -979,16 +991,17 @@ onMounted(() => {
 .operation-item h3 {
   margin-top: 78px;
   color: #202a3a;
-  font-size: 21px;
-  font-weight: 750;
+  font-size: 23px;
+  font-weight: 800;
 }
 
 .operation-item p {
-  max-width: 315px;
-  margin-top: 13px;
+  max-width: 330px;
+  margin-top: 14px;
   color: var(--muted);
-  font-size: 14px;
-  line-height: 1.8;
+  font-size: 15px;
+  font-weight: 550;
+  line-height: 1.78;
 }
 
 .operation-rule {
@@ -1051,7 +1064,7 @@ onMounted(() => {
 
 @media (max-width: 1120px) {
   .hero-grid { grid-template-columns: minmax(0, 0.84fr) minmax(460px, 1.16fr); gap: 48px; }
-  .hero-copy h1 { font-size: 56px; }
+  .hero-copy h1 { font-size: 60px; }
 }
 
 @media (max-width: 960px) {
@@ -1069,14 +1082,14 @@ onMounted(() => {
   .landing-nav { min-height: 64px; gap: 12px; }
   .brand-caption { display: none; }
   .hero-grid { gap: 38px; padding-block: 50px 44px; }
-  .hero-copy h1 { margin-top: 20px; font-size: 48px; }
-  .hero-lead { margin-top: 18px; font-size: 21px; }
-  .hero-description { font-size: 14px; }
+  .hero-copy h1 { margin-top: 20px; font-size: 52px; }
+  .hero-lead { margin-top: 18px; font-size: 23px; }
+  .hero-description { font-size: 15px; }
   .hero-context { align-items: flex-start; flex-direction: column; gap: 13px; padding-block: 15px; }
   .signal-grid { grid-template-columns: 1fr; }
   .signal-item + .signal-item { border-top: 1px solid var(--line); border-left: 0; }
   .provider-section, .operation-section { padding-block: 78px; }
-  .section-heading h2, .conversion-inner h2 { font-size: 34px; }
+  .section-heading h2, .conversion-inner h2 { font-size: 37px; }
   .provider-board { margin-top: 36px; }
   .provider-board-top { align-items: flex-start; flex-direction: column; gap: 12px; padding: 18px; }
   .provider-table-heading, .provider-table-row { grid-template-columns: minmax(0, 1fr) 94px; gap: 10px; padding-inline: 18px; }

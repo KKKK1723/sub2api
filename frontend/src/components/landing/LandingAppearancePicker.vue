@@ -9,8 +9,9 @@
       :aria-expanded="isOpen"
       @click="isOpen = !isOpen"
     >
-      <Palette :size="17" :stroke-width="1.8" aria-hidden="true" />
+      <Palette :size="19" :stroke-width="1.8" aria-hidden="true" />
       <span class="appearance-swatch" :style="{ backgroundColor: activeOption.color }" aria-hidden="true"></span>
+      <ChevronDown class="appearance-chevron" :size="14" :stroke-width="2" aria-hidden="true" />
     </button>
 
     <transition name="appearance-menu">
@@ -28,7 +29,7 @@
         >
           <span class="option-swatch" :style="{ backgroundColor: option.color }" aria-hidden="true"></span>
           <span>{{ option.label }}</span>
-          <Check v-if="option.value === modelValue" class="option-check" :size="16" :stroke-width="2" aria-hidden="true" />
+          <Check v-if="option.value === modelValue" class="option-check" :size="17" :stroke-width="2.2" aria-hidden="true" />
         </button>
       </div>
     </transition>
@@ -38,7 +39,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Check, Palette } from 'lucide-vue-next'
+import { Check, ChevronDown, Palette } from 'lucide-vue-next'
 
 export type LandingPalette = 'cobalt' | 'graphite' | 'vermilion'
 
@@ -82,77 +83,85 @@ onBeforeUnmount(() => document.removeEventListener('click', handleClickOutside))
 
 .appearance-trigger {
   display: inline-flex;
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 42px;
   align-items: center;
   justify-content: center;
-  gap: 5px;
-  border: 1px solid #e3e7ed;
-  border-radius: 6px;
+  gap: 6px;
+  border: 1px solid #dbe1e9;
+  border-radius: 7px;
   background: #fff;
-  color: #596174;
-  transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease;
+  color: #445065;
+  box-shadow: 0 1px 1px rgba(17, 24, 39, 0.02);
+  transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
 }
 
 .appearance-trigger:hover {
-  border-color: #b8c0cd;
+  border-color: #aeb9c9;
   background: #f8f9fb;
-  color: #1d2532;
+  color: #1b2432;
+  box-shadow: 0 4px 12px rgba(28, 39, 59, 0.08);
 }
 
 .appearance-swatch {
-  width: 5px;
-  height: 16px;
-  border-radius: 999px;
+  width: 15px;
+  height: 15px;
+  flex: none;
+  border: 1px solid rgba(17, 24, 39, 0.14);
+  border-radius: 4px;
 }
+
+.appearance-chevron { margin-left: -2px; color: #7b8798; }
 
 .appearance-menu {
   position: absolute;
   right: 0;
   z-index: 50;
-  width: 188px;
-  margin-top: 8px;
-  padding: 7px;
-  border: 1px solid #e1e6ed;
-  border-radius: 8px;
+  width: 220px;
+  margin-top: 9px;
+  padding: 9px;
+  border: 1px solid #dce2eb;
+  border-radius: 10px;
   background: #fff;
-  box-shadow: 0 18px 44px rgba(25, 34, 52, 0.13);
+  box-shadow: 0 18px 48px rgba(25, 34, 52, 0.15);
 }
 
 .appearance-menu > p {
-  padding: 6px 8px 8px;
-  color: #7a8493;
-  font-size: 11px;
-  font-weight: 750;
+  padding: 6px 9px 9px;
+  color: #687589;
+  font-family: "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .appearance-option {
   display: flex;
   width: 100%;
-  min-height: 38px;
+  min-height: 46px;
   align-items: center;
-  gap: 10px;
-  padding: 0 8px;
-  border-radius: 5px;
-  color: #445064;
-  font-size: 13px;
-  font-weight: 700;
+  gap: 12px;
+  padding: 0 9px;
+  border-radius: 6px;
+  color: #3d4a5e;
+  font-family: "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 750;
   text-align: left;
   transition: background-color 140ms ease, color 140ms ease;
 }
 
 .appearance-option:hover,
 .appearance-option.is-active {
-  background: #f4f6f9;
-  color: #1d2532;
+  background: #f3f6fa;
+  color: #1c2738;
 }
 
 .option-swatch {
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
   flex: none;
-  border: 1px solid rgba(17, 24, 39, 0.12);
-  border-radius: 4px;
+  border: 1px solid rgba(17, 24, 39, 0.13);
+  border-radius: 5px;
 }
 
 .option-check { margin-left: auto; }
