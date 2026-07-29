@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent } from 'vue'
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 
-const { updateAccountMock, checkMixedChannelRiskMock, authIsSimpleMode } = vi.hoisted(() => ({
+const { updateAccountMock, probeUpstreamBalanceMock, checkMixedChannelRiskMock, authIsSimpleMode } = vi.hoisted(() => ({
   updateAccountMock: vi.fn(),
+  probeUpstreamBalanceMock: vi.fn(),
   checkMixedChannelRiskMock: vi.fn(),
   authIsSimpleMode: { value: true }
 }))
@@ -12,7 +13,8 @@ vi.mock('@/stores/app', () => ({
   useAppStore: () => ({
     showError: vi.fn(),
     showSuccess: vi.fn(),
-    showInfo: vi.fn()
+    showInfo: vi.fn(),
+    showWarning: vi.fn()
   })
 }))
 
@@ -28,6 +30,7 @@ vi.mock('@/api/admin', () => ({
   adminAPI: {
     accounts: {
       update: updateAccountMock,
+      probeUpstreamBalance: probeUpstreamBalanceMock,
       checkMixedChannelRisk: checkMixedChannelRiskMock
     },
     settings: {
@@ -314,6 +317,7 @@ function mountModal(account = buildAccount()) {
 describe('EditAccountModal', () => {
   beforeEach(() => {
     authIsSimpleMode.value = true
+    probeUpstreamBalanceMock.mockReset().mockResolvedValue({})
   })
 
   it('reopening the same account rehydrates the OpenAI whitelist from props', async () => {
@@ -604,6 +608,58 @@ describe('EditAccountModal', () => {
 
     expect(updateAccountMock).toHaveBeenCalledTimes(1)
     expect(updateAccountMock.mock.calls[0]?.[1]?.extra?.upstream_billing_probe_enabled).toBe(true)
+  })
+
+  it('loads, submits, and immediately probes an upstream balance query', async () => {
+    const account = buildAccount()
+    account.extra = {
+      upstream_balance_probe_enabled: true,
+      upstream_balance_query: { preset: 'ccswitch' }
+    }
+    updateAccountMock.mockReset().mockResolvedValue(account)
+    checkMixedChannelRiskMock.mockReset().mockResolvedValue({ has_risk: false })
+    probeUpstreamBalanceMock.mockResolvedValue({
+      account_id: account.id,
+      snapshot: {
+        status: 'ok',
+        data: { balance: 9.5, unit: 'USD' },
+        last_attempt_at: '2026-07-28T00:00:00Z',
+        next_probe_at: '2026-07-28T01:00:00Z'
+      }
+    })
+
+    const wrapper = mountModal(account)
+    expect(wrapper.get('[data-testid="upstream-balance-enabled"]').attributes('aria-checked')).toBe('true')
+    expect((wrapper.get('[data-testid="upstream-balance-preset"]').element as HTMLSelectElement).value).toBe('sub2api')
+
+    await wrapper.get('form#edit-account-form').trigger('submit.prevent')
+    await flushPromises()
+
+    const payload = updateAccountMock.mock.calls[0]?.[1]
+    expect(payload?.extra?.upstream_balance_probe_enabled).toBe(true)
+    expect(payload?.extra?.upstream_balance_query).toEqual({ preset: 'ccswitch' })
+    expect(probeUpstreamBalanceMock).toHaveBeenCalledWith(account.id)
+    expect(wrapper.emitted('updated')?.[0]?.[0]?.extra?.upstream_balance_probe?.data?.balance).toBe(9.5)
+  })
+
+  it('uses explicit false and null values when disabling balance queries', async () => {
+    const account = buildAccount()
+    account.extra = {
+      upstream_balance_probe_enabled: true,
+      upstream_balance_query: { preset: 'ccswitch' }
+    }
+    updateAccountMock.mockReset().mockResolvedValue({ ...account, extra: {} })
+    checkMixedChannelRiskMock.mockReset().mockResolvedValue({ has_risk: false })
+
+    const wrapper = mountModal(account)
+    await wrapper.get('[data-testid="upstream-balance-enabled"]').trigger('click')
+    await wrapper.get('form#edit-account-form').trigger('submit.prevent')
+    await flushPromises()
+
+    const payload = updateAccountMock.mock.calls[0]?.[1]
+    expect(payload?.extra?.upstream_balance_probe_enabled).toBe(false)
+    expect(payload?.extra?.upstream_balance_query).toBeNull()
+    expect(probeUpstreamBalanceMock).not.toHaveBeenCalled()
   })
 
   it('clears OpenAI APIKey Responses override when set back to auto', async () => {
