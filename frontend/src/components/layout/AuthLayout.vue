@@ -3,7 +3,7 @@
     <aside class="auth-brand-panel relative hidden overflow-hidden border-r border-gray-200 lg:flex lg:flex-col">
       <div class="auth-grid pointer-events-none absolute inset-0" aria-hidden="true"></div>
       <router-link to="/" class="relative z-10 flex items-center gap-3 p-8">
-        <img :src="siteLogo || '/logo.svg'" :alt="siteName" class="h-10 w-10 rounded-lg border border-gray-200 bg-white object-contain" />
+        <img :src="siteLogo || '/logo.svg?v=network-20260729'" :alt="siteName" class="h-10 w-10 rounded-lg border border-gray-200 bg-white object-contain" />
         <span class="text-lg font-semibold text-gray-950">{{ siteName }}</span>
       </router-link>
 
@@ -27,7 +27,7 @@
     <main class="flex min-h-screen flex-col bg-[#f6f8f7]">
       <div class="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3 lg:hidden">
         <router-link to="/" class="flex min-w-0 items-center gap-3">
-          <img :src="siteLogo || '/logo.svg'" :alt="siteName" class="h-9 w-9 rounded-lg border border-gray-200 bg-white object-contain" />
+          <img :src="siteLogo || '/logo.svg?v=network-20260729'" :alt="siteName" class="h-9 w-9 rounded-lg border border-gray-200 bg-white object-contain" />
           <span class="truncate font-semibold text-gray-950">{{ siteName }}</span>
         </router-link>
       </div>

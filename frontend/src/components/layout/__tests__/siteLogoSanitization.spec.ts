@@ -15,6 +15,12 @@ describe('site_logo sanitization', () => {
     expect(sidebarSource).toContain('sanitizeUrl(appStore.siteLogo')
   })
 
+  it('AppSidebar uses the new Network mark when no custom logo is configured', () => {
+    expect(sidebarSource).toContain("import { Network } from 'lucide-vue-next'")
+    expect(sidebarSource).toContain('<Network v-else-if="settingsLoaded"')
+    expect(sidebarSource).not.toContain("siteLogo || '/logo.svg'")
+  })
+
   it('HomeView applies sanitizeUrl to siteLogo', () => {
     expect(homeViewSource).toContain('sanitizeUrl(appStore.cachedPublicSettings?.site_logo || appStore.siteLogo')
   })

@@ -12,9 +12,11 @@
       <router-link
         :to="homePath"
         class="sidebar-logo flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg border border-gray-200 bg-white transition-opacity hover:opacity-80"
+        :class="{ 'sidebar-logo-default': settingsLoaded && !siteLogo }"
         @click="handleMenuItemClick(homePath)"
       >
-        <img v-if="settingsLoaded" :src="siteLogo || '/logo.svg'" alt="Logo" class="h-full w-full object-contain" />
+        <img v-if="settingsLoaded && siteLogo" :src="siteLogo" alt="Logo" class="h-full w-full object-contain" />
+        <Network v-else-if="settingsLoaded" :size="20" :stroke-width="1.9" aria-hidden="true" />
       </router-link>
       <div class="sidebar-brand" :class="{ 'sidebar-brand-collapsed': sidebarCollapsed }" :aria-hidden="sidebarCollapsed ? 'true' : 'false'">
         <router-link
@@ -177,6 +179,7 @@
 import { computed, h, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { Network } from 'lucide-vue-next'
 import { useAdminSettingsStore, useAppStore, useAuthStore, useOnboardingStore } from '@/stores'
 import VersionBadge from '@/components/common/VersionBadge.vue'
 import { sanitizeSvg } from '@/utils/sanitize'
@@ -898,6 +901,12 @@ onBeforeUnmount(() => {
 .sidebar-logo {
   flex: 0 0 2.25rem;
   min-width: 2.25rem;
+}
+
+.sidebar-logo-default {
+  border-color: #b9ddd5;
+  background: #e7f5f2;
+  color: #0f766e;
 }
 
 .sidebar-header-collapsed {
