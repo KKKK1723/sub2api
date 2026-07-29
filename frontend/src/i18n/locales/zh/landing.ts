@@ -5,6 +5,12 @@ export default {
   },
   // Home Page
   home: {
+    appearance: {
+      title: '浅色外观',
+      mint: '薄荷青',
+      sky: '晴空蓝',
+      coral: '珊瑚橙'
+    },
     viewOnGithub: '在 GitHub 上查看',
     viewDocs: '查看文档',
     docs: '文档',

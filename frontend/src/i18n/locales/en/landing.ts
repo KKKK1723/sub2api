@@ -5,6 +5,12 @@ export default {
   },
   // Home Page
   home: {
+    appearance: {
+      title: 'Light appearance',
+      mint: 'Mint',
+      sky: 'Sky',
+      coral: 'Coral'
+    },
     viewOnGithub: 'View on GitHub',
     viewDocs: 'View Documentation',
     docs: 'Docs',
