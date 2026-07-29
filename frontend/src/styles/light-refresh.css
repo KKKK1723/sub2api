@@ -1,40 +1,40 @@
 :root {
   color-scheme: light;
-  --ui-canvas: #f4f7f6;
+  --ui-canvas: #f6f8fc;
   --ui-surface: #ffffff;
-  --ui-surface-muted: #f8faf9;
-  --ui-border: #dfe5e3;
-  --ui-border-strong: #cbd5d1;
+  --ui-surface-muted: #f8faff;
+  --ui-border: #dce3f0;
+  --ui-border-strong: #becbe0;
   --ui-text: #111827;
   --ui-muted: #667085;
-  --ui-primary: #0f766e;
-  --ui-primary-hover: #115e59;
+  --ui-primary: #2563eb;
+  --ui-primary-hover: #1d4ed8;
 }
 
 html { background: var(--ui-canvas); }
 body { background: var(--ui-canvas); color: var(--ui-text); }
-::selection { background: #cde8e1; color: #134e4a; }
+::selection { background: #dbeafe; color: #1e3a8a; }
 
 .app-shell { background: var(--ui-canvas); }
 .app-content { background: var(--ui-canvas); }
 .app-main { min-width: 0; }
 
 .sidebar {
-  background: #fbfcfc;
+  background: #fbfcff;
   border-color: var(--ui-border);
   box-shadow: 6px 0 20px rgba(31, 41, 55, 0.025);
 }
 .sidebar-header { border-color: var(--ui-border); }
-.sidebar-link { border-radius: 6px; color: #5f6b67; }
-.sidebar-link:hover { background: #eef3f1; color: #18211e; }
+.sidebar-link { border-radius: 6px; color: #59657a; }
+.sidebar-link:hover { background: #eff4ff; color: #18223a; }
 .sidebar-link-active {
-  background: #e5f1ed;
-  color: #0f766e;
-  box-shadow: inset 3px 0 0 #0f766e;
+  background: #e8efff;
+  color: #1d4ed8;
+  box-shadow: inset 3px 0 0 #2563eb;
 }
-.sidebar-link-active:hover { background: #deece7; color: #0f766e; }
-.sidebar-section-title { color: #87918d; }
-.sidebar-logo { box-shadow: 0 4px 12px rgba(15, 118, 110, 0.12) !important; }
+.sidebar-link-active:hover { background: #dfe9ff; color: #1d4ed8; }
+.sidebar-section-title { color: #8390a8; }
+.sidebar-logo { box-shadow: 0 4px 12px rgba(37, 99, 235, 0.13) !important; }
 
 .app-header {
   background: rgba(255, 255, 255, 0.96);
@@ -51,11 +51,11 @@ body { background: var(--ui-canvas); color: var(--ui-text); }
 .btn-success { background: #059669; box-shadow: none; }
 .btn-warning { background: #d97706; box-shadow: none; }
 .btn-secondary { border-color: var(--ui-border); background: white; box-shadow: 0 1px 2px rgba(17,24,39,.03); }
-.btn-secondary:hover { border-color: var(--ui-border-strong); background: #f8faf9; }
-.btn-ghost:hover { background: #eef3f1; }
+.btn-secondary:hover { border-color: var(--ui-border-strong); background: #f8faff; }
+.btn-ghost:hover { background: #eff4ff; }
 
 .input, select.input, textarea.input { border-radius: 8px; border-color: var(--ui-border); background: white; box-shadow: 0 1px 2px rgba(17,24,39,.02); }
-.input:focus, select.input:focus, textarea.input:focus { border-color: #5b9f91; box-shadow: 0 0 0 3px rgba(15,118,110,.12); }
+.input:focus, select.input:focus, textarea.input:focus { border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(37,99,235,.13); }
 
 .card, .card-glass, .glass-card, .stat-card {
   border-color: var(--ui-border);
@@ -66,19 +66,19 @@ body { background: var(--ui-canvas); color: var(--ui-text); }
 }
 .card-hover:hover { transform: translateY(-1px); border-color: var(--ui-border-strong); box-shadow: 0 10px 24px rgba(17,24,39,.06); }
 .glass { background: rgba(255,255,255,.96); backdrop-filter: blur(12px); }
-.card-header, .card-footer { border-color: #edf0ef; }
+.card-header, .card-footer { border-color: #edf1f7; }
 
 .table-container, .table-wrapper { border-color: var(--ui-border); border-radius: 8px; background: white; }
-.table th { border-color: var(--ui-border); background: #f6f8f7; color: #59645f; }
-.table td { border-color: #edf0ef; }
-.table tbody tr:hover { background: #f8faf9; }
+.table th { border-color: var(--ui-border); background: #f7f9fd; color: #59657a; }
+.table td { border-color: #edf1f7; }
+.table tbody tr:hover { background: #f8faff; }
 
 .modal-overlay { background: rgba(17,24,39,.38); backdrop-filter: blur(3px); }
 .modal-content { border-color: var(--ui-border); border-radius: 8px; background: white; box-shadow: 0 24px 60px rgba(17,24,39,.18); }
 .modal-header, .modal-footer { border-color: var(--ui-border); }
 .dropdown { border-color: var(--ui-border); border-radius: 8px; background: white; box-shadow: 0 14px 34px rgba(17,24,39,.13); }
-.dropdown-item:hover { background: #f0f4f2; }
-.tabs { border-radius: 8px; background: #edf1ef; }
+.dropdown-item:hover { background: #f0f4ff; }
+.tabs { border-radius: 8px; background: #eef2f9; }
 .tab { border-radius: 6px; }
 .tab-active { background: white; box-shadow: 0 1px 3px rgba(17,24,39,.08); }
 .badge { border-radius: 9999px; }
