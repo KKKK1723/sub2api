@@ -4,23 +4,21 @@
     <div v-else v-html="homeContent"></div>
   </div>
 
-  <div v-else class="landing-page flex min-h-screen flex-col text-[#15171a]" :data-palette="palette">
+  <div v-else class="landing-page flex min-h-screen flex-col" :data-palette="palette">
     <header class="landing-header">
-      <nav class="landing-container flex h-[74px] items-center justify-between gap-3">
+      <nav class="landing-container landing-nav">
         <router-link to="/home" class="brand-lockup" aria-label="Home">
           <span class="brand-mark">
             <img v-if="siteLogo" :src="siteLogo" :alt="siteName" class="h-full w-full object-contain" />
-            <Network v-else :size="22" :stroke-width="1.8" aria-hidden="true" />
+            <img v-else src="/logo.svg?v=cobalt-20260729" alt="筏&API" class="h-full w-full object-contain" />
           </span>
           <span class="min-w-0">
             <span class="brand-name">{{ siteName }}</span>
-            <span class="brand-caption">
-              <span class="status-dot"></span>UNIFIED AI GATEWAY
-            </span>
+            <span class="brand-caption">UNIFIED AI ACCESS</span>
           </span>
         </router-link>
 
-        <div class="flex items-center gap-1.5">
+        <div class="nav-controls">
           <a
             v-if="docUrl"
             :href="docUrl"
@@ -30,13 +28,13 @@
             :title="t('home.viewDocs')"
             :aria-label="t('home.viewDocs')"
           >
-            <BookOpen :size="18" :stroke-width="1.8" aria-hidden="true" />
+            <BookOpen :size="17" :stroke-width="1.9" aria-hidden="true" />
           </a>
           <LandingAppearancePicker v-model="palette" />
           <LandingLocaleSwitcher />
           <router-link :to="isAuthenticated ? dashboardPath : '/login'" class="landing-nav-action">
-            <LayoutDashboard v-if="isAuthenticated" :size="17" :stroke-width="1.9" aria-hidden="true" />
-            <LogIn v-else :size="17" :stroke-width="1.9" aria-hidden="true" />
+            <LayoutDashboard v-if="isAuthenticated" :size="16" :stroke-width="1.9" aria-hidden="true" />
+            <LogIn v-else :size="16" :stroke-width="1.9" aria-hidden="true" />
             <span>{{ isAuthenticated ? t('home.dashboard') : t('home.login') }}</span>
           </router-link>
         </div>
@@ -45,12 +43,9 @@
 
     <main class="flex-1">
       <section class="hero-section">
-        <div class="landing-container hero-layout">
+        <div class="landing-container hero-grid">
           <div class="hero-copy">
-            <div class="hero-kicker">
-              <span class="hero-kicker-mark"></span>
-              <span>AI ACCESS INFRASTRUCTURE</span>
-            </div>
+            <p class="eyebrow"><span>01</span> AI ACCESS LAYER</p>
             <h1>{{ siteName }}</h1>
             <p class="hero-lead">{{ t('home.heroSubtitle') }}</p>
             <p class="hero-description">{{ t('home.heroDescription') }}</p>
@@ -66,129 +61,109 @@
               </a>
             </div>
 
-            <div class="hero-endpoint">
-              <div class="endpoint-command">
+            <div class="hero-context">
+              <div class="hero-endpoint">
                 <SquareTerminal :size="18" :stroke-width="1.8" aria-hidden="true" />
-                <div class="min-w-0">
-                  <span>UNIFIED ENDPOINT</span>
-                  <code>{{ apiEndpoint }}</code>
-                </div>
+                <span><small>UNIFIED ENDPOINT</small><code>{{ apiEndpoint }}</code></span>
               </div>
-              <span class="endpoint-ready"><CircleCheck :size="16" :stroke-width="2" aria-hidden="true" />READY</span>
+              <div class="hero-ready"><CircleCheck :size="17" :stroke-width="2" aria-hidden="true" /><span>ROUTING READY</span></div>
             </div>
           </div>
 
-          <div class="gateway-console" aria-label="Live API gateway overview">
-            <div class="console-toolbar">
-              <div class="console-title">
-                <span class="console-index">01</span>
-                <div><strong>Route intelligence</strong><small>LIVE CONTROL PLANE</small></div>
-              </div>
-              <span class="console-live"><span></span>ONLINE</span>
+          <aside class="route-workbench" aria-label="API routing overview">
+            <div class="workbench-header">
+              <div><span class="workbench-index">LIVE</span><strong>Routing desk</strong></div>
+              <span class="workbench-status"><i></i>Online</span>
             </div>
 
-            <div class="request-summary">
-              <div class="request-copy">
-                <span>REQUEST INGRESS</span>
-                <div><b>POST</b><code>{{ apiEndpoint }}/responses</code></div>
-              </div>
-              <div class="request-result"><span>200 OK</span><small>128 ms</small></div>
+            <div class="workbench-entry">
+              <span class="entry-icon"><Route :size="18" :stroke-width="1.8" aria-hidden="true" /></span>
+              <div class="min-w-0"><small>ONE REQUEST</small><code>POST {{ apiEndpoint }}/responses</code></div>
+              <span class="entry-badge">1 key</span>
             </div>
 
-            <div class="console-section-heading"><span>ACTIVE PROVIDER ROUTES</span><span>04 CONNECTED</span></div>
+            <div class="workbench-label"><span>ACTIVE ROUTES</span><span>{{ providerRoutes.length }} AVAILABLE</span></div>
             <div class="route-list">
               <div v-for="provider in providerRoutes" :key="provider.name" class="route-row">
-                <span class="route-icon" :class="provider.tone">
-                  <component :is="provider.icon" :size="17" :stroke-width="1.8" aria-hidden="true" />
-                </span>
-                <div class="min-w-0 flex-1">
-                  <strong>{{ provider.name }}</strong>
-                  <span>{{ provider.mode }} routing</span>
-                </div>
-                <div class="route-telemetry"><strong>{{ provider.latency }}</strong><span>{{ provider.load }} load</span></div>
+                <span class="route-link" aria-hidden="true"></span>
+                <span class="route-icon" :class="provider.tone"><component :is="provider.icon" :size="17" :stroke-width="1.8" aria-hidden="true" /></span>
+                <div class="route-copy"><strong>{{ provider.name }}</strong><span>{{ provider.mode }} routing</span></div>
+                <div class="route-metric"><strong>{{ provider.latency }}</strong><span>{{ provider.load }} load</span></div>
                 <CircleCheck :size="17" :stroke-width="2" class="route-check" aria-hidden="true" />
               </div>
             </div>
 
-            <div class="console-stats">
+            <div class="workbench-summary">
               <div><span>SUCCESS RATE</span><strong>99.98%</strong></div>
-              <div><span>ROUTING MODE</span><strong>Adaptive</strong></div>
-              <div><span>BILLING</span><strong>Realtime</strong></div>
+              <div><span>POLICY</span><strong>Adaptive</strong></div>
+              <div><span>USAGE</span><strong>Realtime</strong></div>
             </div>
-          </div>
+          </aside>
         </div>
       </section>
 
-      <section class="capability-band">
-        <div class="landing-container capability-grid">
-          <div v-for="(item, index) in capabilities" :key="item.label" class="capability-item">
-            <span class="capability-number">0{{ index + 1 }}</span>
-            <component :is="item.icon" :size="20" :stroke-width="1.8" aria-hidden="true" />
-            <span>{{ item.label }}</span>
-            <ArrowUpRight :size="16" :stroke-width="1.8" aria-hidden="true" />
+      <section class="signal-strip" aria-label="Platform capabilities">
+        <div class="landing-container signal-grid">
+          <div v-for="signal in signals" :key="signal.label" class="signal-item">
+            <span class="signal-number">{{ signal.number }}</span>
+            <component :is="signal.icon" :size="19" :stroke-width="1.8" aria-hidden="true" />
+            <strong>{{ signal.label }}</strong>
+            <span class="signal-note">{{ signal.note }}</span>
           </div>
         </div>
       </section>
 
       <section class="provider-section">
         <div class="landing-container">
-          <div class="section-intro">
-            <div class="section-copy">
-              <p class="section-label"><span>01</span> PROVIDER NETWORK</p>
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow"><span>02</span> PROVIDER NETWORK</p>
               <h2>{{ t('home.providers.title') }}</h2>
-              <p>{{ t('home.providers.description') }}</p>
             </div>
-            <div class="endpoint-note">
-              <KeyRound :size="19" :stroke-width="1.8" aria-hidden="true" />
-              <div><span>ONE KEY / EVERY ROUTE</span><code>{{ apiEndpoint }}</code></div>
-            </div>
+            <p>{{ t('home.providers.description') }}</p>
           </div>
 
-          <div class="provider-table">
-            <div class="provider-table-heading"><span>PROVIDER</span><span>ROUTING POLICY</span><span>LATENCY</span><span>STATUS</span></div>
-            <div v-for="(provider, index) in providerRoutes" :key="'table-' + provider.name" class="provider-table-row">
-              <div class="flex min-w-0 items-center gap-3">
-                <span class="provider-number">0{{ index + 1 }}</span>
-                <span class="route-icon" :class="provider.tone">
-                  <component :is="provider.icon" :size="18" :stroke-width="1.8" aria-hidden="true" />
-                </span>
-                <strong>{{ provider.name }}</strong>
-              </div>
+          <div class="provider-board">
+            <div class="provider-board-top">
+              <div class="provider-origin"><KeyRound :size="18" :stroke-width="1.8" aria-hidden="true" /><span><small>ONE KEY / EVERY ROUTE</small><code>{{ apiEndpoint }}</code></span></div>
+              <span class="provider-board-note"><CircleCheck :size="16" :stroke-width="2" aria-hidden="true" />policy applied per request</span>
+            </div>
+            <div class="provider-table-heading"><span>ROUTE</span><span>POLICY</span><span>LATENCY</span><span>STATE</span></div>
+            <div v-for="(provider, index) in providerRoutes" :key="`network-${provider.name}`" class="provider-table-row">
+              <div class="provider-identity"><span class="provider-number">0{{ index + 1 }}</span><span class="route-icon" :class="provider.tone"><component :is="provider.icon" :size="18" :stroke-width="1.8" aria-hidden="true" /></span><strong>{{ provider.name }}</strong></div>
               <span class="provider-mode">{{ provider.mode }}</span>
               <span class="provider-latency">{{ provider.latency }}</span>
-              <span class="provider-health"><span></span>{{ t('home.providers.supported') }}</span>
+              <span class="provider-health"><i></i>{{ t('home.providers.supported') }}</span>
             </div>
           </div>
         </div>
       </section>
 
-      <section class="feature-section">
+      <section class="operation-section">
         <div class="landing-container">
-          <div class="feature-heading">
-            <div><p class="section-label"><span>02</span> OPERATIONS LAYER</p><h2>{{ t('home.solutions.title') }}</h2></div>
+          <div class="section-heading section-heading-compact">
+            <div>
+              <p class="eyebrow"><span>03</span> CONTROL, NOT COMPLEXITY</p>
+              <h2>{{ t('home.solutions.title') }}</h2>
+            </div>
             <p>{{ t('home.solutions.subtitle') }}</p>
           </div>
-          <div class="feature-grid">
-            <article v-for="feature in features" :key="feature.title" class="feature-card">
-              <div class="feature-card-top">
-                <span class="feature-number">{{ feature.number }}</span>
-                <span class="feature-icon"><component :is="feature.icon" :size="22" :stroke-width="1.8" aria-hidden="true" /></span>
-              </div>
+
+          <div class="operation-grid">
+            <article v-for="feature in features" :key="feature.title" class="operation-item">
+              <div class="operation-top"><span>{{ feature.number }}</span><component :is="feature.icon" :size="22" :stroke-width="1.8" aria-hidden="true" /></div>
               <h3>{{ feature.title }}</h3>
               <p>{{ feature.description }}</p>
+              <span class="operation-rule"></span>
             </article>
           </div>
         </div>
       </section>
 
-      <section class="final-cta">
-        <div class="landing-container final-cta-inner">
-          <div class="cta-brand"><span>READY TO ROUTE</span><p>{{ siteName }}</p></div>
-          <div class="cta-subtitle">{{ siteSubtitle }}</div>
-          <router-link :to="isAuthenticated ? dashboardPath : '/login'" class="landing-primary-action">
-            <span>{{ isAuthenticated ? t('home.goToDashboard') : t('home.getStarted') }}</span>
-            <ArrowUpRight :size="17" :stroke-width="2" aria-hidden="true" />
-          </router-link>
+      <section class="conversion-section">
+        <div class="landing-container conversion-inner">
+          <div><p class="eyebrow"><span>04</span> READY TO CONNECT</p><h2>把 AI 接入，变成一条稳定的路由。</h2></div>
+          <div class="conversion-action"><p>{{ siteSubtitle }}</p><router-link :to="isAuthenticated ? dashboardPath : '/login'" class="landing-primary-action"><span>{{ isAuthenticated ? t('home.goToDashboard') : t('home.getStarted') }}</span><ArrowUpRight :size="17" :stroke-width="2" aria-hidden="true" /></router-link></div>
         </div>
       </section>
     </main>
@@ -196,10 +171,7 @@
     <footer class="landing-footer">
       <div class="landing-container landing-footer-inner">
         <p>&copy; {{ currentYear }} {{ siteName }}. {{ t('home.footer.allRightsReserved') }}</p>
-        <div>
-          <a v-if="docUrl" :href="docUrl" target="_blank" rel="noopener noreferrer">{{ t('home.docs') }}</a>
-          <a :href="githubUrl" target="_blank" rel="noopener noreferrer">GitHub</a>
-        </div>
+        <div><a v-if="docUrl" :href="docUrl" target="_blank" rel="noopener noreferrer">{{ t('home.docs') }}</a><a :href="githubUrl" target="_blank" rel="noopener noreferrer">GitHub</a></div>
       </div>
     </footer>
   </div>
@@ -210,8 +182,8 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   ArrowRight, ArrowUpRight, BookOpen, Bot, CircleCheck, Cloud, Gauge, KeyRound,
-  LayoutDashboard, LogIn, Network, Orbit, ReceiptText, Route, ShieldCheck,
-  Sparkles, SquareTerminal, Users
+  LayoutDashboard, LogIn, Orbit, ReceiptText, Route, ShieldCheck, Sparkles,
+  SquareTerminal, Users
 } from 'lucide-vue-next'
 import { useAuthStore, useAppStore } from '@/stores'
 import LandingAppearancePicker, { type LandingPalette } from '@/components/landing/LandingAppearancePicker.vue'
@@ -236,15 +208,9 @@ const isHomeContentUrl = computed(() => /^https?:\/\//i.test(homeContent.value.t
 const isAuthenticated = computed(() => authStore.isAuthenticated)
 const dashboardPath = computed(() => (authStore.isAdmin ? '/admin/dashboard' : '/dashboard'))
 const currentYear = computed(() => new Date().getFullYear())
-const apiEndpoint = computed(() => window.location.origin + '/v1')
+const apiEndpoint = computed(() => `${window.location.origin}/v1`)
 const githubUrl = 'https://github.com/Wei-Shaw/sub2api'
 const palette = ref<LandingPalette>('cobalt')
-
-const capabilities = computed(() => [
-  { icon: Route, label: t('home.tags.subscriptionToApi') },
-  { icon: ShieldCheck, label: t('home.tags.stickySession') },
-  { icon: ReceiptText, label: t('home.tags.realtimeBilling') }
-])
 
 const providerRoutes = computed(() => [
   { name: t('home.providers.claude'), icon: Bot, tone: 'tone-coral', latency: '112 ms', load: '68%', mode: 'Priority' },
@@ -253,8 +219,14 @@ const providerRoutes = computed(() => [
   { name: t('home.providers.antigravity'), icon: Cloud, tone: 'tone-violet', latency: '141 ms', load: '44%', mode: 'Standby' }
 ])
 
+const signals = computed(() => [
+  { number: '01', icon: Route, label: t('home.tags.subscriptionToApi'), note: 'Single endpoint' },
+  { number: '02', icon: ShieldCheck, label: t('home.tags.stickySession'), note: 'Policy aware' },
+  { number: '03', icon: ReceiptText, label: t('home.tags.realtimeBilling'), note: 'Usage visible' }
+])
+
 const features = computed(() => [
-  { number: '01', icon: Network, title: t('home.features.unifiedGateway'), description: t('home.features.unifiedGatewayDesc') },
+  { number: '01', icon: Route, title: t('home.features.unifiedGateway'), description: t('home.features.unifiedGatewayDesc') },
   { number: '02', icon: Users, title: t('home.features.multiAccount'), description: t('home.features.multiAccountDesc') },
   { number: '03', icon: Gauge, title: t('home.features.balanceQuota'), description: t('home.features.balanceQuotaDesc') }
 ])
@@ -273,33 +245,38 @@ onMounted(() => {
 })
 </script>
 
-
 <style scoped>
 .landing-page {
-  --accent: #2454d6;
-  --accent-strong: #173ea8;
-  --accent-soft: #eef2ff;
-  --accent-border: #c9d5ff;
-  background: #f4f4f2;
-  color: #15171a;
+  --accent: #2856d8;
+  --accent-strong: #173fae;
+  --accent-soft: #edf2ff;
+  --accent-border: #cbd8ff;
+  --ink: #131722;
+  --muted: #697386;
+  --line: #e3e7ed;
+  --surface: #ffffff;
+  --canvas: #f7f8fa;
+  min-width: 0;
+  background: var(--canvas);
+  color: var(--ink);
 }
 
 .landing-page[data-palette='graphite'] {
-  --accent: #24262b;
-  --accent-strong: #0e0f11;
-  --accent-soft: #efefee;
-  --accent-border: #cfd0d2;
+  --accent: #252932;
+  --accent-strong: #111318;
+  --accent-soft: #f0f2f4;
+  --accent-border: #d3d7dd;
 }
 
 .landing-page[data-palette='vermilion'] {
-  --accent: #d9472b;
-  --accent-strong: #b93420;
-  --accent-soft: #fff0ec;
-  --accent-border: #f3c9bf;
+  --accent: #c9422e;
+  --accent-strong: #a92f20;
+  --accent-soft: #fff0ed;
+  --accent-border: #f1c9c1;
 }
 
 .landing-container {
-  width: min(100% - 48px, 1320px);
+  width: min(100% - 48px, 1240px);
   margin-inline: auto;
 }
 
@@ -307,61 +284,71 @@ onMounted(() => {
   position: sticky;
   top: 0;
   z-index: 40;
-  border-bottom: 1px solid #dedfdf;
-  border-bottom-color: #dedfdf;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(14px);
+}
+
+.landing-nav {
+  display: flex;
+  min-height: 72px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.brand-lockup,
+.nav-controls,
+.hero-actions,
+.hero-context,
+.workbench-header,
+.workbench-entry,
+.workbench-summary,
+.provider-board-top,
+.provider-identity,
+.landing-footer-inner,
+.landing-footer-inner div {
+  display: flex;
+  align-items: center;
 }
 
 .brand-lockup {
-  display: flex;
   min-width: 0;
-  align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .brand-mark {
   display: inline-flex;
-  width: 42px;
-  height: 42px;
+  width: 38px;
+  height: 38px;
   flex: none;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
-  border: 1px solid var(--accent);
-  border-color: var(--accent);
-  border-radius: 6px;
-  background: var(--accent);
-  color: #fff;
 }
 
 .brand-name {
   display: block;
   overflow: hidden;
-  color: #15171a;
-  font-size: 16px;
-  font-weight: 700;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 750;
   line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .brand-caption {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  margin-top: 4px;
-  color: #76797f;
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
   font-size: 9px;
-  font-weight: 700;
+  font-weight: 750;
+  line-height: 1;
 }
 
-.status-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 9999px;
-  background: var(--accent);
-  box-shadow: none;
+.nav-controls {
+  flex: none;
+  gap: 8px;
 }
 
 .landing-icon-control,
@@ -372,419 +359,390 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   border-radius: 6px;
-  font-weight: 650;
-  transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease;
+  font-size: 13px;
+  font-weight: 700;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, transform 160ms ease;
 }
 
 .landing-icon-control {
-  width: 40px;
-  height: 40px;
-  border: 1px solid #d8dadd;
-  border-color: #d8dadd;
-  background: #fff;
-  color: #40434a;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: #596174;
 }
 
-.landing-icon-control:hover {
-  border-color: #a8abb0;
-  background: #f5f5f4;
-  color: #15171a;
+.landing-icon-control:hover,
+.landing-secondary-action:hover {
+  border-color: #b8c0cd;
+  background: #f8f9fb;
+  color: var(--ink);
 }
 
 .landing-nav-action {
-  min-height: 42px;
+  min-height: 38px;
   gap: 7px;
-  padding-inline: 16px;
-  background: #15171a;
+  padding-inline: 14px;
+  background: var(--accent);
   color: #fff;
-  font-size: 13px;
 }
 
-.landing-nav-action:hover {
-  background: #303238;
+.landing-nav-action:hover,
+.landing-primary-action:hover {
+  background: var(--accent-strong);
 }
 
 .hero-section {
-  border-bottom: 1px solid #dedfdf;
-  border-bottom-color: #dedfdf;
-  background: #fbfbfa;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
 }
 
-.hero-layout {
+.hero-grid {
   display: grid;
-  min-height: min(760px, calc(100svh - 112px));
-  grid-template-columns: minmax(0, 0.94fr) minmax(500px, 1.06fr);
+  min-height: min(680px, calc(100svh - 190px));
+  grid-template-columns: minmax(0, 0.91fr) minmax(520px, 1.09fr);
   align-items: center;
-  gap: 80px;
-  padding-block: 64px;
+  gap: 76px;
+  padding-block: 76px;
 }
 
 .hero-copy {
   min-width: 0;
-  max-width: 620px;
+  max-width: 520px;
 }
 
-.hero-kicker {
-  display: inline-flex;
+.eyebrow {
+  display: flex;
   align-items: center;
   gap: 10px;
-  color: #62656b;
+  color: var(--muted);
   font-size: 10px;
-  font-weight: 750;
+  font-weight: 800;
+  line-height: 1;
 }
 
-.hero-kicker-mark {
-  width: 22px;
-  height: 3px;
-  background: var(--accent);
+.eyebrow span {
+  color: var(--accent);
 }
 
 .hero-copy h1 {
-  max-width: none;
-  margin-top: 24px;
-  color: #111316;
-  font-size: 76px;
-  font-weight: 680;
-  line-height: 1.02;
+  margin-top: 26px;
+  color: var(--ink);
+  font-size: 62px;
+  font-weight: 760;
+  line-height: 1.04;
 }
 
 .hero-lead {
-  max-width: 560px;
-  margin-top: 26px;
-  color: #202329;
-  font-size: 26px;
-  font-weight: 620;
+  max-width: 490px;
+  margin-top: 22px;
+  color: #242b38;
+  font-size: 25px;
+  font-weight: 680;
   line-height: 1.42;
 }
 
 .hero-description {
-  max-width: 560px;
+  max-width: 500px;
   margin-top: 12px;
-  color: #686b72;
-  font-size: 16px;
+  color: var(--muted);
+  font-size: 15px;
   line-height: 1.8;
 }
 
 .hero-actions {
-  display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 32px;
+  gap: 10px;
+  margin-top: 30px;
 }
 
 .landing-primary-action,
 .landing-secondary-action {
-  min-height: 48px;
-  padding-inline: 20px;
-  font-size: 14px;
+  min-height: 46px;
+  gap: 8px;
+  padding-inline: 18px;
 }
 
 .landing-primary-action {
-  gap: 8px;
   background: var(--accent);
   color: #fff;
 }
 
 .landing-primary-action:hover {
-  background: var(--accent-strong);
+  transform: translateY(-1px);
 }
 
 .landing-secondary-action {
-  gap: 8px;
-  border: 1px solid #cfd1d4;
-  border-color: #cfd1d4;
-  background: #fff;
-  color: #34373d;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: #354052;
 }
 
-.landing-secondary-action:hover {
-  border-color: #9da0a5;
-  background: #f5f5f4;
-  color: #15171a;
+.hero-context {
+  min-height: 62px;
+  justify-content: space-between;
+  gap: 18px;
+  margin-top: 36px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.hero-endpoint,
+.hero-ready,
+.provider-origin,
+.provider-board-note {
+  display: flex;
+  align-items: center;
 }
 
 .hero-endpoint {
-  display: flex;
-  max-width: 560px;
-  min-height: 70px;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  margin-top: 40px;
-  border-block: 1px solid #dedfdf;
+  min-width: 0;
+  gap: 10px;
   color: var(--accent);
 }
 
-.endpoint-command {
-  display: flex;
+.hero-endpoint span,
+.hero-endpoint small,
+.hero-endpoint code,
+.provider-origin span,
+.provider-origin small,
+.provider-origin code {
   min-width: 0;
-  align-items: center;
-  gap: 12px;
 }
 
-.endpoint-command span,
-.endpoint-command code {
+.hero-endpoint small,
+.provider-origin small {
   display: block;
-}
-
-.endpoint-command span {
-  color: #8a8d92;
+  color: var(--muted);
   font-size: 9px;
-  font-weight: 700;
+  font-weight: 750;
+  line-height: 1;
 }
 
-.endpoint-command code {
+.hero-endpoint code,
+.provider-origin code {
+  display: block;
   overflow: hidden;
-  margin-top: 4px;
-  color: #2c2f35;
+  margin-top: 5px;
+  color: #2c3544;
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 700;
+  line-height: 1;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.endpoint-ready {
-  display: inline-flex;
+.hero-ready {
   flex: none;
-  align-items: center;
   gap: 6px;
   color: var(--accent);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 800;
 }
 
-.gateway-console {
+.route-workbench {
   min-width: 0;
   overflow: hidden;
-  border: 1px solid #cfd1d4;
-  border-color: #cfd1d4;
-  border-top: 4px solid var(--accent);
-  border-radius: 4px;
+  border: 1px solid #dce2ea;
+  border-top: 3px solid var(--accent);
+  border-radius: 8px;
   background: #fff;
-  box-shadow: 0 28px 70px rgba(22, 24, 28, 0.1);
+  box-shadow: 0 24px 60px rgba(25, 34, 52, 0.09);
 }
 
-.console-toolbar {
-  display: flex;
+.workbench-header {
   min-height: 68px;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid #dedfdf;
-  border-bottom-color: #dedfdf;
-  background: #fff;
-  padding-inline: 22px;
-  color: #3a3d43;
-  font-size: 12px;
-  font-weight: 650;
-}
-
-.console-title {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.console-index {
-  display: inline-flex;
-  width: 34px;
-  height: 34px;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid #d8dadd;
-  color: #74777d;
-  font-size: 9px;
-  font-weight: 800;
-}
-
-.console-title strong,
-.console-title small {
-  display: block;
-}
-
-.console-title strong {
-  color: #202329;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.console-title small {
-  margin-top: 3px;
-  color: #92959a;
-  font-size: 8px;
-  font-weight: 700;
-}
-
-.console-live {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--accent);
-  font-size: 9px;
-  font-weight: 800;
-}
-
-.console-live span {
-  width: 6px;
-  height: 6px;
-  border-radius: 9999px;
-  background: var(--accent);
-  box-shadow: none;
-}
-
-.request-summary {
-  display: flex;
-  min-height: 88px;
-  align-items: center;
   justify-content: space-between;
   gap: 16px;
-  border-bottom: 1px solid #dedfdf;
-  border-bottom-color: #dedfdf;
-  background: #f4f4f2;
-  padding: 16px 22px;
+  padding-inline: 22px;
+  border-bottom: 1px solid var(--line);
 }
 
-.request-copy {
-  min-width: 0;
+.workbench-header > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-.request-copy > span {
-  color: #8a8d92;
-  font-size: 8px;
+.workbench-index {
+  display: inline-flex;
+  min-width: 34px;
+  min-height: 22px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--accent-border);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 9px;
   font-weight: 800;
 }
 
-.request-copy div {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 10px;
-  margin-top: 8px;
-}
-
-.request-copy b {
-  flex: none;
-  border-radius: 3px;
-  background: var(--accent-soft);
-  padding: 4px 6px;
-  color: var(--accent);
-  font-size: 9px;
-}
-
-.request-copy code {
-  overflow: hidden;
-  color: #282b30;
-  font-size: 11px;
-  font-weight: 650;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.request-result span {
-  display: block;
-  color: var(--accent);
-  font-size: 12px;
+.workbench-header strong {
+  color: #242c3a;
+  font-size: 14px;
   font-weight: 750;
 }
 
-.request-result {
-  display: flex;
+.workbench-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #4b576c;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.workbench-status i,
+.provider-health i {
+  width: 7px;
+  height: 7px;
   flex: none;
-  flex-direction: column;
-  align-items: flex-end;
+  border-radius: 999px;
+  background: var(--accent);
 }
 
-.request-result small {
-  margin-top: 3px;
-  color: #96999e;
+.workbench-entry {
+  min-height: 82px;
+  gap: 12px;
+  padding: 17px 22px;
+  border-bottom: 1px solid var(--line);
+  background: #fbfcff;
+}
+
+.entry-icon {
+  display: inline-flex;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--accent-border);
+  border-radius: 5px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.workbench-entry div {
+  min-width: 0;
+  flex: 1;
+}
+
+.workbench-entry small,
+.workbench-label,
+.workbench-summary span,
+.route-copy span,
+.route-metric span,
+.provider-table-heading,
+.provider-mode,
+.provider-latency {
+  color: var(--muted);
   font-size: 9px;
+  font-weight: 750;
 }
 
-.console-section-heading {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  padding: 18px 22px 8px;
-  color: #95989d;
-  font-size: 8px;
+.workbench-entry small {
+  display: block;
+}
+
+.workbench-entry code {
+  display: block;
+  overflow: hidden;
+  margin-top: 5px;
+  color: #283244;
+  font-size: 12px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.entry-badge {
+  flex: none;
+  color: var(--accent);
+  font-size: 10px;
   font-weight: 800;
 }
 
+.workbench-label {
+  display: flex;
+  justify-content: space-between;
+  padding: 17px 22px 10px;
+}
+
 .route-list {
-  padding: 0 14px 14px;
+  padding: 0 14px 12px 22px;
 }
 
 .route-row {
+  position: relative;
   display: flex;
-  min-height: 66px;
+  min-height: 55px;
   align-items: center;
-  gap: 13px;
-  border-bottom: 1px solid #e7e7e5;
-  border-bottom-color: #e7e7e5;
-  padding-inline: 8px;
+  gap: 10px;
+  padding: 8px 8px 8px 0;
 }
 
-.route-row:last-child {
-  border-bottom: 0;
+.route-row + .route-row {
+  border-top: 1px solid #edf0f4;
+}
+
+.route-link {
+  width: 12px;
+  height: 1px;
+  flex: none;
+  background: #c9d2e2;
 }
 
 .route-icon {
   display: inline-flex;
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   flex: none;
   align-items: center;
   justify-content: center;
   border-radius: 5px;
 }
 
-.tone-coral {
-  background: #fff0eb;
-  color: #c43e23;
+.tone-coral { background: #fff1ee; color: #bd4a35; }
+.tone-gold { background: #fff7df; color: #a06d0c; }
+.tone-blue { background: #eef4ff; color: #2a5cc1; }
+.tone-violet { background: #f4efff; color: #7044b4; }
+
+.route-copy {
+  min-width: 0;
+  flex: 1;
 }
 
-.tone-gold {
-  background: #fff5d9;
-  color: #9a6700;
-}
-
-.tone-blue {
-  background: #edf2ff;
-  color: #2454d6;
-}
-
-.tone-violet {
-  background: #f3efff;
-  color: #6d45bd;
-}
-
-.route-row strong,
-.route-row span {
+.route-copy strong,
+.route-copy span,
+.route-metric strong,
+.route-metric span {
   display: block;
 }
 
-.route-row strong {
-  color: #2a2d32;
+.route-copy strong {
+  overflow: hidden;
+  color: #273042;
   font-size: 12px;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.route-row span {
+.route-copy span,
+.route-metric span {
   margin-top: 3px;
-  color: #8a8d92;
   font-size: 9px;
 }
 
-.route-telemetry {
-  min-width: 68px;
+.route-metric {
+  flex: none;
   text-align: right;
 }
 
-.route-telemetry strong {
-  color: #3a3d43;
-  font-size: 11px;
-}
-
-.route-telemetry span {
-  color: #a0a2a7;
-  font-size: 8px;
+.route-metric strong {
+  color: #4a5669;
+  font-size: 10px;
+  font-weight: 750;
 }
 
 .route-check {
@@ -792,644 +750,366 @@ onMounted(() => {
   color: var(--accent);
 }
 
-.console-stats {
+.workbench-summary {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  border-top: 1px solid #dedfdf;
-  background: #f4f4f2;
+  grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid var(--line);
+  background: #fbfcff;
 }
 
-.console-stats div {
+.workbench-summary div {
   min-width: 0;
-  padding: 15px 16px 16px;
+  padding: 15px 18px;
 }
 
-.console-stats div + div {
-  border-left: 1px solid #dedfdf;
+.workbench-summary div + div {
+  border-left: 1px solid var(--line);
 }
 
-.console-stats span,
-.console-stats strong {
+.workbench-summary span,
+.workbench-summary strong {
   display: block;
 }
 
-.console-stats span {
+.workbench-summary strong {
   overflow: hidden;
-  color: #92959a;
-  font-size: 8px;
-  font-weight: 700;
+  margin-top: 6px;
+  color: #263044;
+  font-size: 12px;
+  font-weight: 760;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.console-stats strong {
-  margin-top: 5px;
-  color: #202329;
-  font-size: 12px;
-  font-weight: 700;
+.signal-strip {
+  border-bottom: 1px solid var(--line);
+  background: #f9fafc;
 }
 
-.capability-band {
-  border-bottom: 0;
-  background: #17191d;
-}
-
-.capability-grid {
+.signal-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(3, 1fr);
 }
 
-.capability-item {
+.signal-item {
   display: grid;
-  min-height: 88px;
-  grid-template-columns: auto auto minmax(0, 1fr) auto;
-  gap: 14px;
-  padding-inline: 28px;
-  color: #fff;
-  font-size: 13px;
-  font-weight: 650;
+  min-height: 118px;
+  grid-template-columns: 26px 24px minmax(0, 1fr);
+  grid-template-rows: min-content min-content;
+  align-content: center;
+  column-gap: 12px;
+  row-gap: 7px;
+  padding: 22px 24px;
+  color: var(--accent);
 }
 
-.capability-item + .capability-item {
-  border-left: 1px solid #34363b;
-  border-left-color: #34363b;
+.signal-item + .signal-item {
+  border-left: 1px solid var(--line);
 }
 
-.capability-item > svg:first-of-type {
-  color: var(--accent-border);
-}
-
-.capability-item > svg:last-of-type {
-  color: #777a81;
-}
-
-.capability-number {
-  color: #666970;
-  font-size: 9px;
+.signal-number {
+  grid-row: span 2;
+  color: #9098a8;
+  font-size: 10px;
   font-weight: 800;
 }
 
-.provider-section {
-  border-bottom: 1px solid #dedfdf;
-  border-bottom-color: #dedfdf;
-  background: #fff;
-  padding: 112px 0 116px;
-}
-
-.section-intro {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 64px;
-}
-
-.section-copy {
-  max-width: 700px;
-}
-
-.section-label {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: #696c72;
-  font-size: 10px;
-}
-
-.section-label span {
-  color: var(--accent);
-}
-
-.section-copy h2,
-.feature-heading h2 {
-  margin-top: 16px;
-  color: #15171a;
-  font-size: 48px;
-  font-weight: 650;
-  line-height: 1.14;
-}
-
-.section-copy > p:last-of-type,
-.feature-heading > p {
-  margin-top: 18px;
-  color: #6b6e74;
-  font-size: 15px;
-}
-
-.endpoint-note {
-  display: flex;
-  min-width: 340px;
-  align-items: center;
-  gap: 12px;
-  margin-top: 0;
-  border-top: 0;
-  border-left: 3px solid var(--accent);
-  background: #f4f4f2;
-  padding: 18px 20px;
-  color: var(--accent);
-}
-
-.endpoint-note span,
-.endpoint-note code {
-  display: block;
-}
-
-.endpoint-note span {
-  color: #8c8f94;
-  font-size: 9px;
+.signal-item strong {
+  color: #253045;
+  font-size: 13px;
   font-weight: 750;
 }
 
-.endpoint-note code {
-  overflow: hidden;
-  max-width: 300px;
-  margin-top: 4px;
-  color: #2d3035;
-  font-size: 12px;
-  font-weight: 650;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.signal-note {
+  grid-column: 3;
+  color: var(--muted);
+  font-size: 11px;
 }
 
-.provider-table {
-  margin-top: 58px;
-  overflow: visible;
-  border: 0;
-  border-block: 1px solid #bfc1c4;
-  border-radius: 0;
+.provider-section,
+.operation-section {
+  padding-block: 112px;
+}
+
+.provider-section { background: #fff; }
+.operation-section { border-top: 1px solid var(--line); background: #f8f9fb; }
+
+.section-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 48px;
+}
+
+.section-heading > div { max-width: 600px; }
+
+.section-heading h2,
+.conversion-inner h2 {
+  margin-top: 18px;
+  color: var(--ink);
+  font-size: 42px;
+  font-weight: 750;
+  line-height: 1.16;
+}
+
+.section-heading > p {
+  max-width: 370px;
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.75;
+}
+
+.provider-board {
+  overflow: hidden;
+  margin-top: 48px;
+  border: 1px solid #dce2ea;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.provider-board-top {
+  min-height: 82px;
+  justify-content: space-between;
+  gap: 24px;
+  padding-inline: 24px;
+  border-bottom: 1px solid var(--line);
+  background: #fbfcff;
+}
+
+.provider-origin {
+  min-width: 0;
+  gap: 11px;
+  color: var(--accent);
+}
+
+.provider-board-note {
+  flex: none;
+  gap: 7px;
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 750;
 }
 
 .provider-table-heading,
 .provider-table-row {
   display: grid;
-  grid-template-columns: minmax(0, 1.45fr) minmax(120px, 0.7fr) minmax(100px, 0.5fr) minmax(120px, 0.6fr);
+  grid-template-columns: minmax(0, 1.7fr) 1fr 0.7fr 0.7fr;
   align-items: center;
-  padding-inline: 20px;
+  gap: 20px;
+  padding-inline: 24px;
 }
 
 .provider-table-heading {
-  min-height: 48px;
-  border-bottom-color: #d5d6d7;
-  background: transparent;
-  color: #8a8d92;
-  font-size: 9px;
-  font-weight: 750;
+  min-height: 46px;
+  border-bottom: 1px solid var(--line);
+  background: #f7f9fc;
 }
 
 .provider-table-row {
-  min-height: 82px;
-  color: #34373d;
+  min-height: 74px;
 }
 
-.provider-table-row + .provider-table-row {
-  border-top-color: #e1e2e2;
+.provider-table-row + .provider-table-row { border-top: 1px solid #edf0f4; }
+
+.provider-identity { min-width: 0; gap: 11px; }
+
+.provider-number {
+  width: 24px;
+  flex: none;
+  color: #9aa2b0;
+  font-size: 10px;
+  font-weight: 800;
 }
 
-.provider-table-row strong {
+.provider-identity strong {
   overflow: hidden;
-  color: #26292e;
-  font-size: 14px;
+  color: #293346;
+  font-size: 13px;
+  font-weight: 750;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.provider-number {
-  width: 22px;
-  flex: none;
-  color: #999ca1;
-  font-size: 9px;
-  font-weight: 700;
-}
-
 .provider-mode,
-.provider-latency {
-  color: #676a70;
-  font-size: 12px;
-}
+.provider-latency { color: #556177; font-size: 12px; }
 
 .provider-health {
   display: inline-flex;
   align-items: center;
+  justify-self: start;
   gap: 7px;
   color: var(--accent);
   font-size: 11px;
-  font-weight: 650;
-}
-
-.provider-health span {
-  width: 7px;
-  height: 7px;
-  border-radius: 9999px;
-  background: var(--accent);
-}
-
-.feature-section {
-  background: #f1f1ef;
-  padding: 108px 0 116px;
-}
-
-.feature-heading {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 32px;
-}
-
-.feature-heading > p {
-  max-width: 420px;
-  margin: 0;
-}
-
-.feature-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0;
-  margin-top: 54px;
-  border-block: 1px solid #c8c9ca;
-}
-
-.feature-card {
-  min-height: 310px;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  padding: 32px 34px 38px;
-  box-shadow: none;
-  transition: background-color 160ms ease;
-}
-
-.feature-card + .feature-card {
-  border-left: 1px solid #c8c9ca;
-}
-
-.feature-card:hover {
-  transform: none;
-  border-color: #c8c9ca;
-  background: #fff;
-  box-shadow: none;
-}
-
-.feature-card-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  color: var(--accent);
-}
-
-.feature-number {
-  color: #93969b;
-  font-size: 10px;
   font-weight: 750;
 }
 
-.feature-icon {
-  display: inline-flex;
-  width: 44px;
-  height: 44px;
+.section-heading-compact { align-items: end; }
+
+.operation-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin-top: 52px;
+  border-top: 1px solid #cfd6e0;
+  border-bottom: 1px solid #cfd6e0;
+}
+
+.operation-item {
+  position: relative;
+  min-height: 330px;
+  padding: 28px 28px 32px;
+  background: transparent;
+}
+
+.operation-item + .operation-item { border-left: 1px solid #cfd6e0; }
+
+.operation-top {
+  display: flex;
   align-items: center;
-  justify-content: center;
-  background: var(--accent-soft);
+  justify-content: space-between;
   color: var(--accent);
 }
 
-.feature-card h3 {
-  margin-top: 64px;
-  color: #202329;
-  font-size: 21px;
+.operation-top span {
+  color: #929cab;
+  font-size: 10px;
+  font-weight: 800;
 }
 
-.feature-card p {
-  max-width: 330px;
-  margin-top: 14px;
-  color: #686b71;
+.operation-item h3 {
+  margin-top: 78px;
+  color: #202a3a;
+  font-size: 21px;
+  font-weight: 750;
+}
+
+.operation-item p {
+  max-width: 315px;
+  margin-top: 13px;
+  color: var(--muted);
   font-size: 14px;
   line-height: 1.8;
 }
 
-.final-cta {
-  border-block: 0;
+.operation-rule {
+  position: absolute;
+  right: 28px;
+  bottom: 30px;
+  left: 28px;
+  height: 2px;
   background: var(--accent);
+  transform: scaleX(0.18);
+  transform-origin: left;
+  transition: transform 180ms ease;
 }
 
-.final-cta-inner {
+.operation-item:hover .operation-rule { transform: scaleX(1); }
+
+.conversion-section {
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: #fff;
+}
+
+.conversion-inner {
   display: flex;
-  min-height: 190px;
+  min-height: 300px;
   align-items: center;
   justify-content: space-between;
-  gap: 40px;
-  color: #fff;
+  gap: 64px;
 }
 
-.cta-brand {
-  min-width: 220px;
-}
+.conversion-inner > div:first-child { max-width: 660px; }
 
-.cta-brand > span {
-  display: block;
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 9px;
-  font-weight: 800;
-}
-
-.cta-brand p {
-  margin-top: 8px;
-  color: #fff;
-  font-size: 38px;
-  font-weight: 680;
-  line-height: 1.1;
-}
-
-.cta-subtitle {
-  min-width: 0;
-  flex: 1;
-  color: rgba(255, 255, 255, 0.78);
-  font-size: 14px;
-}
-
-.final-cta .landing-primary-action {
+.conversion-action {
+  display: flex;
+  width: min(100%, 310px);
   flex: none;
-  background: #fff;
-  color: #15171a;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 24px;
 }
 
-.final-cta .landing-primary-action:hover {
-  background: #f0f0ee;
+.conversion-action > p {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.75;
 }
 
-.final-cta .landing-primary-action span {
-  color: #15171a;
-}
+.landing-footer { background: #f8f9fb; }
 
 .landing-footer-inner {
-  display: flex;
-  min-height: 84px;
-  align-items: center;
+  min-height: 82px;
   justify-content: space-between;
   gap: 20px;
-  color: #73767c;
+  color: #7a8493;
   font-size: 12px;
 }
 
-.landing-footer {
-  background: #fff;
+.landing-footer-inner div { gap: 18px; }
+.landing-footer-inner a:hover { color: var(--ink); }
+
+@media (max-width: 1120px) {
+  .hero-grid { grid-template-columns: minmax(0, 0.84fr) minmax(460px, 1.16fr); gap: 48px; }
+  .hero-copy h1 { font-size: 56px; }
 }
 
-.landing-footer-inner div {
-  display: flex;
-  gap: 20px;
-}
-
-.landing-footer-inner a:hover {
-  color: #15171a;
-}
-
-@media (max-width: 1150px) {
-  .hero-layout {
-    grid-template-columns: minmax(0, 0.82fr) minmax(470px, 1.18fr);
-    gap: 44px;
-  }
-
-  .hero-copy h1 {
-    font-size: 64px;
-  }
-}
-
-@media (max-width: 1023px) {
-  .hero-layout {
-    min-height: 0;
-    grid-template-columns: 1fr;
-    gap: 56px;
-    padding-block: 72px;
-  }
-
-  .hero-copy {
-    max-width: 720px;
-  }
-
-  .gateway-console {
-    width: min(100%, 760px);
-  }
-
-  .section-intro {
-    display: block;
-  }
-
-  .endpoint-note {
-    width: min(100%, 500px);
-    margin-top: 32px;
-  }
+@media (max-width: 960px) {
+  .hero-grid { min-height: 0; grid-template-columns: 1fr; gap: 52px; padding-block: 64px; }
+  .hero-copy { max-width: 650px; }
+  .route-workbench { width: min(100%, 680px); }
+  .section-heading { display: block; }
+  .section-heading > p { max-width: 540px; margin-top: 16px; }
+  .conversion-inner { min-height: 0; align-items: flex-start; flex-direction: column; padding-block: 74px; }
+  .conversion-action { width: min(100%, 520px); }
 }
 
 @media (max-width: 767px) {
-  .landing-container {
-    width: min(100% - 28px, 1320px);
-  }
-
-  .brand-caption {
-    display: none;
-  }
-
-  .hero-layout {
-    gap: 40px;
-    padding-block: 52px 44px;
-  }
-
-  .hero-copy h1 {
-    margin-top: 20px;
-    font-size: 50px;
-  }
-
-  .hero-lead {
-    margin-top: 22px;
-    font-size: 21px;
-  }
-
-  .hero-description {
-    font-size: 14px;
-  }
-
-  .hero-endpoint {
-    min-height: 64px;
-    margin-top: 32px;
-  }
-
-  .console-toolbar,
-  .request-summary {
-    padding-inline: 16px;
-  }
-
-  .console-section-heading {
-    padding-inline: 16px;
-  }
-
-  .route-list {
-    padding-inline: 8px;
-  }
-
-  .capability-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .capability-item {
-    min-height: 72px;
-    padding-inline: 10px;
-  }
-
-  .capability-item + .capability-item {
-    border-top: 1px solid #34363b;
-    border-left: 0;
-    border-top-color: #34363b;
-  }
-
-  .provider-section,
-  .feature-section {
-    padding-block: 76px 82px;
-  }
-
-  .section-copy h2,
-  .feature-heading h2 {
-    font-size: 38px;
-  }
-
-  .feature-heading {
-    display: block;
-  }
-
-  .feature-heading > p {
-    margin-top: 14px;
-  }
-
-  .endpoint-note {
-    min-width: 0;
-  }
-
-  .provider-table {
-    margin-top: 40px;
-  }
-
-  .provider-table-heading,
-  .provider-table-row {
-    grid-template-columns: minmax(0, 1fr) 96px;
-    padding-inline: 10px;
-  }
-
-  .provider-table-heading span:nth-child(2),
-  .provider-table-heading span:nth-child(3),
-  .provider-mode,
-  .provider-latency {
-    display: none;
-  }
-
-  .feature-grid {
-    grid-template-columns: 1fr;
-    margin-top: 38px;
-  }
-
-  .feature-card {
-    min-height: 250px;
-    padding: 28px 20px 32px;
-  }
-
-  .feature-card + .feature-card {
-    border-top: 1px solid #c8c9ca;
-    border-left: 0;
-  }
-
-  .feature-card h3 {
-    margin-top: 38px;
-  }
-
-  .final-cta-inner {
-    min-height: 0;
-    align-items: flex-start;
-    flex-direction: column;
-    padding-block: 44px;
-  }
-
-  .cta-brand p {
-    font-size: 32px;
-  }
-
-  .cta-subtitle {
-    width: 100%;
-  }
-
-  .landing-footer-inner {
-    align-items: flex-start;
-    flex-direction: column;
-    padding-block: 24px;
-  }
+  .landing-container { width: min(100% - 28px, 1240px); }
+  .landing-nav { min-height: 64px; gap: 12px; }
+  .brand-caption { display: none; }
+  .hero-grid { gap: 38px; padding-block: 50px 44px; }
+  .hero-copy h1 { margin-top: 20px; font-size: 48px; }
+  .hero-lead { margin-top: 18px; font-size: 21px; }
+  .hero-description { font-size: 14px; }
+  .hero-context { align-items: flex-start; flex-direction: column; gap: 13px; padding-block: 15px; }
+  .signal-grid { grid-template-columns: 1fr; }
+  .signal-item + .signal-item { border-top: 1px solid var(--line); border-left: 0; }
+  .provider-section, .operation-section { padding-block: 78px; }
+  .section-heading h2, .conversion-inner h2 { font-size: 34px; }
+  .provider-board { margin-top: 36px; }
+  .provider-board-top { align-items: flex-start; flex-direction: column; gap: 12px; padding: 18px; }
+  .provider-table-heading, .provider-table-row { grid-template-columns: minmax(0, 1fr) 94px; gap: 10px; padding-inline: 18px; }
+  .provider-table-heading span:nth-child(2), .provider-table-heading span:nth-child(3), .provider-mode, .provider-latency { display: none; }
+  .operation-grid { grid-template-columns: 1fr; margin-top: 38px; }
+  .operation-item { min-height: 250px; padding: 26px 20px 30px; }
+  .operation-item + .operation-item { border-top: 1px solid #cfd6e0; border-left: 0; }
+  .operation-item h3 { margin-top: 46px; }
+  .operation-rule { right: 20px; bottom: 26px; left: 20px; }
 }
 
 @media (max-width: 520px) {
-  .landing-nav-action {
-    width: 40px;
-    padding: 0;
-  }
-
-  .landing-nav-action span {
-    display: none;
-  }
-
-  .hero-actions {
-    display: grid;
-    grid-template-columns: 1fr;
-  }
-
-  .hero-actions > * {
-    width: 100%;
-  }
-
-  .hero-copy h1 {
-    font-size: 46px;
-  }
-
-  .hero-endpoint {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 12px;
-    padding-block: 15px;
-  }
-
-  .route-row:nth-child(n + 3) {
-    display: flex;
-  }
-
-  .console-stats {
-    display: grid;
-  }
-
-  .console-stats div {
-    padding-inline: 10px;
-  }
-
-  .provider-number {
-    display: none;
-  }
-}
-
-@media (max-width: 400px) {
-  .brand-mark {
-    width: 38px;
-    height: 38px;
-  }
-
-  .brand-name {
-    max-width: 78px;
-    font-size: 14px;
-  }
-
-  .route-telemetry {
-    display: none;
-  }
-
-  .console-stats strong {
-    font-size: 10px;
-  }
+  .landing-icon-control { display: none; }
+  .landing-nav-action { width: 38px; padding: 0; }
+  .landing-nav-action span { display: none; }
+  .hero-actions { display: grid; grid-template-columns: 1fr; }
+  .hero-actions > * { width: 100%; }
+  .route-workbench { margin-inline: -2px; }
+  .workbench-header, .workbench-entry { padding-inline: 16px; }
+  .workbench-label { padding-inline: 16px; }
+  .route-list { padding-right: 8px; padding-left: 16px; }
+  .workbench-summary div { padding: 13px 10px; }
+  .workbench-summary strong { font-size: 10px; }
+  .signal-item { padding-inline: 8px; }
+  .provider-origin code { max-width: 210px; }
+  .provider-board-note { font-size: 10px; }
+  .landing-footer-inner { align-items: flex-start; flex-direction: column; padding-block: 24px; }
 }
 
 @media (max-width: 380px) {
-  .landing-icon-control {
-    display: none;
-  }
+  .brand-mark { width: 34px; height: 34px; }
+  .brand-name { max-width: 84px; font-size: 14px; }
+  .route-metric { display: none; }
+  .provider-number { display: none; }
 }
 </style>
