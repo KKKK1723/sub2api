@@ -44,7 +44,7 @@
       />
 
       <ProfileTotpCard />
-      <ProfilePasskeyCard :enabled="passkeyEnabled" />
+      <ProfilePasskeyCard v-if="passkeyEnabled" :enabled="passkeyEnabled" />
     </div>
   </AppLayout>
 </template>
