@@ -1635,12 +1635,6 @@
         />
       </div>
 
-      <UpstreamBalanceQuerySettings
-        v-if="account?.type === 'apikey'"
-        v-model:enabled="upstreamBalanceProbeEnabled"
-        v-model:query="upstreamBalanceQuery"
-      />
-
       <OllamaCloudUsageSettings
         v-if="account?.ollama_cloud_usage?.eligible"
         :account="account"
@@ -2611,8 +2605,7 @@ import type {
   OpenAICompactMode,
   OpenAIResponsesMode,
   OpenAIEndpointCapability,
-  OllamaCloudUsageState,
-  UpstreamBalanceQuery
+  OllamaCloudUsageState
 } from '@/types'
 import BaseDialog from '@/components/common/BaseDialog.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
@@ -2627,7 +2620,6 @@ import QuotaLimitCard from '@/components/account/QuotaLimitCard.vue'
 import GrokBaseUrlPresets from '@/components/account/GrokBaseUrlPresets.vue'
 import HeaderOverrideEditor from '@/components/account/HeaderOverrideEditor.vue'
 import OllamaCloudUsageSettings from '@/components/account/OllamaCloudUsageSettings.vue'
-import UpstreamBalanceQuerySettings from '@/components/account/UpstreamBalanceQuerySettings.vue'
 import {
   applyAntigravityProjectID,
   applyHeaderOverride,
@@ -2712,17 +2704,6 @@ interface TempUnschedRuleForm {
   keywords: string
   duration_minutes: number | null
   description: string
-}
-
-const createDefaultUpstreamBalanceQuery = (): UpstreamBalanceQuery => ({ preset: 'sub2api' })
-
-const readUpstreamBalanceQuery = (value: unknown): UpstreamBalanceQuery => {
-  if (!value || typeof value !== 'object') return createDefaultUpstreamBalanceQuery()
-  const query = value as Partial<UpstreamBalanceQuery>
-  if (query.preset !== 'sub2api' && query.preset !== 'ccswitch' && query.preset !== 'custom') {
-    return createDefaultUpstreamBalanceQuery()
-  }
-  return { ...query, preset: query.preset }
 }
 
 // State
@@ -2810,8 +2791,6 @@ const autoPause7dThreshold = ref<number | null>(null)
 const autoPause5hDisabled = ref(false)
 const autoPause7dDisabled = ref(false)
 const upstreamBillingAutoProbeEnabled = ref(false)
-const upstreamBalanceProbeEnabled = ref(false)
-const upstreamBalanceQuery = ref<UpstreamBalanceQuery>(createDefaultUpstreamBalanceQuery())
 const mixedScheduling = ref(false) // For antigravity accounts: enable mixed scheduling
 const allowOverages = ref(false) // For antigravity accounts: enable AI Credits overages
 const antigravityProjectId = ref('')
@@ -3294,8 +3273,6 @@ const syncFormFromAccount = (newAccount: Account | null) => {
 	autoPause5hDisabled.value = extra?.auto_pause_5h_disabled === true
 	autoPause7dDisabled.value = extra?.auto_pause_7d_disabled === true
 	upstreamBillingAutoProbeEnabled.value = extra?.upstream_billing_probe_enabled === true
-	upstreamBalanceProbeEnabled.value = extra?.upstream_balance_probe_enabled === true
-	upstreamBalanceQuery.value = readUpstreamBalanceQuery(extra?.upstream_balance_query)
 
   // Load OpenAI passthrough toggle (OpenAI OAuth/SetupToken/API Key)
   openaiPassthroughEnabled.value = false
@@ -4028,21 +4005,7 @@ const handleClose = () => {
 const submitUpdateAccount = async (accountID: number, updatePayload: Record<string, unknown>) => {
   submitting.value = true
   try {
-    let updatedAccount = await adminAPI.accounts.update(accountID, withAntigravityConfirmFlag(updatePayload))
-    const requestedExtra = updatePayload.extra as Record<string, unknown> | undefined
-    if (updatedAccount.type === 'apikey' && requestedExtra?.upstream_balance_probe_enabled === true) {
-      try {
-        const result = await adminAPI.accounts.probeUpstreamBalance(accountID)
-        if (result.snapshot) {
-          updatedAccount = {
-            ...updatedAccount,
-            extra: { ...updatedAccount.extra, upstream_balance_probe: result.snapshot }
-          }
-        }
-      } catch {
-        appStore.showWarning(t('admin.accounts.upstreamBalance.probeFailed'))
-      }
-    }
+    const updatedAccount = await adminAPI.accounts.update(accountID, withAntigravityConfirmFlag(updatePayload))
     appStore.showSuccess(t('admin.accounts.accountUpdated'))
     emit('updated', updatedAccount)
     handleClose()
@@ -4690,21 +4653,6 @@ const handleSubmit = async () => {
       }
       // Quota notify config
       writeQuotaNotifyToExtra(newExtra, 'update')
-      updatePayload.extra = newExtra
-    }
-
-    if (props.account.type === 'apikey') {
-      const currentExtra = (updatePayload.extra as Record<string, unknown>) ||
-        (props.account.extra as Record<string, unknown>) || {}
-      const newExtra: Record<string, unknown> = { ...currentExtra }
-      delete newExtra.upstream_balance_probe
-      if (upstreamBalanceProbeEnabled.value) {
-        newExtra.upstream_balance_probe_enabled = true
-        newExtra.upstream_balance_query = { ...upstreamBalanceQuery.value }
-      } else {
-        newExtra.upstream_balance_probe_enabled = false
-        newExtra.upstream_balance_query = null
-      }
       updatePayload.extra = newExtra
     }
 
