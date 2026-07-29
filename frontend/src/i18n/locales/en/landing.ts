@@ -7,9 +7,9 @@ export default {
   home: {
     appearance: {
       title: 'Light appearance',
-      mint: 'Mint',
-      sky: 'Sky',
-      coral: 'Coral'
+      cobalt: 'Cobalt',
+      graphite: 'Graphite',
+      vermilion: 'Vermilion'
     },
     viewOnGithub: 'View on GitHub',
     viewDocs: 'View Documentation',

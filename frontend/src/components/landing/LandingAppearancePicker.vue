@@ -60,7 +60,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Check, Palette } from 'lucide-vue-next'
 
-export type LandingPalette = 'mint' | 'sky' | 'coral'
+export type LandingPalette = 'cobalt' | 'graphite' | 'vermilion'
 
 const props = defineProps<{
   modelValue: LandingPalette
@@ -75,9 +75,9 @@ const isOpen = ref(false)
 const pickerRef = ref<HTMLElement | null>(null)
 
 const options = computed(() => [
-  { value: 'mint' as const, label: t('home.appearance.mint'), color: '#0f766e' },
-  { value: 'sky' as const, label: t('home.appearance.sky'), color: '#2563eb' },
-  { value: 'coral' as const, label: t('home.appearance.coral'), color: '#c2410c' }
+  { value: 'cobalt' as const, label: t('home.appearance.cobalt'), color: '#2454d6' },
+  { value: 'graphite' as const, label: t('home.appearance.graphite'), color: '#24262b' },
+  { value: 'vermilion' as const, label: t('home.appearance.vermilion'), color: '#d9472b' }
 ])
 
 const activeOption = computed(
@@ -107,17 +107,17 @@ onBeforeUnmount(() => document.removeEventListener('click', handleClickOutside))
   align-items: center;
   justify-content: center;
   gap: 5px;
-  border: 1px solid #dfe3e8;
-  border-radius: 8px;
+  border: 1px solid #d8dadd;
+  border-radius: 6px;
   background: #fff;
   color: #344054;
   transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease;
 }
 
 .landing-control:hover {
-  border-color: #b9c0ca;
-  background: #f8fafb;
-  color: #101828;
+  border-color: #a8abb0;
+  background: #f5f5f4;
+  color: #15171a;
 }
 
 .landing-menu-enter-active,

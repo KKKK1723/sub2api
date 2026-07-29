@@ -904,9 +904,9 @@ onBeforeUnmount(() => {
 }
 
 .sidebar-logo-default {
-  border-color: #b9ddd5;
-  background: #e7f5f2;
-  color: #0f766e;
+  border-color: #c9d5ff;
+  background: #eef2ff;
+  color: #2454d6;
 }
 
 .sidebar-header-collapsed {
