@@ -16,7 +16,12 @@
         @click="handleMenuItemClick(homePath)"
       >
         <img v-if="settingsLoaded && siteLogo" :src="siteLogo" alt="Logo" class="h-full w-full object-contain" />
-        <Network v-else-if="settingsLoaded" :size="20" :stroke-width="1.9" aria-hidden="true" />
+        <img
+          v-else-if="settingsLoaded"
+          src="/logo.svg?v=cobalt-20260729"
+          alt="筏&API"
+          class="h-full w-full object-contain"
+        />
       </router-link>
       <div class="sidebar-brand" :class="{ 'sidebar-brand-collapsed': sidebarCollapsed }" :aria-hidden="sidebarCollapsed ? 'true' : 'false'">
         <router-link
@@ -179,7 +184,6 @@
 import { computed, h, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { Network } from 'lucide-vue-next'
 import { useAdminSettingsStore, useAppStore, useAuthStore, useOnboardingStore } from '@/stores'
 import VersionBadge from '@/components/common/VersionBadge.vue'
 import { sanitizeSvg } from '@/utils/sanitize'
