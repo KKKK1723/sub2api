@@ -175,9 +175,16 @@ const authStore = useAuthStore()
 const appStore = useAppStore()
 
 const siteName = computed(() => appStore.siteName || '筏&API')
-const siteLogo = computed(() => sanitizeUrl(appStore.siteLogo || '', { allowRelative: true, allowDataUrl: true }))
+const siteLogo = computed(() =>
+  sanitizeUrl(appStore.cachedPublicSettings?.site_logo || appStore.siteLogo || '', {
+    allowRelative: true,
+    allowDataUrl: true
+  })
+)
 const siteSubtitle = computed(() => appStore.cachedPublicSettings?.site_subtitle || 'AI API Gateway Platform')
-const docUrl = computed(() => sanitizeUrl(appStore.docUrl || ''))
+const docUrl = computed(() =>
+  sanitizeUrl(appStore.cachedPublicSettings?.doc_url || appStore.docUrl || '')
+)
 const homeContent = computed(() => appStore.cachedPublicSettings?.home_content || '')
 const isHomeContentUrl = computed(() => /^https?:\/\//i.test(homeContent.value.trim()))
 const isAuthenticated = computed(() => authStore.isAuthenticated)
