@@ -32,6 +32,39 @@ type userRepository struct {
 	sql    sqlExecutor
 }
 
+// SumBalance returns the exact database aggregate for non-deleted users.
+// The numeric value is kept as text until the HTTP boundary to avoid float accumulation.
+func (r *userRepository) SumBalance(ctx context.Context) (string, int64, error) {
+	return r.sumBalance(ctx, 0)
+}
+
+// SumBalanceExcluding returns the aggregate while excluding one user ID. The
+// exclusion is used for the admin dashboard so an administrator's own balance
+// is not included in the "all users" total.
+func (r *userRepository) SumBalanceExcluding(ctx context.Context, excludedUserID int64) (string, int64, error) {
+	return r.sumBalance(ctx, excludedUserID)
+}
+
+func (r *userRepository) sumBalance(ctx context.Context, excludedUserID int64) (string, int64, error) {
+	var total string
+	var count int64
+	rows, err := r.sql.QueryContext(ctx, `SELECT COALESCE(SUM(ROUND(balance::numeric, 2)), 0)::numeric(30,2)::text, COUNT(*) FROM users WHERE deleted_at IS NULL AND ($1 = 0 OR id <> $1)`, excludedUserID)
+	if err != nil {
+		return "", 0, err
+	}
+	defer rows.Close()
+	if !rows.Next() {
+		if err := rows.Err(); err != nil {
+			return "", 0, err
+		}
+		return "0.00", 0, nil
+	}
+	if err := rows.Scan(&total, &count); err != nil {
+		return "", 0, err
+	}
+	return total, count, nil
+}
+
 var _ service.RedeemUserAdjustmentRepository = (*userRepository)(nil)
 
 func NewUserRepository(client *dbent.Client, sqlDB *sql.DB) service.UserRepository {

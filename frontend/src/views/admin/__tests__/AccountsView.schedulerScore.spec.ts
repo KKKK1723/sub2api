@@ -240,6 +240,10 @@ describe('admin AccountsView scheduler score column', () => {
     expect(listAccounts.mock.calls[0]?.[2]).toEqual(expect.objectContaining({
       include_scheduler_score: '1'
     }))
+    expect(JSON.parse(localStorage.getItem('account-hidden-columns') || '[]')).toEqual(
+      expect.arrayContaining(['today_stats', 'upstream_balance'])
+    )
+    expect(JSON.parse(localStorage.getItem('account-hidden-columns') || '[]')).not.toContain('scheduler_score')
   })
 
   it('still shows a dash when no scheduler score is available', async () => {

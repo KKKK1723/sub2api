@@ -7,6 +7,7 @@ const {
   probeUpstreamBillingMock,
   syncUpstreamModelsMock,
   showWarningMock,
+  probeUpstreamBalanceMock,
   importCodexSessionMock,
   createOpenAICodexPATMock,
   authIsSimpleMode,
@@ -15,6 +16,7 @@ const {
   probeUpstreamBillingMock: vi.fn(),
   syncUpstreamModelsMock: vi.fn(),
   showWarningMock: vi.fn(),
+  probeUpstreamBalanceMock: vi.fn(),
   importCodexSessionMock: vi.fn(),
   createOpenAICodexPATMock: vi.fn(),
   authIsSimpleMode: { value: true },
@@ -42,6 +44,7 @@ vi.mock('@/api/admin', () => ({
       create: createAccountMock,
       probeUpstreamBilling: probeUpstreamBillingMock,
       syncUpstreamModels: syncUpstreamModelsMock,
+      probeUpstreamBalance: probeUpstreamBalanceMock,
       checkMixedChannelRisk: vi.fn().mockResolvedValue({ has_risk: false }),
       importCodexSession: importCodexSessionMock,
       createOpenAICodexPAT: createOpenAICodexPATMock,
@@ -163,7 +166,8 @@ async function selectButtonByText(wrapper: ReturnType<typeof mountModal>, text: 
 async function submitApiKeyAccount(
   platform: 'openai' | 'anthropic',
   enableLongContextBilling = false,
-  disableUpstreamBillingProbe = false
+  disableUpstreamBillingProbe = false,
+  enableUpstreamBalanceProbe = false
 ) {
   const wrapper = mountModal()
   await selectButtonByText(wrapper, platform === 'openai' ? 'OpenAI' : 'admin.accounts.claudeConsole')
@@ -177,6 +181,9 @@ async function submitApiKeyAccount(
   }
   if (disableUpstreamBillingProbe) {
     await wrapper.get('[data-testid="upstream-billing-auto-probe"]').trigger('click')
+  }
+  if (enableUpstreamBalanceProbe) {
+    await wrapper.get('[data-testid="upstream-balance-enabled"]').trigger('click')
   }
   await wrapper.get('form#create-account-form').trigger('submit.prevent')
   await flushPromises()
@@ -201,6 +208,7 @@ describe('CreateAccountModal OpenAI long-context billing', () => {
     probeUpstreamBillingMock.mockReset().mockResolvedValue({})
     syncUpstreamModelsMock.mockReset().mockResolvedValue({ models: [], metadata: {} })
     showWarningMock.mockReset()
+    probeUpstreamBalanceMock.mockReset().mockResolvedValue({})
     importCodexSessionMock.mockReset().mockResolvedValue({
       created: 1,
       updated: 0,
@@ -587,6 +595,15 @@ describe('CreateAccountModal OpenAI long-context billing', () => {
     })
   })
 
+  it('creates a CC Switch balance query and probes it immediately', async () => {
+    await submitApiKeyAccount('anthropic', false, false, true)
+
+    const payload = createAccountMock.mock.calls[0]?.[0]
+    expect(payload?.extra?.upstream_balance_probe_enabled).toBe(true)
+    expect(payload?.extra?.upstream_balance_query).toEqual({ preset: 'sub2api' })
+    expect(probeUpstreamBalanceMock).toHaveBeenCalledWith(42)
+  })
+
   it('exposes Agent Identity in the OpenAI authorization methods', async () => {
     const wrapper = mountModal()
     await selectButtonByText(wrapper, 'OpenAI')
@@ -629,6 +646,7 @@ describe('CreateAccountModal OpenAI long-context billing', () => {
     expect(createAccountMock.mock.calls[0]?.[0]?.extra?.openai_long_context_billing_enabled).toBeUndefined()
     // 上游倍率探测已放宽到全部 API-key 平台：非 OpenAI 平台与 OpenAI 一致，默认开启。
     expect(createAccountMock.mock.calls[0]?.[0]?.upstream_billing_probe_enabled).toBe(true)
+    expect(createAccountMock.mock.calls[0]?.[0]?.extra?.upstream_balance_query).toBeUndefined()
   })
 
   it('sends an explicit disabled state when the non-OpenAI create toggle is turned off', async () => {

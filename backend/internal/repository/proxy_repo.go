@@ -226,6 +226,7 @@ func invalidateProxyProbeSnapshots(ctx context.Context, exec sqlExecutor, proxyI
 		UPDATE accounts
 		SET extra = COALESCE(extra, '{}'::jsonb)
 				- 'upstream_billing_probe'
+				- 'upstream_balance_probe'
 				- 'ollama_cloud_usage_snapshot'
 				- 'opencode_go_usage_snapshot',
 			updated_at = NOW()
@@ -234,6 +235,8 @@ func invalidateProxyProbeSnapshots(ctx context.Context, exec sqlExecutor, proxyI
 			AND (
 				(extra ? 'upstream_billing_probe'
 					AND extra -> 'upstream_billing_probe' <> 'null'::jsonb)
+				OR (extra ? 'upstream_balance_probe'
+					AND extra -> 'upstream_balance_probe' <> 'null'::jsonb)
 				OR (platform IN (`+ollamaCloudUsagePlatformsSQL+`)
 					AND extra ? 'ollama_cloud_usage_snapshot'
 					AND extra -> 'ollama_cloud_usage_snapshot' <> 'null'::jsonb)
@@ -766,8 +769,8 @@ func (r *proxyRepository) sweepOneExpiredProxyOnExec(ctx context.Context, exec s
 		rows, err = exec.QueryContext(ctx, `
 			UPDATE accounts SET proxy_id=NULL, proxy_fallback_origin_id=COALESCE(proxy_fallback_origin_id,$1),
 				extra=CASE
-					WHEN type='apikey' AND extra ? 'upstream_billing_probe'
-					THEN extra - 'upstream_billing_probe'
+					WHEN type='apikey' AND (extra ? 'upstream_billing_probe' OR extra ? 'upstream_balance_probe')
+					THEN extra - 'upstream_billing_probe' - 'upstream_balance_probe'
 					ELSE extra
 				END,
 				updated_at=NOW()
@@ -777,8 +780,8 @@ func (r *proxyRepository) sweepOneExpiredProxyOnExec(ctx context.Context, exec s
 		rows, err = exec.QueryContext(ctx, `
 			UPDATE accounts SET proxy_id=$2, proxy_fallback_origin_id=COALESCE(proxy_fallback_origin_id,$1),
 				extra=CASE
-					WHEN type='apikey' AND extra ? 'upstream_billing_probe'
-					THEN extra - 'upstream_billing_probe'
+					WHEN type='apikey' AND (extra ? 'upstream_billing_probe' OR extra ? 'upstream_balance_probe')
+					THEN extra - 'upstream_billing_probe' - 'upstream_balance_probe'
 					ELSE extra
 				END,
 				updated_at=NOW()

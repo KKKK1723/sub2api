@@ -131,9 +131,11 @@ describe('admin AccountsView priority column preferences', () => {
     await flushPromises()
 
     expect(wrapper.find('[data-column="priority"]').exists()).toBe(false)
+    // 调度分迁移版本的旧布局会再迁移一次，补充默认隐藏的上游余额列。
     expect(JSON.parse(localStorage.getItem('account-hidden-columns') || '[]')).toEqual([
       'priority',
-      'today_stats'
+      'today_stats',
+      'upstream_balance'
     ])
   })
 

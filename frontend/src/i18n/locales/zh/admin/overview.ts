@@ -496,6 +496,7 @@ export default {
     users: {
       title: '用户管理',
       description: '管理用户账户和权限',
+      totalBalance: '所有用户总余额',
       createUser: '创建用户',
       bulkDelete: {
         action: '批量删除（{count}）',

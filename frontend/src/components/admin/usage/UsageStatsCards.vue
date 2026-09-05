@@ -55,6 +55,8 @@
               </span>
             </span>
           </span>
+          <span>/</span>
+          <span>{{ t('usage.cacheHitRate') }}: {{ cacheHitRate }}</span>
         </p>
       </div>
     </div>
@@ -112,6 +114,15 @@ const totalAccountCost = computed(() => {
 })
 const showAccountCost = computed(() => props.showAccountCost)
 const strikeStandardCost = computed(() => props.strikeStandardCost)
+const cacheHitRate = computed(() => {
+  const inputTokens = props.stats?.total_input_tokens || 0
+  const cacheCreationTokens = props.stats?.total_cache_creation_tokens || 0
+  const cacheReadTokens = props.stats?.total_cache_read_tokens || 0
+  const totalPromptTokens = inputTokens + cacheCreationTokens + cacheReadTokens
+
+  if (totalPromptTokens === 0) return '0.00%'
+  return `${((cacheReadTokens / totalPromptTokens) * 100).toFixed(2)}%`
+})
 
 const formatDuration = (ms: number) =>
   ms < 1000 ? `${ms.toFixed(0)}ms` : `${(ms / 1000).toFixed(2)}s`

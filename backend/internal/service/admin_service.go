@@ -158,6 +158,14 @@ func ValidateSimpleModeGroupOperation(cfg *config.Config, operation AdminGroupOp
 	return nil
 }
 
+// UserBalanceSummary is an administrator-only aggregate. TotalBalance is a
+// fixed-point decimal string produced by PostgreSQL, avoiding float summation.
+type UserBalanceSummary struct {
+	TotalBalance string
+	UserCount    int64
+	UpdatedAt    time.Time
+}
+
 // CreateUserInput represents input for creating a new user via admin operations.
 type CreateUserInput struct {
 	Email                string

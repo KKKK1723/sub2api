@@ -15,6 +15,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -646,6 +647,8 @@ func lockAndMergeAccountProbeExtra(
 			extra -> 'upstream_billing_probe_enabled',
 			extra -> 'upstream_billing_rate_sync_enabled',
 			extra -> 'upstream_billing_probe',
+			extra -> 'upstream_balance_query',
+			extra -> 'upstream_balance_probe',
 			extra -> 'ollama_cloud_usage_session',
 			extra -> 'ollama_cloud_usage_auto_refresh',
 			extra -> 'ollama_cloud_usage_snapshot',
@@ -694,6 +697,8 @@ func lockAndMergeAccountProbeExtra(
 		currentEnabled                 []byte
 		currentRateSyncEnabled         []byte
 		currentSnapshot                []byte
+		currentBalanceQuery            []byte
+		currentBalanceSnapshot         []byte
 		currentOllamaSession           []byte
 		currentOllamaAutoRefresh       []byte
 		currentOllamaSnapshot          []byte
@@ -707,6 +712,8 @@ func lockAndMergeAccountProbeExtra(
 		&currentEnabled,
 		&currentRateSyncEnabled,
 		&currentSnapshot,
+		&currentBalanceQuery,
+		&currentBalanceSnapshot,
 		&currentOllamaSession,
 		&currentOllamaAutoRefresh,
 		&currentOllamaSnapshot,
@@ -725,6 +732,7 @@ func lockAndMergeAccountProbeExtra(
 		service.UpstreamBillingProbeEnabledExtraKey,
 		service.UpstreamBillingRateSyncEnabledExtraKey,
 		service.UpstreamBillingProbeExtraKey,
+		service.UpstreamBalanceProbeExtraKey,
 		service.OllamaCloudUsageSessionExtraKey,
 		service.OllamaCloudUsageAutoRefreshExtraKey,
 		service.OllamaCloudUsageSnapshotExtraKey,
@@ -787,6 +795,25 @@ func lockAndMergeAccountProbeExtra(
 			extra[service.UpstreamBillingProbeExtraKey] = snapshot
 		}
 	}
+	currentBalanceQueryValue, currentBalanceQueryOK, err := decodeAccountExtraJSON(currentBalanceQuery)
+	if err != nil {
+		return nil, err
+	}
+	requestedBalanceQueryValue, requestedBalanceQueryOK, err := normalizeAccountExtraJSONValue(extra[service.UpstreamBalanceQueryExtraKey])
+	if err != nil {
+		return nil, err
+	}
+	balanceIdentityUnchanged := identityUnchanged &&
+		currentBalanceQueryOK &&
+		requestedBalanceQueryOK &&
+		reflect.DeepEqual(currentBalanceQueryValue, requestedBalanceQueryValue)
+	if balanceIdentityUnchanged {
+		if snapshot, ok, err := decodeAccountExtraJSON(currentBalanceSnapshot); err != nil {
+			return nil, err
+		} else if ok {
+			extra[service.UpstreamBalanceProbeExtraKey] = snapshot
+		}
+	}
 
 	if service.IsOllamaCloudUsageAccount(account) && ollamaGroupIdentityUnchanged {
 		for key, raw := range map[string][]byte{
@@ -838,6 +865,17 @@ func decodeAccountExtraJSON(raw []byte) (any, bool, error) {
 		return nil, false, err
 	}
 	return value, true, nil
+}
+
+func normalizeAccountExtraJSONValue(value any) (any, bool, error) {
+	if value == nil {
+		return nil, false, nil
+	}
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return nil, false, err
+	}
+	return decodeAccountExtraJSON(raw)
 }
 
 func (r *accountRepository) UpdateCredentials(ctx context.Context, id int64, credentials map[string]any) error {
@@ -901,6 +939,7 @@ func (r *accountRepository) UpdateCredentials(ctx context.Context, id int64, cre
 					)
 				THEN COALESCE(extra, '{}'::jsonb)
 					- 'upstream_billing_probe'
+					- 'upstream_balance_probe'
 					- 'opencode_go_usage_auto_refresh'
 					- 'opencode_go_usage_snapshot'
 					- 'ollama_cloud_usage_session'
@@ -920,14 +959,15 @@ func (r *accountRepository) UpdateCredentials(ctx context.Context, id int64, cre
 					)
 				THEN COALESCE(extra, '{}'::jsonb)
 					- 'upstream_billing_probe'
+					- 'upstream_balance_probe'
 					- 'ollama_cloud_usage_session'
 					- 'ollama_cloud_usage_auto_refresh'
 					- 'ollama_cloud_usage_snapshot'
 				-- 上游倍率探测已放宽到全部 API-key 平台：凭证变化即视为探测
-				-- 身份变化，丢弃 stale 快照。
+				-- 身份变化，丢弃 stale 快照（上游余额快照同理）。
 				WHEN type = 'apikey'
 					AND credentials IS DISTINCT FROM $1::jsonb
-				THEN COALESCE(extra, '{}'::jsonb) - 'upstream_billing_probe'
+				THEN COALESCE(extra, '{}'::jsonb) - 'upstream_billing_probe' - 'upstream_balance_probe'
 				ELSE extra
 			END,
 			updated_at = NOW()
@@ -3075,6 +3115,7 @@ func (r *accountRepository) BulkUpdate(ctx context.Context, ids []int64, updates
 	}
 	// JSONB 需要合并而非覆盖，使用 raw SQL 保持旧行为。
 	credentialPlaceholder := ""
+	balanceCredentialIdentityChanged := ""
 	if len(updates.Credentials) > 0 {
 		payload, err := json.Marshal(updates.Credentials)
 		if err != nil {
@@ -3084,6 +3125,7 @@ func (r *accountRepository) BulkUpdate(ctx context.Context, ids []int64, updates
 		setClauses = append(setClauses, "credentials = COALESCE(credentials, '{}'::jsonb) || "+credentialPlaceholder+"::jsonb")
 		args = append(args, payload)
 		idx++
+		balanceCredentialIdentityChanged = "(type = 'apikey' AND credentials IS DISTINCT FROM (COALESCE(credentials, '{}'::jsonb) || " + credentialPlaceholder + "::jsonb))"
 	}
 
 	ollamaGroupIdentityChanges := make([]string, 0, 2)
@@ -3128,7 +3170,7 @@ func (r *accountRepository) BulkUpdate(ctx context.Context, ids []int64, updates
 				" AND COALESCE(btrim("+credentialPlaceholder+"::jsonb ->> 'account_mode') <> 'zen', true) IS NOT TRUE")
 	}
 
-	if len(updates.Extra) > 0 || len(ollamaGroupIdentityChanges) > 0 || len(opencodeGroupIdentityChanges) > 0 || ollamaProxyIdentityChanged != "" || updates.EnsureCodexFingerprintSeed {
+	if len(updates.Extra) > 0 || len(ollamaGroupIdentityChanges) > 0 || len(opencodeGroupIdentityChanges) > 0 || ollamaProxyIdentityChanged != "" || balanceCredentialIdentityChanged != "" || updates.EnsureCodexFingerprintSeed {
 		extraExpression := "COALESCE(extra, '{}'::jsonb)"
 		if len(updates.Extra) > 0 {
 			payload, err := json.Marshal(updates.Extra)
@@ -3207,6 +3249,19 @@ func (r *accountRepository) BulkUpdate(ctx context.Context, ids []int64, updates
 		}
 		if len(caseBranches) > 0 {
 			extraExpression = "CASE" + strings.Join(caseBranches, "") + " ELSE " + extraExpression + " END"
+		}
+		// 上游余额快照随凭证或代理身份变化失效（与上述 OpenCode/Ollama 分支清理的键互不重叠）。
+		balanceIdentityChanged := balanceCredentialIdentityChanged
+		if ollamaProxyIdentityChanged != "" {
+			balanceProxyChanged := "(type = 'apikey' AND " + ollamaProxyIdentityChanged + ")"
+			if balanceIdentityChanged == "" {
+				balanceIdentityChanged = balanceProxyChanged
+			} else {
+				balanceIdentityChanged = "(" + balanceIdentityChanged + " OR " + balanceProxyChanged + ")"
+			}
+		}
+		if balanceIdentityChanged != "" {
+			extraExpression = "CASE WHEN " + balanceIdentityChanged + " THEN (" + extraExpression + ") - 'upstream_balance_probe' ELSE " + extraExpression + " END"
 		}
 		if updates.EnsureCodexFingerprintSeed {
 			extraExpression = ensureCodexFingerprintSeedSQL(extraExpression)
@@ -4051,7 +4106,7 @@ func (r *accountRepository) RevertProxyFallback(ctx context.Context, accountID i
 	res, err := r.sql.ExecContext(ctx, `
 		UPDATE accounts SET
 			extra=CASE WHEN type='apikey' AND proxy_id IS DISTINCT FROM proxy_fallback_origin_id
-				THEN extra - 'upstream_billing_probe' ELSE extra END,
+				THEN extra - 'upstream_billing_probe' - 'upstream_balance_probe' ELSE extra END,
 			proxy_id=proxy_fallback_origin_id, proxy_fallback_origin_id=NULL, updated_at=NOW()
 		WHERE id=$1 AND proxy_fallback_origin_id IS NOT NULL AND deleted_at IS NULL`, accountID)
 	if err != nil {

@@ -1449,6 +1449,12 @@
           />
         </div>
 
+        <UpstreamBalanceQuerySettings
+          v-if="accountCategory === 'apikey'"
+          v-model:enabled="upstreamBalanceProbeEnabled"
+          v-model:query="upstreamBalanceQuery"
+        />
+
         <!-- Gemini API Key tier selection -->
         <div v-if="form.platform === 'gemini'">
           <label class="input-label">{{ t('admin.accounts.gemini.tier.label') }}</label>
@@ -3936,7 +3942,8 @@ import type {
   CodexSessionImportMessage,
   OpenAICompactMode,
   OpenAIResponsesMode,
-  OpenAIEndpointCapability
+  OpenAIEndpointCapability,
+  UpstreamBalanceQuery
 } from '@/types'
 import BaseDialog from '@/components/common/BaseDialog.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
@@ -3950,6 +3957,7 @@ import ProxyAdBanner from '@/components/common/ProxyAdBanner.vue'
 import GroupSelector from '@/components/common/GroupSelector.vue'
 import ModelWhitelistSelector from '@/components/account/ModelWhitelistSelector.vue'
 import QuotaLimitCard from '@/components/account/QuotaLimitCard.vue'
+import UpstreamBalanceQuerySettings from '@/components/account/UpstreamBalanceQuerySettings.vue'
 import Toggle from '@/components/common/Toggle.vue'
 import GrokBaseUrlPresets from '@/components/account/GrokBaseUrlPresets.vue'
 import CnBaseUrlPresets from '@/components/account/CnBaseUrlPresets.vue'
@@ -4172,6 +4180,9 @@ const addMethod = ref<AddMethod>('oauth') // For oauth-based: 'oauth' or 'setup-
 const apiKeyBaseUrl = ref('https://api.anthropic.com')
 const apiKeyValue = ref('')
 const upstreamBillingAutoProbeEnabled = ref(true)
+const createDefaultUpstreamBalanceQuery = (): UpstreamBalanceQuery => ({ preset: 'sub2api' })
+const upstreamBalanceProbeEnabled = ref(false)
+const upstreamBalanceQuery = ref<UpstreamBalanceQuery>(createDefaultUpstreamBalanceQuery())
 
 // ── 国产供应商（Kimi / Zhipu / DeepSeek）账号类型、API 协议与端点 ──
 const accountMode = ref<CnAccountMode>('payg')
@@ -5306,6 +5317,16 @@ const submitCreateAccount = async (payload: CreateAccountRequest) => {
         appStore.showWarning(t('admin.accounts.upstreamBilling.probeFailed'))
       }
     }
+    if (
+      payload.type === 'apikey' &&
+      (payload.extra as Record<string, unknown> | undefined)?.upstream_balance_probe_enabled === true
+    ) {
+      try {
+        await adminAPI.accounts.probeUpstreamBalance(account.id)
+      } catch {
+        appStore.showWarning(t('admin.accounts.upstreamBalance.probeFailed'))
+      }
+    }
     appStore.showSuccess(t('admin.accounts.accountCreated'))
     emit('created')
     handleClose()
@@ -5352,6 +5373,8 @@ const resetForm = () => {
   apiKeyValue.value = ''
   upstreamRequestIdHeader.value = ''
   upstreamBillingAutoProbeEnabled.value = true
+  upstreamBalanceProbeEnabled.value = false
+  upstreamBalanceQuery.value = createDefaultUpstreamBalanceQuery()
   editQuotaLimit.value = null
   editQuotaDailyLimit.value = null
   editQuotaWeeklyLimit.value = null
@@ -5559,6 +5582,23 @@ const buildAnthropicExtra = (base?: Record<string, unknown>): Record<string, unk
     extra.web_search_emulation = webSearchEmulationMode.value
   }
 
+  return Object.keys(extra).length > 0 ? extra : undefined
+}
+
+const buildUpstreamBalanceExtra = (base?: Record<string, unknown>): Record<string, unknown> | undefined => {
+  if (accountCategory.value !== 'apikey') {
+    return base
+  }
+
+  const extra: Record<string, unknown> = { ...(base || {}) }
+  if (upstreamBalanceProbeEnabled.value) {
+    extra.upstream_balance_probe_enabled = true
+    extra.upstream_balance_query = { ...upstreamBalanceQuery.value }
+  } else {
+    delete extra.upstream_balance_probe_enabled
+    delete extra.upstream_balance_query
+  }
+  delete extra.upstream_balance_probe
   return Object.keys(extra).length > 0 ? extra : undefined
 }
 
@@ -5903,7 +5943,7 @@ const handleSubmit = async () => {
   }
 
   form.credentials = credentials
-  const extra = buildAnthropicExtra(buildOpenAIExtra())
+  const extra = buildUpstreamBalanceExtra(buildAnthropicExtra(buildOpenAIExtra()))
 
   await doCreateAccount({
     ...form,

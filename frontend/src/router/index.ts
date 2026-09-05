@@ -14,6 +14,8 @@ import { getSetupStatus } from '@/api/setup'
 import { resolveCompletedSetupRedirectPath } from './setupRedirect'
 import { resolveRouteDocumentTitle } from './title'
 
+const DEV_PREVIEW_AUTH = import.meta.env.DEV && import.meta.env.VITE_DEV_BYPASS_AUTH === 'true'
+
 /**
  * Route definitions with lazy loading
  */
@@ -463,6 +465,17 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/admin/upstream-balances',
+    name: 'AdminUpstreamBalances',
+    component: () => import('@/views/admin/UpstreamBalancesView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      title: 'Upstream Balances',
+      titleKey: 'admin.upstreamBalances.title'
+    }
+  },
+  {
     path: '/admin/channels',
     redirect: '/admin/channels/pricing'
   },
@@ -803,6 +816,12 @@ router.beforeEach(async (to, _from, next) => {
   // Check if route requires authentication
   const requiresAuth = to.meta.requiresAuth !== false // Default to true
   const requiresAdmin = to.meta.requiresAdmin === true
+
+  // Keep the local visual preview navigable without a backend session.
+  // The store supplies a synthetic admin identity only in Vite dev mode.
+  if (DEV_PREVIEW_AUTH && requiresAuth && !authStore.isAuthenticated) {
+    authStore.checkAuth()
+  }
 
   if (to.path === '/setup') {
     try {
