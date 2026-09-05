@@ -205,6 +205,11 @@ function extractErrorMessage(error: unknown, fallback: string): string {
 }
 
 async function loadCredentials(): Promise<void> {
+  if (!props.enabled) {
+    credentials.value = []
+    loading.value = false
+    return
+  }
   loading.value = true
   try {
     credentials.value = await passkeyAPI.list()
