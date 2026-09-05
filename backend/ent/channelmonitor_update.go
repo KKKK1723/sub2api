@@ -108,6 +108,24 @@ func (_u *ChannelMonitorUpdate) SetNillableAPIKeyEncrypted(v *string) *ChannelMo
 	return _u
 }
 
+// SetProbes sets the "probes" field.
+func (_u *ChannelMonitorUpdate) SetProbes(v []map[string]interface{}) *ChannelMonitorUpdate {
+	_u.mutation.SetProbes(v)
+	return _u
+}
+
+// AppendProbes appends value to the "probes" field.
+func (_u *ChannelMonitorUpdate) AppendProbes(v []map[string]interface{}) *ChannelMonitorUpdate {
+	_u.mutation.AppendProbes(v)
+	return _u
+}
+
+// ClearProbes clears the value of the "probes" field.
+func (_u *ChannelMonitorUpdate) ClearProbes() *ChannelMonitorUpdate {
+	_u.mutation.ClearProbes()
+	return _u
+}
+
 // SetPrimaryModel sets the "primary_model" field.
 func (_u *ChannelMonitorUpdate) SetPrimaryModel(v string) *ChannelMonitorUpdate {
 	_u.mutation.SetPrimaryModel(v)
@@ -526,6 +544,17 @@ func (_u *ChannelMonitorUpdate) sqlSave(ctx context.Context) (_node int, err err
 	if value, ok := _u.mutation.APIKeyEncrypted(); ok {
 		_spec.SetField(channelmonitor.FieldAPIKeyEncrypted, field.TypeString, value)
 	}
+	if value, ok := _u.mutation.Probes(); ok {
+		_spec.SetField(channelmonitor.FieldProbes, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedProbes(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, channelmonitor.FieldProbes, value)
+		})
+	}
+	if _u.mutation.ProbesCleared() {
+		_spec.ClearField(channelmonitor.FieldProbes, field.TypeJSON)
+	}
 	if value, ok := _u.mutation.PrimaryModel(); ok {
 		_spec.SetField(channelmonitor.FieldPrimaryModel, field.TypeString, value)
 	}
@@ -794,6 +823,24 @@ func (_u *ChannelMonitorUpdateOne) SetNillableAPIKeyEncrypted(v *string) *Channe
 	if v != nil {
 		_u.SetAPIKeyEncrypted(*v)
 	}
+	return _u
+}
+
+// SetProbes sets the "probes" field.
+func (_u *ChannelMonitorUpdateOne) SetProbes(v []map[string]interface{}) *ChannelMonitorUpdateOne {
+	_u.mutation.SetProbes(v)
+	return _u
+}
+
+// AppendProbes appends value to the "probes" field.
+func (_u *ChannelMonitorUpdateOne) AppendProbes(v []map[string]interface{}) *ChannelMonitorUpdateOne {
+	_u.mutation.AppendProbes(v)
+	return _u
+}
+
+// ClearProbes clears the value of the "probes" field.
+func (_u *ChannelMonitorUpdateOne) ClearProbes() *ChannelMonitorUpdateOne {
+	_u.mutation.ClearProbes()
 	return _u
 }
 
@@ -1244,6 +1291,17 @@ func (_u *ChannelMonitorUpdateOne) sqlSave(ctx context.Context) (_node *ChannelM
 	}
 	if value, ok := _u.mutation.APIKeyEncrypted(); ok {
 		_spec.SetField(channelmonitor.FieldAPIKeyEncrypted, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Probes(); ok {
+		_spec.SetField(channelmonitor.FieldProbes, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedProbes(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, channelmonitor.FieldProbes, value)
+		})
+	}
+	if _u.mutation.ProbesCleared() {
+		_spec.ClearField(channelmonitor.FieldProbes, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.PrimaryModel(); ok {
 		_spec.SetField(channelmonitor.FieldPrimaryModel, field.TypeString, value)

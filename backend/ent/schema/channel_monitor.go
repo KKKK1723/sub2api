@@ -48,6 +48,9 @@ func (ChannelMonitor) Fields() []ent.Field {
 			NotEmpty().
 			Sensitive().
 			Comment("AES-256-GCM encrypted API key"),
+		field.JSON("probes", []map[string]any{}).
+			Optional().
+			Comment("Encrypted URL/API key probe configurations; legacy endpoint/api_key remain supported"),
 		field.String("primary_model").
 			NotEmpty().
 			MaxLen(200),

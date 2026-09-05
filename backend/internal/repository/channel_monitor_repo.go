@@ -43,6 +43,7 @@ func (r *channelMonitorRepository) Create(ctx context.Context, m *service.Channe
 		SetAPIMode(defaultAPIModeRepo(m.APIMode)).
 		SetEndpoint(m.Endpoint).
 		SetAPIKeyEncrypted(m.APIKey). // 调用方传入的已是密文
+		SetProbes(probesToJSON(m.Probes)).
 		SetPrimaryModel(m.PrimaryModel).
 		SetExtraModels(emptySliceIfNil(m.ExtraModels)).
 		SetGroupName(m.GroupName).
@@ -111,6 +112,7 @@ func (r *channelMonitorRepository) Update(ctx context.Context, m *service.Channe
 		SetAPIMode(defaultAPIModeRepo(m.APIMode)).
 		SetEndpoint(m.Endpoint).
 		SetAPIKeyEncrypted(m.APIKey).
+		SetProbes(probesToJSON(m.Probes)).
 		SetPrimaryModel(m.PrimaryModel).
 		SetExtraModels(emptySliceIfNil(m.ExtraModels)).
 		SetGroupName(m.GroupName).
@@ -744,6 +746,7 @@ func entToServiceMonitor(row *dbent.ChannelMonitor) *service.ChannelMonitor {
 		APIMode:              defaultAPIModeRepo(row.APIMode),
 		Endpoint:             row.Endpoint,
 		APIKey:               row.APIKeyEncrypted, // 仍为密文，service 层负责解密
+		Probes:               probesFromJSON(row.Probes),
 		PrimaryModel:         row.PrimaryModel,
 		ExtraModels:          extras,
 		GroupName:            row.GroupName,
@@ -812,4 +815,32 @@ func emptySliceIfNil(in []string) []string {
 		return []string{}
 	}
 	return in
+}
+
+func probesToJSON(in []service.MonitorProbe) []map[string]any {
+	out := make([]map[string]any, 0, len(in))
+	for _, p := range in {
+		out = append(out, map[string]any{"name": p.Name, "endpoint": p.Endpoint, "api_key": p.APIKey, "enabled": p.Enabled})
+	}
+	return out
+}
+func probesFromJSON(in []map[string]any) []service.MonitorProbe {
+	out := make([]service.MonitorProbe, 0, len(in))
+	for _, m := range in {
+		p := service.MonitorProbe{Enabled: true}
+		if v, ok := m["name"].(string); ok {
+			p.Name = v
+		}
+		if v, ok := m["endpoint"].(string); ok {
+			p.Endpoint = v
+		}
+		if v, ok := m["api_key"].(string); ok {
+			p.APIKey = v
+		}
+		if v, ok := m["enabled"].(bool); ok {
+			p.Enabled = v
+		}
+		out = append(out, p)
+	}
+	return out
 }

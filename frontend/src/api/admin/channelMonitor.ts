@@ -9,6 +9,7 @@ export type Provider = 'openai' | 'anthropic' | 'gemini' | 'grok'
 export type MonitorStatus = 'operational' | 'degraded' | 'failed' | 'error'
 export type BodyOverrideMode = 'off' | 'merge' | 'replace'
 export type APIMode = 'chat_completions' | 'responses'
+export interface MonitorProbe { name: string; endpoint: string; api_key?: string; api_key_masked?: string; enabled: boolean; status?: MonitorStatus | ''; latency_ms?: number | null }
 
 export interface ChannelMonitor {
   id: number
@@ -47,6 +48,7 @@ export interface ChannelMonitor {
   extra_headers: Record<string, string>
   body_override_mode: BodyOverrideMode
   body_override: Record<string, unknown> | null
+  probes?: MonitorProbe[]
 }
 
 export interface ExtraModelStatus {
@@ -87,6 +89,7 @@ export interface CreateParams {
   extra_headers?: Record<string, string>
   body_override_mode?: BodyOverrideMode
   body_override?: Record<string, unknown> | null
+  probes?: MonitorProbe[]
 }
 
 // Update request: api_key 空串 = 不修改；clear_template=true 时把 template_id 置空

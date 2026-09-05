@@ -60,6 +60,16 @@ type ChannelMonitor struct {
 	// APIKeyDecryptFailed 表示 APIKey 字段无法解密（密钥不一致或损坏）。
 	// 此时 APIKey 为空字符串，runner / RunCheck 必须跳过该监控并提示重填。
 	APIKeyDecryptFailed bool
+	Probes              []MonitorProbe
+}
+
+type MonitorProbe struct {
+	Name      string `json:"name"`
+	Endpoint  string `json:"endpoint"`
+	APIKey    string `json:"api_key"`
+	Enabled   bool   `json:"enabled"`
+	Status    string `json:"status,omitempty"`
+	LatencyMs *int   `json:"latency_ms,omitempty"`
 }
 
 // ChannelMonitorListParams 列表查询过滤参数。
@@ -89,6 +99,7 @@ type ChannelMonitorCreateParams struct {
 	ExtraHeaders     map[string]string
 	BodyOverrideMode string
 	BodyOverride     map[string]any
+	Probes           []MonitorProbe
 }
 
 // ChannelMonitorUpdateParams 更新参数（指针字段表示"未提供则不更新"）。
@@ -112,6 +123,7 @@ type ChannelMonitorUpdateParams struct {
 	ExtraHeaders     *map[string]string
 	BodyOverrideMode *string
 	BodyOverride     *map[string]any
+	Probes           *[]MonitorProbe
 }
 
 // CheckResult 单个模型一次检测的结果。

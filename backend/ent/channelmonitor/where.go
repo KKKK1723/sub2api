@@ -490,6 +490,16 @@ func APIKeyEncryptedContainsFold(v string) predicate.ChannelMonitor {
 	return predicate.ChannelMonitor(sql.FieldContainsFold(FieldAPIKeyEncrypted, v))
 }
 
+// ProbesIsNil applies the IsNil predicate on the "probes" field.
+func ProbesIsNil() predicate.ChannelMonitor {
+	return predicate.ChannelMonitor(sql.FieldIsNull(FieldProbes))
+}
+
+// ProbesNotNil applies the NotNil predicate on the "probes" field.
+func ProbesNotNil() predicate.ChannelMonitor {
+	return predicate.ChannelMonitor(sql.FieldNotNull(FieldProbes))
+}
+
 // PrimaryModelEQ applies the EQ predicate on the "primary_model" field.
 func PrimaryModelEQ(v string) predicate.ChannelMonitor {
 	return predicate.ChannelMonitor(sql.FieldEQ(FieldPrimaryModel, v))

@@ -91,6 +91,12 @@ func (_c *ChannelMonitorCreate) SetAPIKeyEncrypted(v string) *ChannelMonitorCrea
 	return _c
 }
 
+// SetProbes sets the "probes" field.
+func (_c *ChannelMonitorCreate) SetProbes(v []map[string]interface{}) *ChannelMonitorCreate {
+	_c.mutation.SetProbes(v)
+	return _c
+}
+
 // SetPrimaryModel sets the "primary_model" field.
 func (_c *ChannelMonitorCreate) SetPrimaryModel(v string) *ChannelMonitorCreate {
 	_c.mutation.SetPrimaryModel(v)
@@ -485,6 +491,10 @@ func (_c *ChannelMonitorCreate) createSpec() (*ChannelMonitor, *sqlgraph.CreateS
 		_spec.SetField(channelmonitor.FieldAPIKeyEncrypted, field.TypeString, value)
 		_node.APIKeyEncrypted = value
 	}
+	if value, ok := _c.mutation.Probes(); ok {
+		_spec.SetField(channelmonitor.FieldProbes, field.TypeJSON, value)
+		_node.Probes = value
+	}
 	if value, ok := _c.mutation.PrimaryModel(); ok {
 		_spec.SetField(channelmonitor.FieldPrimaryModel, field.TypeString, value)
 		_node.PrimaryModel = value
@@ -699,6 +709,24 @@ func (u *ChannelMonitorUpsert) SetAPIKeyEncrypted(v string) *ChannelMonitorUpser
 // UpdateAPIKeyEncrypted sets the "api_key_encrypted" field to the value that was provided on create.
 func (u *ChannelMonitorUpsert) UpdateAPIKeyEncrypted() *ChannelMonitorUpsert {
 	u.SetExcluded(channelmonitor.FieldAPIKeyEncrypted)
+	return u
+}
+
+// SetProbes sets the "probes" field.
+func (u *ChannelMonitorUpsert) SetProbes(v []map[string]interface{}) *ChannelMonitorUpsert {
+	u.Set(channelmonitor.FieldProbes, v)
+	return u
+}
+
+// UpdateProbes sets the "probes" field to the value that was provided on create.
+func (u *ChannelMonitorUpsert) UpdateProbes() *ChannelMonitorUpsert {
+	u.SetExcluded(channelmonitor.FieldProbes)
+	return u
+}
+
+// ClearProbes clears the value of the "probes" field.
+func (u *ChannelMonitorUpsert) ClearProbes() *ChannelMonitorUpsert {
+	u.SetNull(channelmonitor.FieldProbes)
 	return u
 }
 
@@ -1014,6 +1042,27 @@ func (u *ChannelMonitorUpsertOne) SetAPIKeyEncrypted(v string) *ChannelMonitorUp
 func (u *ChannelMonitorUpsertOne) UpdateAPIKeyEncrypted() *ChannelMonitorUpsertOne {
 	return u.Update(func(s *ChannelMonitorUpsert) {
 		s.UpdateAPIKeyEncrypted()
+	})
+}
+
+// SetProbes sets the "probes" field.
+func (u *ChannelMonitorUpsertOne) SetProbes(v []map[string]interface{}) *ChannelMonitorUpsertOne {
+	return u.Update(func(s *ChannelMonitorUpsert) {
+		s.SetProbes(v)
+	})
+}
+
+// UpdateProbes sets the "probes" field to the value that was provided on create.
+func (u *ChannelMonitorUpsertOne) UpdateProbes() *ChannelMonitorUpsertOne {
+	return u.Update(func(s *ChannelMonitorUpsert) {
+		s.UpdateProbes()
+	})
+}
+
+// ClearProbes clears the value of the "probes" field.
+func (u *ChannelMonitorUpsertOne) ClearProbes() *ChannelMonitorUpsertOne {
+	return u.Update(func(s *ChannelMonitorUpsert) {
+		s.ClearProbes()
 	})
 }
 
@@ -1526,6 +1575,27 @@ func (u *ChannelMonitorUpsertBulk) SetAPIKeyEncrypted(v string) *ChannelMonitorU
 func (u *ChannelMonitorUpsertBulk) UpdateAPIKeyEncrypted() *ChannelMonitorUpsertBulk {
 	return u.Update(func(s *ChannelMonitorUpsert) {
 		s.UpdateAPIKeyEncrypted()
+	})
+}
+
+// SetProbes sets the "probes" field.
+func (u *ChannelMonitorUpsertBulk) SetProbes(v []map[string]interface{}) *ChannelMonitorUpsertBulk {
+	return u.Update(func(s *ChannelMonitorUpsert) {
+		s.SetProbes(v)
+	})
+}
+
+// UpdateProbes sets the "probes" field to the value that was provided on create.
+func (u *ChannelMonitorUpsertBulk) UpdateProbes() *ChannelMonitorUpsertBulk {
+	return u.Update(func(s *ChannelMonitorUpsert) {
+		s.UpdateProbes()
+	})
+}
+
+// ClearProbes clears the value of the "probes" field.
+func (u *ChannelMonitorUpsertBulk) ClearProbes() *ChannelMonitorUpsertBulk {
+	return u.Update(func(s *ChannelMonitorUpsert) {
+		s.ClearProbes()
 	})
 }
 

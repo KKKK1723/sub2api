@@ -29,6 +29,8 @@ const (
 	FieldEndpoint = "endpoint"
 	// FieldAPIKeyEncrypted holds the string denoting the api_key_encrypted field in the database.
 	FieldAPIKeyEncrypted = "api_key_encrypted"
+	// FieldProbes holds the string denoting the probes field in the database.
+	FieldProbes = "probes"
 	// FieldPrimaryModel holds the string denoting the primary_model field in the database.
 	FieldPrimaryModel = "primary_model"
 	// FieldExtraModels holds the string denoting the extra_models field in the database.
@@ -94,6 +96,7 @@ var Columns = []string{
 	FieldAPIMode,
 	FieldEndpoint,
 	FieldAPIKeyEncrypted,
+	FieldProbes,
 	FieldPrimaryModel,
 	FieldExtraModels,
 	FieldGroupName,

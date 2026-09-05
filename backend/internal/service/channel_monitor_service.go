@@ -146,6 +146,10 @@ func (s *ChannelMonitorService) Create(ctx context.Context, p ChannelMonitorCrea
 		ExtraHeaders:     emptyHeadersIfNil(p.ExtraHeaders),
 		BodyOverrideMode: defaultBodyMode(p.BodyOverrideMode),
 		BodyOverride:     p.BodyOverride,
+		Probes:           p.Probes,
+	}
+	if err := s.encryptAndNormalizeProbes(m); err != nil {
+		return nil, err
 	}
 	if err := s.repo.Create(ctx, m); err != nil {
 		return nil, fmt.Errorf("create channel monitor: %w", err)
@@ -153,6 +157,9 @@ func (s *ChannelMonitorService) Create(ctx context.Context, p ChannelMonitorCrea
 	// 不再调 s.Get 重走解密链：已知刚加密的明文，直接构造响应。
 	// 这样可避免 SecretEncryptor 解密失败时 APIKey 被静默清空的问题（见 Fix 4）。
 	m.APIKey = strings.TrimSpace(p.APIKey)
+	for i := range m.Probes {
+		if plainProbe, probeErr := s.encryptor.Decrypt(m.Probes[i].APIKey); probeErr == nil { m.Probes[i].APIKey = plainProbe }
+	}
 	if s.scheduler != nil {
 		s.scheduler.Schedule(m)
 	}
@@ -211,6 +218,7 @@ func (s *ChannelMonitorService) Duplicate(
 		ExtraHeaders:         cloneChannelMonitorHeaders(source.ExtraHeaders),
 		BodyOverrideMode:     source.BodyOverrideMode,
 		BodyOverride:         bodyOverride,
+		Probes:               append([]MonitorProbe(nil), source.Probes...),
 		DuplicateOperationID: operationID,
 	}
 	if err := s.repo.Create(ctx, duplicate); err != nil {
@@ -219,6 +227,7 @@ func (s *ChannelMonitorService) Duplicate(
 
 	// Match Create/Update response semantics: repository receives ciphertext,
 	// while handlers receive plaintext only so they can return the masked form.
+	s.decryptInPlace(duplicate)
 	duplicate.APIKey = plainAPIKey
 	return duplicate, nil
 }
@@ -352,6 +361,20 @@ func (s *ChannelMonitorService) Update(ctx context.Context, id int64, p ChannelM
 	if err := applyMonitorUpdate(existing, p); err != nil {
 		return nil, err
 	}
+	if p.Probes != nil {
+		incoming := append([]MonitorProbe(nil), (*p.Probes)...)
+		for i := range incoming {
+			if strings.TrimSpace(incoming[i].Endpoint) == "" { return nil, ErrChannelMonitorInvalidEndpoint }
+			incoming[i].Endpoint = normalizeEndpoint(incoming[i].Endpoint)
+			if strings.TrimSpace(incoming[i].APIKey) == "" && i < len(existing.Probes) {
+				incoming[i].APIKey = existing.Probes[i].APIKey
+				continue
+			}
+			if strings.TrimSpace(incoming[i].APIKey) == "" { return nil, ErrChannelMonitorMissingAPIKey }
+			encrypted, encryptErr := s.encryptor.Encrypt(strings.TrimSpace(incoming[i].APIKey)); if encryptErr != nil { return nil, fmt.Errorf("encrypt probe api key: %w", encryptErr) }; incoming[i].APIKey = encrypted
+		}
+		existing.Probes = incoming
+	}
 
 	newPlainAPIKey, apiKeyUpdated, err := s.applyAPIKeyUpdate(existing, p.APIKey)
 	if err != nil {
@@ -435,9 +458,84 @@ func (s *ChannelMonitorService) RunCheck(ctx context.Context, id int64) ([]*Chec
 	if m.APIKeyDecryptFailed {
 		return nil, ErrChannelMonitorAPIKeyDecryptFailed
 	}
-	results := s.runChecksConcurrent(ctx, m)
+	results := s.runProbeChecks(ctx, m)
 	s.persistCheckResults(ctx, m, results)
 	return results, nil
+}
+
+func (s *ChannelMonitorService) encryptAndNormalizeProbes(m *ChannelMonitor) error {
+	if len(m.Probes) == 0 {
+		m.Probes = []MonitorProbe{{Name: "默认探针", Endpoint: m.Endpoint, APIKey: m.APIKey, Enabled: true}}
+		return nil
+	}
+	for i := range m.Probes {
+		p := &m.Probes[i]
+		if strings.TrimSpace(p.Endpoint) == "" {
+			return ErrChannelMonitorInvalidEndpoint
+		}
+		p.Endpoint = normalizeEndpoint(p.Endpoint)
+		if strings.TrimSpace(p.APIKey) == "" {
+			return ErrChannelMonitorMissingAPIKey
+		}
+		encrypted, err := s.encryptor.Encrypt(strings.TrimSpace(p.APIKey))
+		if err != nil {
+			return fmt.Errorf("encrypt probe api key: %w", err)
+		}
+		p.APIKey = encrypted
+	}
+	return nil
+}
+
+func (s *ChannelMonitorService) runProbeChecks(ctx context.Context, m *ChannelMonitor) []*CheckResult {
+	probes := m.Probes
+	if len(probes) == 0 {
+		probes = []MonitorProbe{{Endpoint: m.Endpoint, APIKey: m.APIKey, Enabled: true}}
+	}
+	all := make([][]*CheckResult, 0, len(probes))
+	for _, probe := range probes {
+		if !probe.Enabled {
+			continue
+		}
+		copy := *m
+		copy.Endpoint = probe.Endpoint
+		copy.APIKey = probe.APIKey
+		all = append(all, s.runChecksConcurrent(ctx, &copy))
+	}
+	return aggregateProbeResults(all, m.PrimaryModel, m.ExtraModels)
+}
+
+func aggregateProbeResults(all [][]*CheckResult, primary string, extras []string) []*CheckResult {
+	models := append([]string{primary}, extras...)
+	out := make([]*CheckResult, 0, len(models))
+	rank := func(status string) int {
+		switch status {
+		case "operational":
+			return 3
+		case "degraded":
+			return 2
+		default:
+			return 1
+		}
+	}
+	for _, model := range models {
+		var best *CheckResult
+		for _, results := range all {
+			for _, result := range results {
+				if result.Model != model {
+					continue
+				}
+				if best == nil || rank(result.Status) > rank(best.Status) || (rank(result.Status) == rank(best.Status) && result.LatencyMs != nil && (best.LatencyMs == nil || *result.LatencyMs < *best.LatencyMs)) {
+					candidate := *result
+					best = &candidate
+				}
+			}
+		}
+		if best == nil {
+			best = &CheckResult{Model: model, Status: "error", Message: "no enabled probes", CheckedAt: time.Now()}
+		}
+		out = append(out, best)
+	}
+	return out
 }
 
 // persistCheckResults 写入本次检测的历史记录并更新 last_checked_at。
@@ -628,18 +726,31 @@ func (s *ChannelMonitorService) cleanupOldRollups(ctx context.Context, today tim
 // 解密失败时把字段清空 + 设置 APIKeyDecryptFailed=true（不返回错误，避免阻断列表渲染）。
 // runner / RunCheck 必须读取该标志位并拒绝执行检测。
 func (s *ChannelMonitorService) decryptInPlace(m *ChannelMonitor) {
-	if m == nil || m.APIKey == "" {
+	if m == nil {
 		return
 	}
-	plain, err := s.encryptor.Decrypt(m.APIKey)
-	if err != nil {
-		slog.Warn("channel_monitor: decrypt api key failed",
-			"monitor_id", m.ID, "error", err)
-		m.APIKey = ""
-		m.APIKeyDecryptFailed = true
-		return
+	if m.APIKey != "" {
+		plain, err := s.encryptor.Decrypt(m.APIKey)
+		if err != nil {
+			slog.Warn("channel_monitor: decrypt api key failed", "monitor_id", m.ID, "error", err)
+			m.APIKey = ""
+			m.APIKeyDecryptFailed = true
+		} else {
+			m.APIKey = plain
+		}
 	}
-	m.APIKey = plain
+	for i := range m.Probes {
+		if m.Probes[i].APIKey == "" {
+			continue
+		}
+		plainProbe, probeErr := s.encryptor.Decrypt(m.Probes[i].APIKey)
+		if probeErr != nil {
+			m.Probes[i].APIKey = ""
+			m.APIKeyDecryptFailed = true
+			continue
+		}
+		m.Probes[i].APIKey = plainProbe
+	}
 }
 
 // applyMonitorUpdate 把 update params 中非 nil 的字段应用到 existing 上。

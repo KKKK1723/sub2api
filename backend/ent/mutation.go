@@ -14611,6 +14611,8 @@ type ChannelMonitorMutation struct {
 	api_mode                *string
 	endpoint                *string
 	api_key_encrypted       *string
+	probes                  *[]map[string]interface{}
+	appendprobes            []map[string]interface{}
 	primary_model           *string
 	extra_models            *[]string
 	appendextra_models      []string
@@ -14988,6 +14990,71 @@ func (m *ChannelMonitorMutation) OldAPIKeyEncrypted(ctx context.Context) (v stri
 // ResetAPIKeyEncrypted resets all changes to the "api_key_encrypted" field.
 func (m *ChannelMonitorMutation) ResetAPIKeyEncrypted() {
 	m.api_key_encrypted = nil
+}
+
+// SetProbes sets the "probes" field.
+func (m *ChannelMonitorMutation) SetProbes(value []map[string]interface{}) {
+	m.probes = &value
+	m.appendprobes = nil
+}
+
+// Probes returns the value of the "probes" field in the mutation.
+func (m *ChannelMonitorMutation) Probes() (r []map[string]interface{}, exists bool) {
+	v := m.probes
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldProbes returns the old "probes" field's value of the ChannelMonitor entity.
+// If the ChannelMonitor object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChannelMonitorMutation) OldProbes(ctx context.Context) (v []map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldProbes is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldProbes requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldProbes: %w", err)
+	}
+	return oldValue.Probes, nil
+}
+
+// AppendProbes adds value to the "probes" field.
+func (m *ChannelMonitorMutation) AppendProbes(value []map[string]interface{}) {
+	m.appendprobes = append(m.appendprobes, value...)
+}
+
+// AppendedProbes returns the list of values that were appended to the "probes" field in this mutation.
+func (m *ChannelMonitorMutation) AppendedProbes() ([]map[string]interface{}, bool) {
+	if len(m.appendprobes) == 0 {
+		return nil, false
+	}
+	return m.appendprobes, true
+}
+
+// ClearProbes clears the value of the "probes" field.
+func (m *ChannelMonitorMutation) ClearProbes() {
+	m.probes = nil
+	m.appendprobes = nil
+	m.clearedFields[channelmonitor.FieldProbes] = struct{}{}
+}
+
+// ProbesCleared returns if the "probes" field was cleared in this mutation.
+func (m *ChannelMonitorMutation) ProbesCleared() bool {
+	_, ok := m.clearedFields[channelmonitor.FieldProbes]
+	return ok
+}
+
+// ResetProbes resets all changes to the "probes" field.
+func (m *ChannelMonitorMutation) ResetProbes() {
+	m.probes = nil
+	m.appendprobes = nil
+	delete(m.clearedFields, channelmonitor.FieldProbes)
 }
 
 // SetPrimaryModel sets the "primary_model" field.
@@ -15731,7 +15798,7 @@ func (m *ChannelMonitorMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChannelMonitorMutation) Fields() []string {
-	fields := make([]string, 0, 19)
+	fields := make([]string, 0, 20)
 	if m.created_at != nil {
 		fields = append(fields, channelmonitor.FieldCreatedAt)
 	}
@@ -15752,6 +15819,9 @@ func (m *ChannelMonitorMutation) Fields() []string {
 	}
 	if m.api_key_encrypted != nil {
 		fields = append(fields, channelmonitor.FieldAPIKeyEncrypted)
+	}
+	if m.probes != nil {
+		fields = append(fields, channelmonitor.FieldProbes)
 	}
 	if m.primary_model != nil {
 		fields = append(fields, channelmonitor.FieldPrimaryModel)
@@ -15811,6 +15881,8 @@ func (m *ChannelMonitorMutation) Field(name string) (ent.Value, bool) {
 		return m.Endpoint()
 	case channelmonitor.FieldAPIKeyEncrypted:
 		return m.APIKeyEncrypted()
+	case channelmonitor.FieldProbes:
+		return m.Probes()
 	case channelmonitor.FieldPrimaryModel:
 		return m.PrimaryModel()
 	case channelmonitor.FieldExtraModels:
@@ -15858,6 +15930,8 @@ func (m *ChannelMonitorMutation) OldField(ctx context.Context, name string) (ent
 		return m.OldEndpoint(ctx)
 	case channelmonitor.FieldAPIKeyEncrypted:
 		return m.OldAPIKeyEncrypted(ctx)
+	case channelmonitor.FieldProbes:
+		return m.OldProbes(ctx)
 	case channelmonitor.FieldPrimaryModel:
 		return m.OldPrimaryModel(ctx)
 	case channelmonitor.FieldExtraModels:
@@ -15939,6 +16013,13 @@ func (m *ChannelMonitorMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetAPIKeyEncrypted(v)
+		return nil
+	case channelmonitor.FieldProbes:
+		v, ok := value.([]map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetProbes(v)
 		return nil
 	case channelmonitor.FieldPrimaryModel:
 		v, ok := value.(string)
@@ -16093,6 +16174,9 @@ func (m *ChannelMonitorMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *ChannelMonitorMutation) ClearedFields() []string {
 	var fields []string
+	if m.FieldCleared(channelmonitor.FieldProbes) {
+		fields = append(fields, channelmonitor.FieldProbes)
+	}
 	if m.FieldCleared(channelmonitor.FieldGroupName) {
 		fields = append(fields, channelmonitor.FieldGroupName)
 	}
@@ -16119,6 +16203,9 @@ func (m *ChannelMonitorMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *ChannelMonitorMutation) ClearField(name string) error {
 	switch name {
+	case channelmonitor.FieldProbes:
+		m.ClearProbes()
+		return nil
 	case channelmonitor.FieldGroupName:
 		m.ClearGroupName()
 		return nil
@@ -16159,6 +16246,9 @@ func (m *ChannelMonitorMutation) ResetField(name string) error {
 		return nil
 	case channelmonitor.FieldAPIKeyEncrypted:
 		m.ResetAPIKeyEncrypted()
+		return nil
+	case channelmonitor.FieldProbes:
+		m.ResetProbes()
 		return nil
 	case channelmonitor.FieldPrimaryModel:
 		m.ResetPrimaryModel()
