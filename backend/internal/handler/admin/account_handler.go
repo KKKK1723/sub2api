@@ -27,6 +27,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/internal/pkg/response"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/timezone"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/xai"
+	"github.com/Wei-Shaw/sub2api/internal/server/middleware"
 	"github.com/Wei-Shaw/sub2api/internal/service"
 
 	"github.com/gin-gonic/gin"
@@ -48,6 +49,7 @@ func NewOAuthHandler(oauthService *service.OAuthService) *OAuthHandler {
 // AccountHandler handles admin account management
 type AccountHandler struct {
 	adminService            service.AdminService
+	apiKeyService           *service.APIKeyService
 	oauthService            *service.OAuthService
 	openaiOAuthService      *service.OpenAIOAuthService
 	geminiOAuthService      *service.GeminiOAuthService
@@ -64,6 +66,8 @@ type AccountHandler struct {
 	grokImportProber        grokImportProber
 	upstreamBillingProbe    *service.UpstreamBillingProbeService
 	ollamaCloudUsage        *service.OllamaCloudUsageService
+	availableModelSyncMu    sync.Mutex
+	availableModelSyncing   map[int64]bool
 }
 
 // SetUpstreamBillingProbeService attaches the optional remote billing probe service.
@@ -73,6 +77,11 @@ func (h *AccountHandler) SetUpstreamBillingProbeService(probe *service.UpstreamB
 
 func (h *AccountHandler) SetOllamaCloudUsageService(usage *service.OllamaCloudUsageService) {
 	h.ollamaCloudUsage = usage
+}
+
+// SetAPIKeyService attaches user group visibility checks used by the public model catalog.
+func (h *AccountHandler) SetAPIKeyService(apiKeyService *service.APIKeyService) {
+	h.apiKeyService = apiKeyService
 }
 
 // NewAccountHandler creates a new admin account handler
@@ -107,7 +116,234 @@ func NewAccountHandler(
 		sessionLimitCache:       sessionLimitCache,
 		rpmCache:                rpmCache,
 		tokenCacheInvalidator:   tokenCacheInvalidator,
+		availableModelSyncing:   make(map[int64]bool),
 	}
+}
+
+func availableModelsUpdateInput(group *service.Group, config service.GroupModelsListConfig) *service.UpdateGroupInput {
+	// UpdateGroup historically normalizes limit fields on every call; pass the
+	// current values explicitly so this focused update cannot alter billing limits.
+	return &service.UpdateGroupInput{ModelsListConfig: &config, DailyLimitUSD: group.DailyLimitUSD, WeeklyLimitUSD: group.WeeklyLimitUSD, MonthlyLimitUSD: group.MonthlyLimitUSD}
+}
+
+func (h *AccountHandler) recordAvailableModelSyncError(ctx context.Context, group *service.Group, message string) {
+	if group == nil {
+		return
+	}
+	config := group.ModelsListConfig
+	config.SyncError = strings.TrimSpace(message)
+	_, _ = h.adminService.UpdateGroup(ctx, group.ID, availableModelsUpdateInput(group, config))
+}
+
+type availableModelGroupResponse struct {
+	GroupID      int64      `json:"group_id"`
+	GroupName    string     `json:"group_name"`
+	Models       []string   `json:"models"`
+	Enabled      bool       `json:"enabled"`
+	LastSyncedAt *time.Time `json:"last_synced_at,omitempty"`
+	SyncError    string     `json:"sync_error,omitempty"`
+}
+
+// ListAvailableModels exposes all groups to admins and permission-filtered model groups to users.
+func (h *AccountHandler) ListAvailableModels(c *gin.Context) {
+	groups, err := h.adminService.GetAllGroupsIncludingInactive(c.Request.Context())
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	var userID int64
+	if subject, ok := middleware.GetAuthSubjectFromContext(c); ok {
+		userID = subject.UserID
+	}
+	var visible map[int64]struct{}
+	role, _ := middleware.GetUserRoleFromContext(c)
+	if h.apiKeyService != nil && userID > 0 && role != service.RoleAdmin {
+		available, visibilityErr := h.apiKeyService.GetAvailableGroups(c.Request.Context(), userID)
+		if visibilityErr != nil {
+			response.ErrorFrom(c, visibilityErr)
+			return
+		}
+		visible = make(map[int64]struct{}, len(available))
+		for i := range available {
+			visible[available[i].ID] = struct{}{}
+		}
+	}
+	out := make([]availableModelGroupResponse, 0, len(groups))
+	for _, group := range groups {
+		if visible != nil {
+			if _, ok := visible[group.ID]; !ok {
+				continue
+			}
+		}
+		if role != service.RoleAdmin && (!group.ModelsListConfig.Enabled || len(group.ModelsListConfig.Models) == 0) {
+			continue
+		}
+		models := append([]string(nil), group.ModelsListConfig.Models...)
+		out = append(out, availableModelGroupResponse{GroupID: group.ID, GroupName: group.Name, Models: models, Enabled: group.ModelsListConfig.Enabled, LastSyncedAt: group.ModelsListConfig.LastSyncedAt, SyncError: group.ModelsListConfig.SyncError})
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].GroupID < out[j].GroupID })
+	response.Success(c, out)
+}
+
+func (h *AccountHandler) setAvailableModelSyncing(id int64, value bool) bool {
+	h.availableModelSyncMu.Lock()
+	defer h.availableModelSyncMu.Unlock()
+	if value {
+		if h.availableModelSyncing == nil {
+			h.availableModelSyncing = make(map[int64]bool)
+		}
+		if h.availableModelSyncing[id] {
+			return false
+		}
+		h.availableModelSyncing[id] = true
+		return true
+	}
+	delete(h.availableModelSyncing, id)
+	return true
+}
+
+// SyncAvailableModels probes the single account bound to an approved group and persists only non-empty results.
+func (h *AccountHandler) SyncAvailableModels(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("group_id"), 10, 64)
+	if err != nil {
+		response.BadRequest(c, "group_id is not an allowed target group")
+		return
+	}
+	if !h.setAvailableModelSyncing(id, true) {
+		response.Error(c, http.StatusConflict, "model sync already in progress")
+		return
+	}
+	defer h.setAvailableModelSyncing(id, false)
+	group, err := h.adminService.GetGroup(c.Request.Context(), id)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	accounts, _, err := h.adminService.ListAccounts(c.Request.Context(), 1, 2, group.Platform, "", "", "", id, "", "id", "asc")
+	if err != nil {
+		h.recordAvailableModelSyncError(c.Request.Context(), group, "failed to load target group account")
+		response.ErrorFrom(c, err)
+		return
+	}
+	if len(accounts) == 0 {
+		h.recordAvailableModelSyncError(c.Request.Context(), group, "target group has no bound account")
+		response.Error(c, http.StatusBadGateway, "target group has no bound account")
+		return
+	}
+	if h.accountTestService == nil {
+		h.recordAvailableModelSyncError(c.Request.Context(), group, "account test service is not configured")
+		response.InternalError(c, "account test service is not configured")
+		return
+	}
+	models, err := h.accountTestService.FetchUpstreamSupportedModels(c.Request.Context(), &accounts[0])
+	if err != nil {
+		h.recordAvailableModelSyncError(c.Request.Context(), group, "failed to sync upstream models; existing configuration was preserved")
+		response.Error(c, http.StatusBadGateway, "failed to sync upstream models; existing configuration was preserved")
+		return
+	}
+	seen := make(map[string]struct{}, len(models))
+	normalized := make([]string, 0, len(models))
+	for _, model := range models {
+		model = strings.TrimSpace(model)
+		if model == "" {
+			continue
+		}
+		if _, ok := seen[model]; ok {
+			continue
+		}
+		seen[model] = struct{}{}
+		normalized = append(normalized, model)
+	}
+	if len(normalized) == 0 {
+		h.recordAvailableModelSyncError(c.Request.Context(), group, "upstream returned an empty model list; existing configuration was preserved")
+		response.Error(c, http.StatusBadGateway, "upstream returned an empty model list; existing configuration was preserved")
+		return
+	}
+	sort.Strings(normalized)
+	now := time.Now().UTC()
+	updated := group.ModelsListConfig
+	updated.Enabled = true
+	updated.Models = normalized
+	updated.LastSyncedAt = &now
+	updated.SyncError = ""
+	result, err := h.adminService.UpdateGroup(c.Request.Context(), id, availableModelsUpdateInput(group, updated))
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, gin.H{"group_id": id, "group_name": result.Name, "models": normalized, "last_synced_at": now})
+}
+
+func (h *AccountHandler) UpdateAvailableModels(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("group_id"), 10, 64)
+	if err != nil {
+		response.BadRequest(c, "group_id is not an allowed target group")
+		return
+	}
+	var req struct {
+		Enabled *bool    `json:"enabled"`
+		Models  []string `json:"models"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "invalid request: "+err.Error())
+		return
+	}
+	group, err := h.adminService.GetGroup(c.Request.Context(), id)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	models := make([]string, 0, len(req.Models))
+	seen := map[string]struct{}{}
+	for _, model := range req.Models {
+		model = strings.TrimSpace(model)
+		if model != "" {
+			if _, ok := seen[model]; !ok {
+				seen[model] = struct{}{}
+				models = append(models, model)
+			}
+		}
+	}
+	if len(models) == 0 && len(req.Models) > 0 {
+		response.BadRequest(c, "models must contain at least one non-empty value")
+		return
+	}
+	sort.Strings(models)
+	updated := group.ModelsListConfig
+	updated.Models = models
+	if req.Enabled != nil {
+		updated.Enabled = *req.Enabled
+	}
+	if updated.Enabled && len(models) == 0 {
+		response.BadRequest(c, "enabled model list cannot be empty")
+		return
+	}
+	result, err := h.adminService.UpdateGroup(c.Request.Context(), id, availableModelsUpdateInput(group, updated))
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, result.ModelsListConfig)
+}
+
+func (h *AccountHandler) DeleteAvailableModels(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("group_id"), 10, 64)
+	if err != nil {
+		response.BadRequest(c, "group_id is not an allowed target group")
+		return
+	}
+	group, err := h.adminService.GetGroup(c.Request.Context(), id)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	updated := group.ModelsListConfig
+	updated.Enabled = false
+	if _, err = h.adminService.UpdateGroup(c.Request.Context(), id, availableModelsUpdateInput(group, updated)); err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, gin.H{"message": "available models disabled"})
 }
 
 // CreateAccountRequest represents create account request

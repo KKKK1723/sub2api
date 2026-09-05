@@ -4,6 +4,10 @@
       <!-- Single Row: Search, Filters, and Actions -->
       <template #filters>
         <div class="flex flex-wrap items-center gap-3">
+          <div class="flex items-center gap-2 rounded-md border border-primary-100 bg-primary-50 px-3 py-2 text-sm dark:border-primary-900/40 dark:bg-primary-900/20">
+            <span class="text-gray-500 dark:text-gray-400">{{ t('admin.users.totalBalance') }}</span>
+            <strong data-testid="users-total-balance" class="text-primary-700 dark:text-primary-300">{{ totalBalanceDisplay }}</strong>
+          </div>
           <!-- Left: Search + Active Filters -->
           <div class="flex flex-1 flex-wrap items-center gap-3">
             <!-- Search Box -->
@@ -1021,6 +1025,14 @@ const columns = computed<Column[]>(() =>
 
 const users = ref<AdminUser[]>([])
 const loading = ref(false)
+const totalBalance = ref<string | null>(null)
+const totalBalanceDisplay = computed(() => totalBalance.value == null ? '-' : `$${Number(totalBalance.value).toFixed(2)}`)
+const loadSummary = async () => {
+  try {
+    const summary = await adminAPI.users.getSummary()
+    totalBalance.value = summary.total_balance == null ? null : String(summary.total_balance)
+  } catch (error) { console.error('Failed to load user balance summary:', error) }
+}
 const searchQuery = ref('')
 const USER_SORT_STORAGE_KEY = 'admin-users-table-sort'
 const loadInitialSortState = (): { sort_by: string; sort_order: 'asc' | 'desc' } => {
@@ -1565,6 +1577,7 @@ const loadUsers = async () => {
   abortController = currentAbortController
   const { signal } = currentAbortController
   loading.value = true
+  void loadSummary()
   try {
     // Build attribute filters from active filters
     const attrFilters: Record<number, string> = {}

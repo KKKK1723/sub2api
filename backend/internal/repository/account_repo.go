@@ -15,6 +15,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -570,6 +571,8 @@ func lockAndMergeAccountProbeExtra(ctx context.Context, client *dbent.Client, ac
 			proxy_id IS NOT DISTINCT FROM $5,
 			extra -> 'upstream_billing_probe_enabled',
 			extra -> 'upstream_billing_probe',
+			extra -> 'upstream_balance_query',
+			extra -> 'upstream_balance_probe',
 			extra -> 'ollama_cloud_usage_session',
 			extra -> 'ollama_cloud_usage_auto_refresh',
 			extra -> 'ollama_cloud_usage_snapshot'
@@ -594,6 +597,8 @@ func lockAndMergeAccountProbeExtra(ctx context.Context, client *dbent.Client, ac
 		ollamaProxyIdentityUnchanged bool
 		currentEnabled               []byte
 		currentSnapshot              []byte
+		currentBalanceQuery          []byte
+		currentBalanceSnapshot       []byte
 		currentOllamaSession         []byte
 		currentOllamaAutoRefresh     []byte
 		currentOllamaSnapshot        []byte
@@ -604,6 +609,8 @@ func lockAndMergeAccountProbeExtra(ctx context.Context, client *dbent.Client, ac
 		&ollamaProxyIdentityUnchanged,
 		&currentEnabled,
 		&currentSnapshot,
+		&currentBalanceQuery,
+		&currentBalanceSnapshot,
 		&currentOllamaSession,
 		&currentOllamaAutoRefresh,
 		&currentOllamaSnapshot,
@@ -618,6 +625,7 @@ func lockAndMergeAccountProbeExtra(ctx context.Context, client *dbent.Client, ac
 	for _, key := range []string{
 		service.UpstreamBillingProbeEnabledExtraKey,
 		service.UpstreamBillingProbeExtraKey,
+		service.UpstreamBalanceProbeExtraKey,
 		service.OllamaCloudUsageSessionExtraKey,
 		service.OllamaCloudUsageAutoRefreshExtraKey,
 		service.OllamaCloudUsageSnapshotExtraKey,
@@ -644,6 +652,25 @@ func lockAndMergeAccountProbeExtra(ctx context.Context, client *dbent.Client, ac
 			return nil, err
 		} else if ok {
 			extra[service.UpstreamBillingProbeExtraKey] = snapshot
+		}
+	}
+	currentBalanceQueryValue, currentBalanceQueryOK, err := decodeAccountExtraJSON(currentBalanceQuery)
+	if err != nil {
+		return nil, err
+	}
+	requestedBalanceQueryValue, requestedBalanceQueryOK, err := normalizeAccountExtraJSONValue(extra[service.UpstreamBalanceQueryExtraKey])
+	if err != nil {
+		return nil, err
+	}
+	balanceIdentityUnchanged := identityUnchanged &&
+		currentBalanceQueryOK &&
+		requestedBalanceQueryOK &&
+		reflect.DeepEqual(currentBalanceQueryValue, requestedBalanceQueryValue)
+	if balanceIdentityUnchanged {
+		if snapshot, ok, err := decodeAccountExtraJSON(currentBalanceSnapshot); err != nil {
+			return nil, err
+		} else if ok {
+			extra[service.UpstreamBalanceProbeExtraKey] = snapshot
 		}
 	}
 
@@ -678,6 +705,17 @@ func decodeAccountExtraJSON(raw []byte) (any, bool, error) {
 		return nil, false, err
 	}
 	return value, true, nil
+}
+
+func normalizeAccountExtraJSONValue(value any) (any, bool, error) {
+	if value == nil {
+		return nil, false, nil
+	}
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return nil, false, err
+	}
+	return decodeAccountExtraJSON(raw)
 }
 
 func (r *accountRepository) UpdateCredentials(ctx context.Context, id int64, credentials map[string]any) error {
@@ -724,13 +762,17 @@ func (r *accountRepository) UpdateCredentials(ctx context.Context, id int64, cre
 						WHEN platform = 'openai' THEN COALESCE(extra, '{}'::jsonb) - 'upstream_billing_probe'
 						ELSE COALESCE(extra, '{}'::jsonb)
 					END)
+					- 'upstream_balance_probe'
 					- 'ollama_cloud_usage_session'
 					- 'ollama_cloud_usage_auto_refresh'
 					- 'ollama_cloud_usage_snapshot'
 				WHEN platform = 'openai'
 					AND type = 'apikey'
 					AND credentials IS DISTINCT FROM $1::jsonb
-				THEN COALESCE(extra, '{}'::jsonb) - 'upstream_billing_probe'
+				THEN COALESCE(extra, '{}'::jsonb) - 'upstream_billing_probe' - 'upstream_balance_probe'
+				WHEN type = 'apikey'
+					AND credentials IS DISTINCT FROM $1::jsonb
+				THEN COALESCE(extra, '{}'::jsonb) - 'upstream_balance_probe'
 				ELSE extra
 			END,
 			updated_at = NOW()
@@ -2765,6 +2807,7 @@ func (r *accountRepository) BulkUpdate(ctx context.Context, ids []int64, updates
 	}
 	// JSONB 需要合并而非覆盖，使用 raw SQL 保持旧行为。
 	credentialPlaceholder := ""
+	balanceCredentialIdentityChanged := ""
 	if len(updates.Credentials) > 0 {
 		payload, err := json.Marshal(updates.Credentials)
 		if err != nil {
@@ -2774,6 +2817,7 @@ func (r *accountRepository) BulkUpdate(ctx context.Context, ids []int64, updates
 		setClauses = append(setClauses, "credentials = COALESCE(credentials, '{}'::jsonb) || "+credentialPlaceholder+"::jsonb")
 		args = append(args, payload)
 		idx++
+		balanceCredentialIdentityChanged = "(type = 'apikey' AND credentials IS DISTINCT FROM (COALESCE(credentials, '{}'::jsonb) || " + credentialPlaceholder + "::jsonb))"
 	}
 
 	ollamaGroupIdentityChanges := make([]string, 0, 2)
@@ -2786,7 +2830,7 @@ func (r *accountRepository) BulkUpdate(ctx context.Context, ids []int64, updates
 				" AND "+ollamaCloudBaseURLMatchesSQL(credentialPlaceholder+"::jsonb ->> 'base_url'")+")")
 	}
 
-	if len(updates.Extra) > 0 || len(ollamaGroupIdentityChanges) > 0 || ollamaProxyIdentityChanged != "" {
+	if len(updates.Extra) > 0 || len(ollamaGroupIdentityChanges) > 0 || ollamaProxyIdentityChanged != "" || balanceCredentialIdentityChanged != "" {
 		extraExpression := "COALESCE(extra, '{}'::jsonb)"
 		if len(updates.Extra) > 0 {
 			payload, err := json.Marshal(updates.Extra)
@@ -2824,6 +2868,18 @@ func (r *accountRepository) BulkUpdate(ctx context.Context, ids []int64, updates
 				" ELSE " + extraExpression + " END"
 		} else if snapshotIdentityChanged != "" {
 			extraExpression = "CASE WHEN " + snapshotIdentityChanged + " THEN (" + extraExpression + ") - 'ollama_cloud_usage_snapshot' ELSE " + extraExpression + " END"
+		}
+		balanceIdentityChanged := balanceCredentialIdentityChanged
+		if ollamaProxyIdentityChanged != "" {
+			balanceProxyChanged := "(type = 'apikey' AND " + ollamaProxyIdentityChanged + ")"
+			if balanceIdentityChanged == "" {
+				balanceIdentityChanged = balanceProxyChanged
+			} else {
+				balanceIdentityChanged = "(" + balanceIdentityChanged + " OR " + balanceProxyChanged + ")"
+			}
+		}
+		if balanceIdentityChanged != "" {
+			extraExpression = "CASE WHEN " + balanceIdentityChanged + " THEN (" + extraExpression + ") - 'upstream_balance_probe' ELSE " + extraExpression + " END"
 		}
 		setClauses = append(setClauses, "extra = "+extraExpression)
 	}

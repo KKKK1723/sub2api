@@ -90,6 +90,10 @@ func RegisterUserRoutes(
 		}
 
 		// 用户可用渠道（非管理员接口）
+		// Available model catalog is readable by every authenticated user.
+		// Mutating operations remain under the admin route group.
+		authenticated.GET("/available-models", h.Admin.Account.ListAvailableModels)
+
 		channels := authenticated.Group("/channels")
 		{
 			channels.GET("/available", h.AvailableChannel.List)

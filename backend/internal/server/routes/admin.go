@@ -38,6 +38,7 @@ func RegisterAdminRoutes(
 
 		// 分组管理
 		registerGroupRoutes(admin, h)
+		registerAvailableModelRoutes(admin, h)
 
 		// 账号管理
 		registerAccountRoutes(admin, h, stepUpAuth)
@@ -120,6 +121,14 @@ func RegisterAdminRoutes(
 		// 操作审计日志
 		registerAuditLogRoutes(admin, h, stepUpAuth)
 	}
+}
+
+func registerAvailableModelRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
+	models := admin.Group("/available-models")
+	models.GET("", h.Admin.Account.ListAvailableModels)
+	models.POST("/:group_id/sync", h.Admin.Account.SyncAvailableModels)
+	models.PUT("/:group_id", h.Admin.Account.UpdateAvailableModels)
+	models.DELETE("/:group_id", h.Admin.Account.DeleteAvailableModels)
 }
 
 func registerPromptAuditRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
@@ -290,6 +299,7 @@ func registerUserManagementRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 	users := admin.Group("/users")
 	{
 		users.GET("", h.Admin.User.List)
+		users.GET("/summary", h.Admin.User.Summary)
 		users.GET("/:id", h.Admin.User.GetByID)
 		users.POST("/:id/auth-identities", h.Admin.User.BindAuthIdentity)
 		users.POST("", h.Admin.User.Create)
@@ -350,6 +360,11 @@ func registerAccountRoutes(admin *gin.RouterGroup, h *handler.Handlers, stepUpAu
 		accounts.GET("/upstream-billing-probe/settings", h.Admin.Account.GetUpstreamBillingProbeSettings)
 		accounts.PUT("/upstream-billing-probe/settings", h.Admin.Account.UpdateUpstreamBillingProbeSettings)
 		accounts.POST("/upstream-billing-probe/batch", h.Admin.Account.ProbeUpstreamBillingBatch)
+		accounts.POST("/upstream-balance-probe/batch", h.Admin.Account.ProbeUpstreamBalanceBatch)
+		accounts.POST("/upstream-balances/refresh", h.Admin.Account.RefreshUpstreamBalanceOverview)
+		accounts.POST("/upstream-balances", h.Admin.Account.CreateUpstreamBalance)
+		accounts.PUT("/upstream-balances/:id", h.Admin.Account.UpdateUpstreamBalance)
+		accounts.DELETE("/upstream-balances/:id", h.Admin.Account.DeleteUpstreamBalance)
 		accounts.GET("/ollama-cloud-usage/settings", h.Admin.Account.GetOllamaCloudUsageSettings)
 		accounts.PUT("/ollama-cloud-usage/settings", h.Admin.Account.UpdateOllamaCloudUsageSettings)
 		accounts.GET("/:id", h.Admin.Account.GetByID)
@@ -362,6 +377,7 @@ func registerAccountRoutes(admin *gin.RouterGroup, h *handler.Handlers, stepUpAu
 		accounts.PUT("/:id", h.Admin.Account.Update)
 		accounts.PUT("/:id/upstream-billing-probe", h.Admin.Account.SetUpstreamBillingProbeEnabled)
 		accounts.POST("/:id/upstream-billing-probe", h.Admin.Account.ProbeUpstreamBilling)
+		accounts.POST("/:id/upstream-balance-probe", h.Admin.Account.ProbeUpstreamBalance)
 		accounts.GET("/:id/ollama-cloud-usage", h.Admin.Account.GetOllamaCloudUsage)
 		accounts.PUT("/:id/ollama-cloud-usage/session", h.Admin.Account.SaveOllamaCloudUsageSession)
 		accounts.DELETE("/:id/ollama-cloud-usage/session", h.Admin.Account.DeleteOllamaCloudUsageSession)

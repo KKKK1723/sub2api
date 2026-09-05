@@ -279,6 +279,49 @@ func TestProxyIdentityUpdateInvalidatesProbeAndRejectsInFlightSnapshot(t *testin
 	}
 }
 
+func TestProxyIdentityUpdateInvalidatesUpstreamBalanceSnapshot(t *testing.T) {
+	ctx := context.Background()
+	tx := testEntTx(t)
+	accountRepo := newAccountRepositoryWithSQL(tx.Client(), tx, nil)
+	proxyRepo := newProxyRepositoryWithSQL(tx.Client(), tx)
+	proxy := mustCreateProxy(t, tx.Client(), &service.Proxy{
+		Name:     "balance-proxy",
+		Protocol: "http",
+		Host:     "old.example",
+		Port:     8080,
+		Status:   service.StatusActive,
+	})
+	account := mustCreateAccount(t, tx.Client(), &service.Account{
+		Name:        "proxy-balance-account",
+		Platform:    service.PlatformAnthropic,
+		Type:        service.AccountTypeAPIKey,
+		Credentials: map[string]any{"api_key": "sk-test", "base_url": "https://upstream.example/v1"},
+		Extra: map[string]any{
+			service.UpstreamBalanceProbeEnabledExtraKey: true,
+			service.UpstreamBalanceQueryExtraKey:        map[string]any{"preset": service.UpstreamBalancePresetCCSwitch},
+			service.UpstreamBalanceProbeExtraKey:        map[string]any{"status": service.UpstreamBalanceProbeStatusOK},
+		},
+		ProxyID: &proxy.ID,
+	})
+	inFlight, err := accountRepo.GetByID(ctx, account.ID)
+	require.NoError(t, err)
+
+	proxyToUpdate, err := proxyRepo.GetByID(ctx, proxy.ID)
+	require.NoError(t, err)
+	proxyToUpdate.Host = "new.example"
+	require.NoError(t, proxyRepo.Update(ctx, proxyToUpdate))
+
+	got, err := accountRepo.GetByID(ctx, account.ID)
+	require.NoError(t, err)
+	require.NotContains(t, got.Extra, service.UpstreamBalanceProbeExtraKey)
+	err = accountRepo.UpdateUpstreamBalanceProbeSnapshot(ctx, inFlight, &service.UpstreamBalanceProbeSnapshot{
+		Status:        service.UpstreamBalanceProbeStatusOK,
+		LastAttemptAt: time.Now().UTC(),
+	})
+	require.ErrorIs(t, err, service.ErrUpstreamBalanceProbeIdentityChanged)
+	require.Equal(t, []int64{account.ID}, latestBulkAccountOutboxPayload(t, ctx, tx))
+}
+
 func TestSweepExpiredProxyWithoutFallbackInvalidatesOnlyExistingProbeSnapshot(t *testing.T) {
 	ctx := context.Background()
 	tx := testEntTx(t)
@@ -365,16 +408,32 @@ func TestSweepExpiredProxyFallbackRerouteDeletesProbeSnapshot(t *testing.T) {
 		},
 		ProxyID: &proxy.ID,
 	})
+	balanceAccount := mustCreateAccount(t, tx.Client(), &service.Account{
+		Name:        "expired-proxy-rerouted-balance",
+		Platform:    service.PlatformAnthropic,
+		Type:        service.AccountTypeAPIKey,
+		Credentials: map[string]any{"api_key": "sk-test", "base_url": "https://upstream.example/v1"},
+		Extra: map[string]any{
+			service.UpstreamBalanceProbeEnabledExtraKey: true,
+			service.UpstreamBalanceQueryExtraKey:        map[string]any{"preset": service.UpstreamBalancePresetSub2API},
+			service.UpstreamBalanceProbeExtraKey:        map[string]any{"status": service.UpstreamBalanceProbeStatusOK},
+		},
+		ProxyID: &proxy.ID,
+	})
 
 	changed, err := proxyRepo.SweepExpiredProxies(ctx, time.Now())
 	require.NoError(t, err)
-	require.EqualValues(t, 1, changed)
+	require.EqualValues(t, 2, changed)
 
 	got, err := accountRepo.GetByID(ctx, account.ID)
 	require.NoError(t, err)
 	require.Nil(t, got.ProxyID)
 	require.NotContains(t, got.Extra, service.UpstreamBillingProbeExtraKey)
-	require.Equal(t, []int64{account.ID}, latestBulkAccountOutboxPayload(t, ctx, tx))
+	got, err = accountRepo.GetByID(ctx, balanceAccount.ID)
+	require.NoError(t, err)
+	require.Nil(t, got.ProxyID)
+	require.NotContains(t, got.Extra, service.UpstreamBalanceProbeExtraKey)
+	require.Equal(t, []int64{account.ID, balanceAccount.ID}, latestBulkAccountOutboxPayload(t, ctx, tx))
 }
 
 func latestBulkAccountOutboxPayload(t *testing.T, ctx context.Context, tx sqlQueryer) []int64 {

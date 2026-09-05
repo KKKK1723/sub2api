@@ -118,6 +118,9 @@ func TestReconcileCRSUpstreamBillingProbeExtra(t *testing.T) {
 		"crs_account_id":                    "remote-1",
 		UpstreamBillingProbeEnabledExtraKey: true,
 		UpstreamBillingProbeExtraKey:        map[string]any{"status": "remote"},
+		UpstreamBalanceProbeEnabledExtraKey: true,
+		UpstreamBalanceQueryExtraKey:        map[string]any{"preset": "custom"},
+		UpstreamBalanceProbeExtraKey:        map[string]any{"status": "remote"},
 	}
 
 	t.Run("create drops remote managed fields", func(t *testing.T) {
@@ -125,6 +128,9 @@ func TestReconcileCRSUpstreamBillingProbeExtra(t *testing.T) {
 		reconcileCRSUpstreamBillingProbeExtra(nil, PlatformOpenAI, AccountTypeAPIKey, map[string]any{"api_key": "new"}, extra)
 		require.NotContains(t, extra, UpstreamBillingProbeEnabledExtraKey)
 		require.NotContains(t, extra, UpstreamBillingProbeExtraKey)
+		require.NotContains(t, extra, UpstreamBalanceProbeEnabledExtraKey)
+		require.NotContains(t, extra, UpstreamBalanceQueryExtraKey)
+		require.NotContains(t, extra, UpstreamBalanceProbeExtraKey)
 	})
 
 	existing := &Account{
@@ -134,6 +140,9 @@ func TestReconcileCRSUpstreamBillingProbeExtra(t *testing.T) {
 		Extra: map[string]any{
 			UpstreamBillingProbeEnabledExtraKey: false,
 			UpstreamBillingProbeExtraKey:        map[string]any{"status": "local"},
+			UpstreamBalanceProbeEnabledExtraKey: true,
+			UpstreamBalanceQueryExtraKey:        map[string]any{"preset": "ccswitch"},
+			UpstreamBalanceProbeExtraKey:        map[string]any{"status": "local"},
 		},
 	}
 
@@ -142,6 +151,9 @@ func TestReconcileCRSUpstreamBillingProbeExtra(t *testing.T) {
 		reconcileCRSUpstreamBillingProbeExtra(existing, existing.Platform, existing.Type, mergeMap(existing.Credentials, nil), extra)
 		require.Equal(t, false, extra[UpstreamBillingProbeEnabledExtraKey])
 		require.Equal(t, map[string]any{"status": "local"}, extra[UpstreamBillingProbeExtraKey])
+		require.Equal(t, true, extra[UpstreamBalanceProbeEnabledExtraKey])
+		require.Equal(t, map[string]any{"preset": "ccswitch"}, extra[UpstreamBalanceQueryExtraKey])
+		require.Equal(t, map[string]any{"status": "local"}, extra[UpstreamBalanceProbeExtraKey])
 	})
 
 	t.Run("identity change keeps enabled and clears snapshot", func(t *testing.T) {
@@ -149,6 +161,9 @@ func TestReconcileCRSUpstreamBillingProbeExtra(t *testing.T) {
 		reconcileCRSUpstreamBillingProbeExtra(existing, PlatformOpenAI, AccountTypeAPIKey, map[string]any{"api_key": "changed"}, extra)
 		require.Equal(t, false, extra[UpstreamBillingProbeEnabledExtraKey])
 		require.NotContains(t, extra, UpstreamBillingProbeExtraKey)
+		require.Equal(t, true, extra[UpstreamBalanceProbeEnabledExtraKey])
+		require.Equal(t, map[string]any{"preset": "ccswitch"}, extra[UpstreamBalanceQueryExtraKey])
+		require.NotContains(t, extra, UpstreamBalanceProbeExtraKey)
 	})
 
 	for _, target := range []struct {
@@ -167,6 +182,15 @@ func TestReconcileCRSUpstreamBillingProbeExtra(t *testing.T) {
 			reconcileCRSUpstreamBillingProbeExtra(existing, target.platform, target.typeName, existing.Credentials, extra)
 			require.NotContains(t, extra, UpstreamBillingProbeEnabledExtraKey)
 			require.NotContains(t, extra, UpstreamBillingProbeExtraKey)
+			if target.typeName == AccountTypeAPIKey {
+				require.Equal(t, true, extra[UpstreamBalanceProbeEnabledExtraKey])
+				require.Equal(t, map[string]any{"preset": "ccswitch"}, extra[UpstreamBalanceQueryExtraKey])
+				require.NotContains(t, extra, UpstreamBalanceProbeExtraKey)
+			} else {
+				require.NotContains(t, extra, UpstreamBalanceProbeEnabledExtraKey)
+				require.NotContains(t, extra, UpstreamBalanceQueryExtraKey)
+				require.NotContains(t, extra, UpstreamBalanceProbeExtraKey)
+			}
 		})
 	}
 }

@@ -169,6 +169,7 @@ func (h *GrokOAuthHandler) scheduleGrokImportProbe(account *service.Account) {
 // keeping NewAccountHandler convenient for focused unit tests.
 func ProvideAccountHandler(
 	adminService service.AdminService,
+	apiKeyService *service.APIKeyService,
 	oauthService *service.OAuthService,
 	openaiOAuthService *service.OpenAIOAuthService,
 	geminiOAuthService *service.GeminiOAuthService,
@@ -200,6 +201,7 @@ func ProvideAccountHandler(
 		rpmCache,
 		tokenCacheInvalidator,
 	)
+	handler.SetAPIKeyService(apiKeyService)
 	handler.grokImportProber = grokQuotaService
 	return handler
 }

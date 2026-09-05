@@ -6,8 +6,10 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Wei-Shaw/sub2api/internal/config"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/tlsfingerprint"
@@ -34,7 +36,45 @@ func setupAvailableModelsRouter(adminSvc service.AdminService) *gin.Engine {
 	router := gin.New()
 	handler := NewAccountHandler(adminSvc, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 	router.GET("/api/v1/admin/accounts/:id/models", handler.GetAvailableModels)
+	router.GET("/api/v1/available-models", handler.ListAvailableModels)
 	return router
+}
+
+func TestAccountHandlerListAvailableModelsDoesNotLimitGroupsToFixedSet(t *testing.T) {
+	svc := newStubAdminService()
+	now := time.Now().UTC()
+	svc.groups = make([]service.Group, 0, 6)
+	for i := int64(1); i <= 6; i++ {
+		svc.groups = append(svc.groups, service.Group{
+			ID:       i,
+			Name:     "group-" + strconv.FormatInt(i, 10),
+			Platform: service.PlatformOpenAI,
+			Status:   service.StatusActive,
+			ModelsListConfig: service.GroupModelsListConfig{
+				Enabled: true,
+				Models:  []string{"model-" + strconv.FormatInt(i, 10)},
+			},
+			CreatedAt: now,
+			UpdatedAt: now,
+		})
+	}
+	router := setupAvailableModelsRouter(svc)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/available-models", nil)
+	router.ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	var resp struct {
+		Data []struct {
+			GroupID int64 `json:"group_id"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
+	require.Len(t, resp.Data, 6)
+	for i, group := range resp.Data {
+		require.Equal(t, int64(i+1), group.GroupID)
+	}
 }
 
 type syncUpstreamHTTPUpstream struct {

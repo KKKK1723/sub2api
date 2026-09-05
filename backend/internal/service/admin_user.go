@@ -18,6 +18,39 @@ import (
 	"github.com/Wei-Shaw/sub2api/internal/pkg/pagination"
 )
 
+type userBalanceSummaryReader interface {
+	SumBalance(context.Context) (string, int64, error)
+}
+
+type userBalanceSummaryExcludingReader interface {
+	SumBalanceExcluding(context.Context, int64) (string, int64, error)
+}
+
+// GetUsersBalanceSummary returns a full-table aggregate for administrator views.
+// An optional user ID is excluded from the aggregate (the current admin's own account).
+func (s *adminServiceImpl) GetUsersBalanceSummary(ctx context.Context, excludeUserID ...int64) (*UserBalanceSummary, error) {
+	excludedID := int64(0)
+	if len(excludeUserID) > 0 {
+		excludedID = excludeUserID[0]
+	}
+	if reader, ok := s.userRepo.(userBalanceSummaryExcludingReader); ok {
+		total, count, err := reader.SumBalanceExcluding(ctx, excludedID)
+		if err != nil {
+			return nil, err
+		}
+		return &UserBalanceSummary{TotalBalance: total, UserCount: count, UpdatedAt: time.Now().UTC()}, nil
+	}
+	reader, ok := s.userRepo.(userBalanceSummaryReader)
+	if !ok {
+		return nil, fmt.Errorf("user balance summary is not supported")
+	}
+	total, count, err := reader.SumBalance(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &UserBalanceSummary{TotalBalance: total, UserCount: count, UpdatedAt: time.Now().UTC()}, nil
+}
+
 // User management implementations
 func (s *adminServiceImpl) ListUsers(ctx context.Context, page, pageSize int, filters UserListFilters, sortBy, sortOrder string) ([]User, int64, error) {
 	params := pagination.PaginationParams{Page: page, PageSize: pageSize, SortBy: sortBy, SortOrder: sortOrder}

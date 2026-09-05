@@ -8,6 +8,25 @@ import { ref, computed, readonly } from 'vue'
 import { authAPI, isTotp2FARequired, passkeyAPI, type LoginResponse } from '@/api'
 import type { User, LoginRequest, RegisterRequest, AuthResponse } from '@/types'
 
+// Local preview only. This flag is gated by Vite DEV so it cannot affect production builds.
+const DEV_PREVIEW_AUTH = import.meta.env.DEV && import.meta.env.VITE_DEV_BYPASS_AUTH === 'true'
+const DEV_PREVIEW_TOKEN = 'local-preview-token'
+const DEV_PREVIEW_USER: User = {
+  id: 0,
+  username: 'Preview Admin',
+  email: 'preview@sub2api.local',
+  role: 'admin',
+  balance: 0,
+  concurrency: 10,
+  status: 'active',
+  allowed_groups: null,
+  balance_notify_enabled: false,
+  balance_notify_threshold: null,
+  balance_notify_extra_emails: [],
+  created_at: new Date(0).toISOString(),
+  updated_at: new Date(0).toISOString()
+}
+
 const AUTH_TOKEN_KEY = 'auth_token'
 const AUTH_USER_KEY = 'auth_user'
 const REFRESH_TOKEN_KEY = 'refresh_token'
@@ -101,6 +120,13 @@ export const useAuthStore = defineStore('auth', () => {
    * Also starts auto-refresh and immediately fetches latest user data
    */
   function checkAuth(): void {
+    if (DEV_PREVIEW_AUTH) {
+      token.value = DEV_PREVIEW_TOKEN
+      user.value = DEV_PREVIEW_USER
+      runMode.value = 'standard'
+      return
+    }
+
     const savedToken = localStorage.getItem(AUTH_TOKEN_KEY)
     const savedUser = localStorage.getItem(AUTH_USER_KEY)
     const savedRefreshToken = localStorage.getItem(REFRESH_TOKEN_KEY)
@@ -408,6 +434,11 @@ export const useAuthStore = defineStore('auth', () => {
    * Clears all authentication state and persisted data
    */
   async function logout(): Promise<void> {
+    if (DEV_PREVIEW_AUTH) {
+      clearAuth()
+      return
+    }
+
     try {
       // Call API logout (revokes refresh token on server)
       await authAPI.logout()

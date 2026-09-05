@@ -2,6 +2,7 @@ package admin
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -34,6 +35,10 @@ type UserHandler struct {
 	totpService           *service.TotpService                // 角色提升为管理员的 step-up 门控
 	userService           *service.UserService
 	settingService        *service.SettingService // step-up 功能开关
+}
+
+type userBalanceSummaryService interface {
+	GetUsersBalanceSummary(context.Context, ...int64) (*service.UserBalanceSummary, error)
 }
 
 // NewUserHandler creates a new admin user handler
@@ -180,6 +185,21 @@ func (h *UserHandler) List(c *gin.Context) {
 	}
 
 	response.Paginated(c, out, total, page, pageSize)
+}
+
+// Summary returns a full-table balance aggregate and is protected by the admin route middleware.
+func (h *UserHandler) Summary(c *gin.Context) {
+	svc, ok := h.adminService.(userBalanceSummaryService)
+	if !ok {
+		response.InternalError(c, "user balance summary is not configured")
+		return
+	}
+	result, err := svc.GetUsersBalanceSummary(c.Request.Context(), getAdminIDFromContext(c))
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, gin.H{"total_balance": json.Number(result.TotalBalance), "user_count": result.UserCount, "updated_at": result.UpdatedAt})
 }
 
 // parseAttributeFilters extracts attribute filters from query params

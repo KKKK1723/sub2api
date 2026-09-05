@@ -979,6 +979,51 @@ export interface UpstreamBillingProbeResult {
   snapshot?: UpstreamBillingProbeSnapshot
   error?: string
 }
+export type UpstreamBalancePreset = 'sub2api' | 'ccswitch' | 'custom'
+
+export interface UpstreamBalanceQuery {
+  preset: UpstreamBalancePreset
+  method?: 'GET' | 'POST'
+  url?: string
+  auth_type?: 'bearer' | 'x-api-key'
+  balance_path?: string
+  unit_path?: string
+  plan_path?: string
+  total_path?: string
+  used_path?: string
+  valid_path?: string
+  error_path?: string
+  unit?: string
+}
+
+export interface UpstreamBalanceData {
+  balance: number
+  unit: string
+  plan_name?: string
+  total?: number
+  used?: number
+  is_valid?: boolean
+}
+
+export type UpstreamBalanceProbeStatus = 'ok' | 'unsupported' | 'failed'
+
+export interface UpstreamBalanceProbeSnapshot {
+  status: UpstreamBalanceProbeStatus
+  data?: UpstreamBalanceData
+  received_at?: string
+  fresh_until?: string
+  last_attempt_at: string
+  next_probe_at: string
+  failure_count?: number
+  http_status?: number
+  last_error?: string
+}
+
+export interface UpstreamBalanceProbeResult {
+  account_id: number
+  snapshot?: UpstreamBalanceProbeSnapshot
+  error?: string
+}
 
 export type OllamaCloudUsageStatus = 'ok' | 'unauthorized' | 'failed'
 
@@ -1049,6 +1094,9 @@ export interface Account {
     antigravity_credits_overages?: Record<string, { activated_at: string; active_until: string }>
     upstream_billing_probe_enabled?: boolean
     upstream_billing_probe?: UpstreamBillingProbeSnapshot
+    upstream_balance_probe_enabled?: boolean
+    upstream_balance_query?: UpstreamBalanceQuery
+    upstream_balance_probe?: UpstreamBalanceProbeSnapshot
   } & Record<string, unknown>)
   proxy_id: number | null
   proxy_fallback_origin_id?: number | null

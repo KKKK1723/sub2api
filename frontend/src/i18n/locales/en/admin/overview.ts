@@ -430,6 +430,7 @@ export default {
     users: {
       title: 'User Management',
       description: 'Manage users and their permissions',
+      totalBalance: 'All users balance',
       createUser: 'Create User',
       bulkLimits: {
         action: 'Set limits ({count})',

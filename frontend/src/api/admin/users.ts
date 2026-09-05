@@ -110,6 +110,17 @@ export async function list(
   return data
 }
 
+export interface UserBalanceSummary {
+  total_balance: number | string
+  user_count: number
+  updated_at: string
+}
+
+export async function getSummary(): Promise<UserBalanceSummary> {
+  const { data } = await apiClient.get<UserBalanceSummary>('/admin/users/summary')
+  return data
+}
+
 /**
  * Get user by ID
  * @param id - User ID
@@ -401,6 +412,7 @@ export async function resetPlatformQuotaWindow(
 
 export const usersAPI = {
   list,
+  getSummary,
   getById,
   create,
   update,
