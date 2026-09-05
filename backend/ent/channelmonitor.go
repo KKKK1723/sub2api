@@ -37,6 +37,8 @@ type ChannelMonitor struct {
 	Endpoint string `json:"endpoint,omitempty"`
 	// AES-256-GCM encrypted API key
 	APIKeyEncrypted string `json:"-"`
+	// Encrypted URL/API key probe configurations; legacy endpoint/api_key remain supported
+	Probes []map[string]interface{} `json:"probes,omitempty"`
 	// PrimaryModel holds the value of the "primary_model" field.
 	PrimaryModel string `json:"primary_model,omitempty"`
 	// Additional model names to test alongside primary_model
@@ -114,7 +116,7 @@ func (*ChannelMonitor) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case channelmonitor.FieldExtraModels, channelmonitor.FieldExtraHeaders, channelmonitor.FieldBodyOverride:
+		case channelmonitor.FieldProbes, channelmonitor.FieldExtraModels, channelmonitor.FieldExtraHeaders, channelmonitor.FieldBodyOverride:
 			values[i] = new([]byte)
 		case channelmonitor.FieldEnabled:
 			values[i] = new(sql.NullBool)
@@ -199,6 +201,14 @@ func (_m *ChannelMonitor) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field api_key_encrypted", values[i])
 			} else if value.Valid {
 				_m.APIKeyEncrypted = value.String
+			}
+		case channelmonitor.FieldProbes:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field probes", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.Probes); err != nil {
+					return fmt.Errorf("unmarshal field probes: %w", err)
+				}
 			}
 		case channelmonitor.FieldPrimaryModel:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -358,6 +368,9 @@ func (_m *ChannelMonitor) String() string {
 	builder.WriteString(_m.Endpoint)
 	builder.WriteString(", ")
 	builder.WriteString("api_key_encrypted=<sensitive>")
+	builder.WriteString(", ")
+	builder.WriteString("probes=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Probes))
 	builder.WriteString(", ")
 	builder.WriteString("primary_model=")
 	builder.WriteString(_m.PrimaryModel)

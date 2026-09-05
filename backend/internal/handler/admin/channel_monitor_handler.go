@@ -39,21 +39,22 @@ func NewChannelMonitorHandler(monitorService *service.ChannelMonitorService) *Ch
 // --- Request / Response ---
 
 type channelMonitorCreateRequest struct {
-	Name             string            `json:"name" binding:"required,max=100"`
-	Provider         string            `json:"provider" binding:"required,oneof=openai anthropic gemini grok antigravity kimi zhipu deepseek minimax opencode_go"`
-	APIMode          string            `json:"api_mode" binding:"omitempty,oneof=chat_completions responses"`
-	Endpoint         string            `json:"endpoint" binding:"omitempty,max=500"`
-	APIKey           string            `json:"api_key" binding:"omitempty,max=2000"`
-	PrimaryModel     string            `json:"primary_model" binding:"max=200"`
-	ExtraModels      []string          `json:"extra_models"`
-	GroupName        string            `json:"group_name" binding:"max=100"`
-	Enabled          *bool             `json:"enabled"`
-	IntervalSeconds  int               `json:"interval_seconds" binding:"required,min=15,max=3600"`
-	JitterSeconds    int               `json:"jitter_seconds" binding:"omitempty,min=0,max=3585"`
-	TemplateID       *int64            `json:"template_id"`
-	ExtraHeaders     map[string]string `json:"extra_headers"`
-	BodyOverrideMode string            `json:"body_override_mode" binding:"omitempty,oneof=off merge replace"`
-	BodyOverride     map[string]any    `json:"body_override"`
+	Name             string                 `json:"name" binding:"required,max=100"`
+	Provider         string                 `json:"provider" binding:"required,oneof=openai anthropic gemini grok antigravity kimi zhipu deepseek minimax opencode_go"`
+	APIMode          string                 `json:"api_mode" binding:"omitempty,oneof=chat_completions responses"`
+	Endpoint         string                 `json:"endpoint" binding:"omitempty,max=500"`
+	APIKey           string                 `json:"api_key" binding:"omitempty,max=2000"`
+	PrimaryModel     string                 `json:"primary_model" binding:"max=200"`
+	ExtraModels      []string               `json:"extra_models"`
+	GroupName        string                 `json:"group_name" binding:"max=100"`
+	Enabled          *bool                  `json:"enabled"`
+	IntervalSeconds  int                    `json:"interval_seconds" binding:"required,min=15,max=3600"`
+	JitterSeconds    int                    `json:"jitter_seconds" binding:"omitempty,min=0,max=3585"`
+	TemplateID       *int64                 `json:"template_id"`
+	ExtraHeaders     map[string]string      `json:"extra_headers"`
+	BodyOverrideMode string                 `json:"body_override_mode" binding:"omitempty,oneof=off merge replace"`
+	BodyOverride     map[string]any         `json:"body_override"`
+	Probes           []service.MonitorProbe `json:"probes"`
 
 	// CheckMode: probe（默认）/ quota / quota_probe。quota 模式 endpoint/api_key
 	// 可空（条件必填校验在 service 层按模式分支）。
@@ -63,22 +64,23 @@ type channelMonitorCreateRequest struct {
 }
 
 type channelMonitorUpdateRequest struct {
-	Name             *string            `json:"name" binding:"omitempty,max=100"`
-	Provider         *string            `json:"provider" binding:"omitempty,oneof=openai anthropic gemini grok antigravity kimi zhipu deepseek minimax opencode_go"`
-	APIMode          *string            `json:"api_mode" binding:"omitempty,oneof=chat_completions responses"`
-	Endpoint         *string            `json:"endpoint" binding:"omitempty,max=500"`
-	APIKey           *string            `json:"api_key" binding:"omitempty,max=2000"`
-	PrimaryModel     *string            `json:"primary_model" binding:"omitempty,max=200"`
-	ExtraModels      *[]string          `json:"extra_models"`
-	GroupName        *string            `json:"group_name" binding:"omitempty,max=100"`
-	Enabled          *bool              `json:"enabled"`
-	IntervalSeconds  *int               `json:"interval_seconds" binding:"omitempty,min=15,max=3600"`
-	JitterSeconds    *int               `json:"jitter_seconds" binding:"omitempty,min=0,max=3585"`
-	TemplateID       *int64             `json:"template_id"`
-	ClearTemplate    bool               `json:"clear_template"` // true 时把 template_id 置空，忽略 TemplateID
-	ExtraHeaders     *map[string]string `json:"extra_headers"`
-	BodyOverrideMode *string            `json:"body_override_mode" binding:"omitempty,oneof=off merge replace"`
-	BodyOverride     *map[string]any    `json:"body_override"`
+	Name             *string                 `json:"name" binding:"omitempty,max=100"`
+	Provider         *string                 `json:"provider" binding:"omitempty,oneof=openai anthropic gemini grok antigravity kimi zhipu deepseek minimax opencode_go"`
+	APIMode          *string                 `json:"api_mode" binding:"omitempty,oneof=chat_completions responses"`
+	Endpoint         *string                 `json:"endpoint" binding:"omitempty,max=500"`
+	APIKey           *string                 `json:"api_key" binding:"omitempty,max=2000"`
+	PrimaryModel     *string                 `json:"primary_model" binding:"omitempty,max=200"`
+	ExtraModels      *[]string               `json:"extra_models"`
+	GroupName        *string                 `json:"group_name" binding:"omitempty,max=100"`
+	Enabled          *bool                   `json:"enabled"`
+	IntervalSeconds  *int                    `json:"interval_seconds" binding:"omitempty,min=15,max=3600"`
+	JitterSeconds    *int                    `json:"jitter_seconds" binding:"omitempty,min=0,max=3585"`
+	TemplateID       *int64                  `json:"template_id"`
+	ClearTemplate    bool                    `json:"clear_template"` // true 时把 template_id 置空，忽略 TemplateID
+	ExtraHeaders     *map[string]string      `json:"extra_headers"`
+	BodyOverrideMode *string                 `json:"body_override_mode" binding:"omitempty,oneof=off merge replace"`
+	BodyOverride     *map[string]any         `json:"body_override"`
+	Probes           *[]service.MonitorProbe `json:"probes"`
 
 	// CheckMode/AccountID：nil = 不更新；AccountID 指向 0 = 清空关联。
 	CheckMode *string `json:"check_mode" binding:"omitempty,oneof=probe quota quota_probe"`
@@ -112,6 +114,7 @@ type channelMonitorResponse struct {
 	ExtraHeaders     map[string]string `json:"extra_headers"`
 	BodyOverrideMode string            `json:"body_override_mode"`
 	BodyOverride     map[string]any    `json:"body_override"`
+	Probes           []map[string]any  `json:"probes"`
 
 	// 配额模式：check_mode + 关联账号 + 主模型最近配额快照
 	// （LatestQuota 由 List handler 批量聚合后填充；管理端不受 channel_monitor_show_quota 影响）。
@@ -184,6 +187,13 @@ func channelMonitorToResponse(m *service.ChannelMonitor) *channelMonitorResponse
 		BodyOverride:        m.BodyOverride,
 		CheckMode:           m.CheckMode,
 		AccountID:           m.AccountID,
+		Probes: func() []map[string]any {
+			out := make([]map[string]any, 0, len(m.Probes))
+			for _, p := range m.Probes {
+				out = append(out, map[string]any{"name": p.Name, "endpoint": p.Endpoint, "api_key_masked": maskAPIKey(p.APIKey), "enabled": p.Enabled, "status": p.Status, "latency_ms": p.LatencyMs})
+			}
+			return out
+		}(),
 		// PrimaryStatus / PrimaryLatencyMs / Availability7d / LatestQuota
 		// 由 List handler 在批量聚合后填充。
 	}
@@ -354,6 +364,7 @@ func (h *ChannelMonitorHandler) Create(c *gin.Context) {
 		BodyOverride:     req.BodyOverride,
 		CheckMode:        req.CheckMode,
 		AccountID:        req.AccountID,
+		Probes:           req.Probes,
 	})
 	if err != nil {
 		response.ErrorFrom(c, err)
@@ -450,6 +461,7 @@ func (h *ChannelMonitorHandler) Update(c *gin.Context) {
 		BodyOverride:     req.BodyOverride,
 		CheckMode:        req.CheckMode,
 		AccountID:        req.AccountID,
+		Probes:           req.Probes,
 	})
 	if err != nil {
 		response.ErrorFrom(c, err)
