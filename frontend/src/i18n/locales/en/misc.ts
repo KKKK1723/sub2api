@@ -62,7 +62,7 @@ export default {
   // Recharge / Subscription Page
   purchase: {
     title: 'Recharge / Subscription',
-    description: 'Recharge balance or purchase subscription via the embedded page',
+    description: 'This site operates on a small scale. Please contact the site owner to recharge.',
     rechargeDescription: 'Recharge balance via the embedded page',
     subscriptionDescription: 'Purchase subscription via the embedded page',
     openInNewTab: 'Open in new tab',
