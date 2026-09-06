@@ -42,7 +42,11 @@
         :window="window"
         :availability-value="resolveAvailability(item)"
         :countdown-seconds="countdownSeconds"
+        :is-admin="isAdmin"
+        :probes="probeCache[item.id]"
+        :probe-loading="Boolean(probeLoading[item.id])"
         @click="emit('cardClick', item)"
+        @hover="emit('cardHover', item)"
       />
     </div>
   </div>
@@ -51,6 +55,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import type { UserMonitorView, UserMonitorDetail } from '@/api/channelMonitor'
+import type { MonitorProbe } from '@/api/admin/channelMonitor'
 import EmptyState from '@/components/common/EmptyState.vue'
 import MonitorCard from './MonitorCard.vue'
 
@@ -60,10 +65,14 @@ const props = defineProps<{
   countdownSeconds: number
   loading: boolean
   detailCache: Record<number, UserMonitorDetail>
+  isAdmin: boolean
+  probeCache: Record<number, MonitorProbe[]>
+  probeLoading: Record<number, boolean>
 }>()
 
 const emit = defineEmits<{
   (e: 'cardClick', item: UserMonitorView): void
+  (e: 'cardHover', item: UserMonitorView): void
 }>()
 
 const { t } = useI18n()
