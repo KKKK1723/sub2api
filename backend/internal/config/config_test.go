@@ -314,6 +314,41 @@ func TestLoadForBootstrapAllowsMissingJWTSecret(t *testing.T) {
 	}
 }
 
+func TestLoadPersistsTotpEncryptionKeyInDataDir(t *testing.T) {
+	resetViperWithJWTSecret(t)
+	dataDir := t.TempDir()
+	t.Setenv("DATA_DIR", dataDir)
+	t.Setenv("TOTP_ENCRYPTION_KEY", "")
+	t.Setenv("TOTP_ENCRYPTION_KEY_FILE", "")
+
+	first, err := Load()
+	require.NoError(t, err)
+	require.True(t, first.Totp.EncryptionKeyConfigured)
+	require.Len(t, first.Totp.EncryptionKey, 64)
+
+	keyFile := filepath.Join(dataDir, totpEncryptionKeyFileName)
+	stored, err := os.ReadFile(keyFile)
+	require.NoError(t, err)
+	require.Equal(t, first.Totp.EncryptionKey, strings.TrimSpace(string(stored)))
+
+	viper.Reset()
+	second, err := Load()
+	require.NoError(t, err)
+	require.Equal(t, first.Totp.EncryptionKey, second.Totp.EncryptionKey)
+}
+
+func TestLoadRejectsMismatchedTotpEncryptionKeyAndPersistentFile(t *testing.T) {
+	resetViperWithJWTSecret(t)
+	dataDir := t.TempDir()
+	t.Setenv("DATA_DIR", dataDir)
+	t.Setenv("TOTP_ENCRYPTION_KEY", strings.Repeat("a", 64))
+	t.Setenv("TOTP_ENCRYPTION_KEY_FILE", "")
+	require.NoError(t, os.WriteFile(filepath.Join(dataDir, totpEncryptionKeyFileName), []byte(strings.Repeat("b", 64)), 0o600))
+
+	_, err := Load()
+	require.ErrorContains(t, err, "does not match persistent key file")
+}
+
 func TestNormalizeRunMode(t *testing.T) {
 	tests := []struct {
 		input    string

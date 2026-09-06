@@ -10,6 +10,7 @@ import (
 	"net/textproto"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -1513,10 +1514,9 @@ type JWTConfig struct {
 // TotpConfig TOTP 双因素认证配置
 type TotpConfig struct {
 	// EncryptionKey 用于加密 TOTP 密钥的 AES-256 密钥（32 字节 hex 编码）
-	// 如果为空，将自动生成一个随机密钥（仅适用于开发环境）
+	// 为空时优先使用数据目录中的持久化密钥；没有可用数据目录时仅在开发环境自动生成
 	EncryptionKey string `mapstructure:"encryption_key"`
-	// EncryptionKeyConfigured 标记加密密钥是否为手动配置（非自动生成）
-	// 只有手动配置了密钥才允许在管理后台启用 TOTP 功能
+	// EncryptionKeyConfigured 标记加密密钥是否已持久化，只有持久化后才允许启用 TOTP
 	EncryptionKeyConfigured bool `mapstructure:"-"`
 }
 
@@ -1778,18 +1778,8 @@ func load(allowMissingJWTSecret bool) (*Config, error) {
 		cfg.Gateway.UserMessageQueue.Mode = ""
 	}
 
-	// Auto-generate TOTP encryption key if not set (32 bytes = 64 hex chars for AES-256)
-	cfg.Totp.EncryptionKey = strings.TrimSpace(cfg.Totp.EncryptionKey)
-	if cfg.Totp.EncryptionKey == "" {
-		key, err := generateJWTSecret(32) // Reuse the same random generation function
-		if err != nil {
-			return nil, fmt.Errorf("generate totp encryption key error: %w", err)
-		}
-		cfg.Totp.EncryptionKey = key
-		cfg.Totp.EncryptionKeyConfigured = false
-		slog.Warn("TOTP encryption key auto-generated. Consider setting a fixed key for production.")
-	} else {
-		cfg.Totp.EncryptionKeyConfigured = true
+	if err := loadPersistentTotpEncryptionKey(&cfg); err != nil {
+		return nil, err
 	}
 
 	originalJWTSecret := cfg.JWT.Secret
@@ -3543,6 +3533,147 @@ func generateJWTSecret(byteLength int) (string, error) {
 		return "", err
 	}
 	return hex.EncodeToString(buf), nil
+}
+
+const totpEncryptionKeyFileName = "totp_encryption_key"
+
+const (
+	totpEncryptionKeyReadRetries = 10
+	totpEncryptionKeyReadDelay   = 10 * time.Millisecond
+)
+
+// loadPersistentTotpEncryptionKey 优先从持久化数据目录读取主密钥。
+// 环境变量仍可用于首次迁移，但文件一旦存在，二者必须一致，防止静默切换密钥。
+func loadPersistentTotpEncryptionKey(cfg *Config) error {
+	configuredKey := strings.TrimSpace(cfg.Totp.EncryptionKey)
+	keyFilePath, persistent := totpEncryptionKeyFilePath()
+	if !persistent {
+		if configuredKey != "" {
+			cfg.Totp.EncryptionKeyConfigured = true
+			return nil
+		}
+
+		key, err := generateJWTSecret(32)
+		if err != nil {
+			return fmt.Errorf("generate totp encryption key: %w", err)
+		}
+		cfg.Totp.EncryptionKey = key
+		cfg.Totp.EncryptionKeyConfigured = false
+		slog.Warn("TOTP encryption key auto-generated because no persistent data directory is available")
+		return nil
+	}
+
+	storedKey, exists, err := readTotpEncryptionKeyFile(keyFilePath)
+	if err != nil {
+		return err
+	}
+	if exists {
+		if configuredKey != "" && configuredKey != storedKey {
+			return fmt.Errorf("TOTP encryption key does not match persistent key file %q", keyFilePath)
+		}
+		cfg.Totp.EncryptionKey = storedKey
+		cfg.Totp.EncryptionKeyConfigured = true
+		return nil
+	}
+
+	key := configuredKey
+	if key == "" {
+		key, err = generateJWTSecret(32)
+		if err != nil {
+			return fmt.Errorf("generate persistent totp encryption key: %w", err)
+		}
+	}
+	if err := validateTotpEncryptionKey(key); err != nil {
+		return fmt.Errorf("invalid TOTP encryption key: %w", err)
+	}
+	if err := createTotpEncryptionKeyFile(keyFilePath, key); err != nil {
+		return err
+	}
+
+	// 蓝绿发布时两个容器会短暂并行启动；创建竞争失败的一方读取胜出的文件。
+	storedKey, _, err = readTotpEncryptionKeyFile(keyFilePath)
+	if err != nil {
+		return err
+	}
+	if storedKey != key {
+		return fmt.Errorf("TOTP encryption key does not match persistent key file %q", keyFilePath)
+	}
+	cfg.Totp.EncryptionKey = storedKey
+	cfg.Totp.EncryptionKeyConfigured = true
+	slog.Info("TOTP encryption key persisted", "path", keyFilePath)
+	return nil
+}
+
+func totpEncryptionKeyFilePath() (string, bool) {
+	if path := strings.TrimSpace(os.Getenv("TOTP_ENCRYPTION_KEY_FILE")); path != "" {
+		return path, true
+	}
+	if dataDir := strings.TrimSpace(os.Getenv("DATA_DIR")); dataDir != "" {
+		return filepath.Join(dataDir, totpEncryptionKeyFileName), true
+	}
+	if info, err := os.Stat("/app/data"); err == nil && info.IsDir() {
+		return filepath.Join("/app/data", totpEncryptionKeyFileName), true
+	}
+	return "", false
+}
+
+func readTotpEncryptionKeyFile(path string) (string, bool, error) {
+	var lastErr error
+	for attempt := 0; attempt < totpEncryptionKeyReadRetries; attempt++ {
+		data, err := os.ReadFile(path)
+		if os.IsNotExist(err) {
+			return "", false, nil
+		}
+		if err != nil {
+			return "", false, fmt.Errorf("read persistent TOTP encryption key %q: %w", path, err)
+		}
+		key := strings.TrimSpace(string(data))
+		if err := validateTotpEncryptionKey(key); err == nil {
+			return key, true, nil
+		} else {
+			lastErr = err
+		}
+		if attempt+1 < totpEncryptionKeyReadRetries {
+			time.Sleep(totpEncryptionKeyReadDelay)
+		}
+	}
+	return "", false, fmt.Errorf("invalid persistent TOTP encryption key %q: %w", path, lastErr)
+}
+
+func createTotpEncryptionKeyFile(path, key string) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		return fmt.Errorf("create persistent TOTP encryption key directory: %w", err)
+	}
+	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	if os.IsExist(err) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("create persistent TOTP encryption key %q: %w", path, err)
+	}
+	if _, err := file.WriteString(key + "\n"); err != nil {
+		_ = file.Close()
+		return fmt.Errorf("write persistent TOTP encryption key %q: %w", path, err)
+	}
+	if err := file.Sync(); err != nil {
+		_ = file.Close()
+		return fmt.Errorf("sync persistent TOTP encryption key %q: %w", path, err)
+	}
+	if err := file.Close(); err != nil {
+		return fmt.Errorf("close persistent TOTP encryption key %q: %w", path, err)
+	}
+	return nil
+}
+
+func validateTotpEncryptionKey(key string) error {
+	decoded, err := hex.DecodeString(key)
+	if err != nil {
+		return err
+	}
+	if len(decoded) != 32 {
+		return fmt.Errorf("must be 32 bytes (64 hex chars), got %d bytes", len(decoded))
+	}
+	return nil
 }
 
 // GetServerAddress returns the server address (host:port) from config file or environment variable.
