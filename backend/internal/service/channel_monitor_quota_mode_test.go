@@ -46,6 +46,11 @@ func (r *quotaModeRepoStub) Update(_ context.Context, m *ChannelMonitor) error {
 	return nil
 }
 
+// UpdateProbeStatuses 吸收多探针检测写回的探针状态（quota_probe 用例会走到探活分支）。
+func (r *quotaModeRepoStub) UpdateProbeStatuses(context.Context, int64, []MonitorProbeStatus) error {
+	return nil
+}
+
 // newQuotaModeService 构造启用 V1 探活的 service（复用 retirement/duplicate 测试的 stub）。
 func newQuotaModeService(repo *quotaModeRepoStub) *ChannelMonitorService {
 	svc := NewChannelMonitorService(repo, &duplicateChannelMonitorEncryptor{})
