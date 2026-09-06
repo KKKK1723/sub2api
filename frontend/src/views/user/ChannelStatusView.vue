@@ -142,8 +142,8 @@ async function ensureDetailsForWindow() {
   await Promise.all(items.value.map(it => loadDetail(it.id)))
 }
 
-async function loadProbes(id: number) {
-  if (!authStore.isAdmin || probeCache[id] || probeLoading[id]) return
+async function loadProbes(id: number, force = false) {
+  if (!authStore.isAdmin || probeLoading[id] || (!force && probeCache[id])) return
 
   probeLoading[id] = true
   try {
@@ -168,7 +168,7 @@ function openDetail(row: UserMonitorView) {
 }
 
 function handleCardHover(row: UserMonitorView) {
-  if (authStore.isAdmin) void loadProbes(row.id)
+  if (authStore.isAdmin) void loadProbes(row.id, true)
 }
 
 function closeDetail() {

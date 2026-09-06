@@ -72,6 +72,13 @@ type MonitorProbe struct {
 	LatencyMs *int   `json:"latency_ms,omitempty"`
 }
 
+// MonitorProbeStatus 是一次检测后需要写回的探针运行态，不包含密钥等配置字段。
+type MonitorProbeStatus struct {
+	Index     int
+	Status    string
+	LatencyMs *int
+}
+
 // ChannelMonitorListParams 列表查询过滤参数。
 type ChannelMonitorListParams struct {
 	Page     int

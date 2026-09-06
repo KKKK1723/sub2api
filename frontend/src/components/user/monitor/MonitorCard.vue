@@ -39,6 +39,9 @@
               >
                 {{ providerLabel(item.provider) }}
               </span>
+              <span class="font-mono text-xs truncate text-gray-500 dark:text-gray-400">
+                {{ item.primary_model }}
+              </span>
               <span
                 v-if="item.group_name"
                 class="inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-medium bg-gray-100 text-gray-600 dark:bg-dark-700 dark:text-gray-300 flex-shrink-0"
@@ -273,10 +276,11 @@ function probeDisplayName(probe: MonitorProbe, index: number): string {
 <style scoped>
 .monitor-card-admin {
   perspective: 1200px;
+  min-height: 380px;
 }
 
 .monitor-card-flip-inner {
-  min-height: 240px;
+  min-height: 340px;
   transform-style: preserve-3d;
   transition: transform 420ms cubic-bezier(0.2, 0.7, 0.2, 1);
 }

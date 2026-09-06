@@ -30,6 +30,7 @@ type ChannelMonitorRepository interface {
 	ListEnabled(ctx context.Context) ([]*ChannelMonitor, error)
 	MarkChecked(ctx context.Context, id int64, checkedAt time.Time) error
 	InsertHistoryBatch(ctx context.Context, rows []*ChannelMonitorHistoryRow) error
+	UpdateProbeStatuses(ctx context.Context, id int64, statuses []MonitorProbeStatus) error
 	DeleteHistoryBefore(ctx context.Context, before time.Time) (int64, error)
 
 	// 历史记录
@@ -159,6 +160,8 @@ func (s *ChannelMonitorService) Create(ctx context.Context, p ChannelMonitorCrea
 	m.APIKey = strings.TrimSpace(p.APIKey)
 	for i := range m.Probes {
 		if plainProbe, probeErr := s.encryptor.Decrypt(m.Probes[i].APIKey); probeErr == nil { m.Probes[i].APIKey = plainProbe }
+		m.Probes[i].Status = ""
+		m.Probes[i].LatencyMs = nil
 	}
 	if s.scheduler != nil {
 		s.scheduler.Schedule(m)
@@ -201,6 +204,7 @@ func (s *ChannelMonitorService) Duplicate(
 		return nil, fmt.Errorf("clone duplicate channel monitor body override: %w", err)
 	}
 
+	duplicateProbes := cloneMonitorProbesWithoutRuntime(source.Probes)
 	duplicate := &ChannelMonitor{
 		Name:                 duplicateChannelMonitorName(source.Name),
 		Provider:             source.Provider,
@@ -218,7 +222,7 @@ func (s *ChannelMonitorService) Duplicate(
 		ExtraHeaders:         cloneChannelMonitorHeaders(source.ExtraHeaders),
 		BodyOverrideMode:     source.BodyOverrideMode,
 		BodyOverride:         bodyOverride,
-		Probes:               append([]MonitorProbe(nil), source.Probes...),
+		Probes:               duplicateProbes,
 		DuplicateOperationID: operationID,
 	}
 	if err := s.repo.Create(ctx, duplicate); err != nil {
@@ -230,6 +234,19 @@ func (s *ChannelMonitorService) Duplicate(
 	s.decryptInPlace(duplicate)
 	duplicate.APIKey = plainAPIKey
 	return duplicate, nil
+}
+
+func cloneMonitorProbesWithoutRuntime(source []MonitorProbe) []MonitorProbe {
+	if source == nil {
+		return nil
+	}
+	cloned := make([]MonitorProbe, len(source))
+	copy(cloned, source)
+	for i := range cloned {
+		cloned[i].Status = ""
+		cloned[i].LatencyMs = nil
+	}
+	return cloned
 }
 
 // RecoverDuplicate performs a read-only lookup for a duplicate that was
@@ -365,6 +382,8 @@ func (s *ChannelMonitorService) Update(ctx context.Context, id int64, p ChannelM
 		incoming := append([]MonitorProbe(nil), (*p.Probes)...)
 		for i := range incoming {
 			if strings.TrimSpace(incoming[i].Endpoint) == "" { return nil, ErrChannelMonitorInvalidEndpoint }
+			incoming[i].Status = ""
+			incoming[i].LatencyMs = nil
 			incoming[i].Endpoint = normalizeEndpoint(incoming[i].Endpoint)
 			if strings.TrimSpace(incoming[i].APIKey) == "" && i < len(existing.Probes) {
 				incoming[i].APIKey = existing.Probes[i].APIKey
@@ -458,7 +477,11 @@ func (s *ChannelMonitorService) RunCheck(ctx context.Context, id int64) ([]*Chec
 	if m.APIKeyDecryptFailed {
 		return nil, ErrChannelMonitorAPIKeyDecryptFailed
 	}
-	results := s.runProbeChecks(ctx, m)
+	all, statuses := s.runProbeChecksDetailed(ctx, m)
+	if err := s.repo.UpdateProbeStatuses(ctx, m.ID, statuses); err != nil {
+		slog.Error("channel_monitor: update probe statuses failed", "monitor_id", m.ID, "error", err)
+	}
+	results := aggregateProbeResults(all, m.PrimaryModel, m.ExtraModels)
 	s.persistCheckResults(ctx, m, results)
 	return results, nil
 }
@@ -487,21 +510,59 @@ func (s *ChannelMonitorService) encryptAndNormalizeProbes(m *ChannelMonitor) err
 }
 
 func (s *ChannelMonitorService) runProbeChecks(ctx context.Context, m *ChannelMonitor) []*CheckResult {
+	all, _ := s.runProbeChecksDetailed(ctx, m)
+	return aggregateProbeResults(all, m.PrimaryModel, m.ExtraModels)
+}
+
+func (s *ChannelMonitorService) runProbeChecksDetailed(ctx context.Context, m *ChannelMonitor) ([][]*CheckResult, []MonitorProbeStatus) {
 	probes := m.Probes
 	if len(probes) == 0 {
 		probes = []MonitorProbe{{Endpoint: m.Endpoint, APIKey: m.APIKey, Enabled: true}}
 	}
-	all := make([][]*CheckResult, 0, len(probes))
-	for _, probe := range probes {
-		if !probe.Enabled {
+	// 每个探针拥有独立的请求上下文，使用 errgroup 让同一监控的探针同时开始检测。
+	all := make([][]*CheckResult, len(probes))
+	var eg errgroup.Group
+	for index := range probes {
+		index := index
+		if !probes[index].Enabled {
 			continue
 		}
-		copy := *m
-		copy.Endpoint = probe.Endpoint
-		copy.APIKey = probe.APIKey
-		all = append(all, s.runChecksConcurrent(ctx, &copy))
+		eg.Go(func() error {
+			probe := probes[index]
+			copy := *m
+			copy.Endpoint = probe.Endpoint
+			copy.APIKey = probe.APIKey
+			all[index] = s.runChecksConcurrent(ctx, &copy)
+			return nil
+		})
 	}
-	return aggregateProbeResults(all, m.PrimaryModel, m.ExtraModels)
+	_ = eg.Wait()
+
+	statuses := make([]MonitorProbeStatus, 0, len(probes))
+	for index, results := range all {
+		if !probes[index].Enabled {
+			continue
+		}
+		result := findProbePrimaryResult(results, m.PrimaryModel)
+		if result == nil {
+			continue
+		}
+		statuses = append(statuses, MonitorProbeStatus{
+			Index:     index,
+			Status:    result.Status,
+			LatencyMs: result.LatencyMs,
+		})
+	}
+	return all, statuses
+}
+
+func findProbePrimaryResult(results []*CheckResult, primary string) *CheckResult {
+	for _, result := range results {
+		if result != nil && result.Model == primary {
+			return result
+		}
+	}
+	return nil
 }
 
 func aggregateProbeResults(all [][]*CheckResult, primary string, extras []string) []*CheckResult {

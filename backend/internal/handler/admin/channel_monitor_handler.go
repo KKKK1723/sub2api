@@ -167,8 +167,13 @@ func channelMonitorToResponse(m *service.ChannelMonitor) *channelMonitorResponse
 		BodyOverrideMode:    m.BodyOverrideMode,
 		BodyOverride:        m.BodyOverride,
 		Probes: func() []map[string]any {
-			out := make([]map[string]any, 0, len(m.Probes))
-			for _, p := range m.Probes {
+			probes := m.Probes
+			if len(probes) == 0 {
+				// 兼容多探针迁移前的旧监控：旧记录的主 endpoint/API Key 视为默认探针。
+				probes = []service.MonitorProbe{{Name: "默认探针", Endpoint: m.Endpoint, APIKey: m.APIKey, Enabled: true}}
+			}
+			out := make([]map[string]any, 0, len(probes))
+			for _, p := range probes {
 				out = append(out, map[string]any{"name": p.Name, "endpoint": p.Endpoint, "api_key_masked": maskAPIKey(p.APIKey), "enabled": p.Enabled, "status": p.Status, "latency_ms": p.LatencyMs})
 			}
 			return out

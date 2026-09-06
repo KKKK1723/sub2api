@@ -247,6 +247,39 @@ func (r *channelMonitorRepository) InsertHistoryBatch(ctx context.Context, rows 
 	return nil
 }
 
+// UpdateProbeStatuses 只更新 probes JSON 中的运行态，保留数据库里的加密密钥和其他配置。
+func (r *channelMonitorRepository) UpdateProbeStatuses(ctx context.Context, id int64, statuses []service.MonitorProbeStatus) error {
+	if len(statuses) == 0 {
+		return nil
+	}
+	client := clientFromContext(ctx, r.client)
+	row, err := client.ChannelMonitor.Query().Where(channelmonitor.IDEQ(id)).Only(ctx)
+	if err != nil {
+		return translatePersistenceError(err, service.ErrChannelMonitorNotFound, nil)
+	}
+	probes := probesFromJSON(row.Probes)
+	if len(probes) == 0 {
+		// 兼容 192 号迁移前创建的旧监控：旧数据没有 probes JSON，仍视为一个默认探针。
+		probes = []service.MonitorProbe{{
+			Name:     "默认探针",
+			Endpoint: row.Endpoint,
+			APIKey:   row.APIKeyEncrypted,
+			Enabled:  true,
+		}}
+	}
+	for _, runtime := range statuses {
+		if runtime.Index < 0 || runtime.Index >= len(probes) {
+			continue
+		}
+		probes[runtime.Index].Status = runtime.Status
+		probes[runtime.Index].LatencyMs = runtime.LatencyMs
+	}
+	if _, err := client.ChannelMonitor.UpdateOneID(id).SetProbes(probesToJSON(probes)).Save(ctx); err != nil {
+		return translatePersistenceError(err, service.ErrChannelMonitorNotFound, nil)
+	}
+	return nil
+}
+
 // DeleteHistoryBefore 物理删 checked_at < before 的明细，分批 channelMonitorPruneBatchSize 行一批，
 // 避免单事务删除过多引起锁/WAL 压力。借助 (checked_at) 索引定位小批 id，再按 id 删。
 func (r *channelMonitorRepository) DeleteHistoryBefore(ctx context.Context, before time.Time) (int64, error) {
@@ -820,7 +853,14 @@ func emptySliceIfNil(in []string) []string {
 func probesToJSON(in []service.MonitorProbe) []map[string]any {
 	out := make([]map[string]any, 0, len(in))
 	for _, p := range in {
-		out = append(out, map[string]any{"name": p.Name, "endpoint": p.Endpoint, "api_key": p.APIKey, "enabled": p.Enabled})
+		item := map[string]any{"name": p.Name, "endpoint": p.Endpoint, "api_key": p.APIKey, "enabled": p.Enabled}
+		if p.Status != "" {
+			item["status"] = p.Status
+		}
+		if p.LatencyMs != nil {
+			item["latency_ms"] = *p.LatencyMs
+		}
+		out = append(out, item)
 	}
 	return out
 }
@@ -839,6 +879,13 @@ func probesFromJSON(in []map[string]any) []service.MonitorProbe {
 		}
 		if v, ok := m["enabled"].(bool); ok {
 			p.Enabled = v
+		}
+		if v, ok := m["status"].(string); ok {
+			p.Status = v
+		}
+		if v, ok := m["latency_ms"].(float64); ok {
+			latency := int(v)
+			p.LatencyMs = &latency
 		}
 		out = append(out, p)
 	}
