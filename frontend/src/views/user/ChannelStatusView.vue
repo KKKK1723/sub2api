@@ -16,7 +16,11 @@
       :countdown-seconds="countdown"
       :loading="loading"
       :detail-cache="detailCache"
+      :is-admin="isAdmin"
+      :probe-cache="probeCache"
+      :probe-loading="probeLoading"
       @card-click="openDetail"
+      @card-hover="handleCardHover"
     />
 
     <MonitorDetailDialog
@@ -32,6 +36,7 @@
 import { ref, reactive, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
+import { useAuthStore } from '@/stores/auth'
 import { extractApiErrorMessage } from '@/utils/apiError'
 import {
   list as listChannelMonitorViews,
@@ -39,6 +44,8 @@ import {
   type UserMonitorView,
   type UserMonitorDetail,
 } from '@/api/channelMonitor'
+import { adminAPI } from '@/api/admin'
+import type { MonitorProbe } from '@/api/admin/channelMonitor'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import MonitorHero, {
   type MonitorWindow,
@@ -51,12 +58,15 @@ import { useAutoRefresh } from '@/composables/useAutoRefresh'
 
 const { t } = useI18n()
 const appStore = useAppStore()
+const authStore = useAuthStore()
 
 // ── State ──
 const items = ref<UserMonitorView[]>([])
 const loading = ref(false)
 const currentWindow = ref<MonitorWindow>('7d')
 const detailCache = reactive<Record<number, UserMonitorDetail>>({})
+const probeCache = reactive<Record<number, MonitorProbe[]>>({})
+const probeLoading = reactive<Record<number, boolean>>({})
 const showDetail = ref(false)
 const detailTarget = ref<UserMonitorView | null>(null)
 
@@ -70,6 +80,7 @@ const autoRefresh = useAutoRefresh({
   shouldPause: () => document.hidden || loading.value,
 })
 const countdown = autoRefresh.countdown
+const isAdmin = computed(() => authStore.isAdmin)
 
 // ── Computed ──
 const overallStatus = computed<OverallStatus>(() => {
@@ -131,6 +142,20 @@ async function ensureDetailsForWindow() {
   await Promise.all(items.value.map(it => loadDetail(it.id)))
 }
 
+async function loadProbes(id: number) {
+  if (!authStore.isAdmin || probeCache[id] || probeLoading[id]) return
+
+  probeLoading[id] = true
+  try {
+    const monitor = await adminAPI.channelMonitor.get(id)
+    probeCache[id] = monitor.probes ?? []
+  } catch (err: unknown) {
+    appStore.showError(extractApiErrorMessage(err, t('channelStatus.detailLoadError')))
+  } finally {
+    probeLoading[id] = false
+  }
+}
+
 // ── Handlers ──
 async function handleWindowChange(value: MonitorWindow) {
   currentWindow.value = value
@@ -140,6 +165,10 @@ async function handleWindowChange(value: MonitorWindow) {
 function openDetail(row: UserMonitorView) {
   detailTarget.value = row
   showDetail.value = true
+}
+
+function handleCardHover(row: UserMonitorView) {
+  if (authStore.isAdmin) void loadProbes(row.id)
 }
 
 function closeDetail() {
