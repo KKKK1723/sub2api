@@ -345,6 +345,11 @@ func (h *GatewayHandler) handleResponsesFailoverExhausted(c *gin.Context, lastEr
 	if lastErr != nil && lastErr.StatusCode > 0 {
 		statusCode = lastErr.StatusCode
 	}
+	if lastErr != nil && service.IsUpstreamBillingError(statusCode, lastErr.ResponseBody) {
+		service.SetOpsUpstreamError(c, statusCode, service.ExtractUpstreamErrorMessage(lastErr.ResponseBody), "")
+		h.responsesErrorResponse(c, http.StatusServiceUnavailable, "server_error", service.UpstreamGroupUnavailableClientMessage)
+		return
+	}
 	if lastErr != nil && service.IsOpenAISilentRefusalErrorBody(lastErr.ResponseBody) {
 		service.SetOpsUpstreamError(c, statusCode, service.OpenAISilentRefusalClientMessage(), "")
 		h.responsesErrorResponse(c, http.StatusBadGateway, "upstream_error", service.OpenAISilentRefusalClientMessage())

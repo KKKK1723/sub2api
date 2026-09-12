@@ -307,6 +307,35 @@ func extractUpstreamErrorMessage(body []byte) string {
 	return gjson.GetBytes(body, "message").String()
 }
 
+const UpstreamGroupUnavailableClientMessage = "当前分组暂不可用，如需使用请联系管理员"
+
+// IsUpstreamBillingError 判断上游是否因余额或计费问题拒绝请求。
+// 仅用于故障转移耗尽后的客户端提示，不影响后台记录的原始错误。
+func IsUpstreamBillingError(statusCode int, body []byte) bool {
+	if statusCode == http.StatusPaymentRequired {
+		return true
+	}
+	msg := strings.ToLower(strings.TrimSpace(extractUpstreamErrorMessage(body)))
+	if msg == "" {
+		msg = strings.ToLower(string(body))
+	}
+	for _, marker := range []string{
+		"insufficient balance",
+		"insufficient account balance",
+		"credit balance",
+		"payment required",
+		"billing issue",
+		"billing problem",
+		"余额不足",
+		"余额不够",
+	} {
+		if strings.Contains(msg, marker) {
+			return true
+		}
+	}
+	return false
+}
+
 func extractUpstreamErrorCode(body []byte) string {
 	if code := strings.TrimSpace(gjson.GetBytes(body, "error.code").String()); code != "" {
 		return code
