@@ -399,6 +399,10 @@ func (h *GatewayHandler) handleResponsesFailoverExhausted(c *gin.Context, lastEr
 			status = http.StatusServiceUnavailable
 		}
 		message = lastErr.ClientMessage
+	} else if lastErr != nil && service.IsUpstreamBillingError(statusCode, lastErr.ResponseBody) {
+		// 上游余额/计费问题：后台记录原始错误，客户端统一提示分组暂不可用。
+		service.SetOpsUpstreamError(c, statusCode, service.ExtractUpstreamErrorMessage(lastErr.ResponseBody), "")
+		status, code, message = http.StatusServiceUnavailable, "server_error", service.UpstreamGroupUnavailableClientMessage
 	} else if lastErr != nil && service.IsOpenAISilentRefusalErrorBody(lastErr.ResponseBody) {
 		service.SetOpsUpstreamError(c, statusCode, service.OpenAISilentRefusalClientMessage(), "")
 		status, code, message = http.StatusBadGateway, "upstream_error", service.OpenAISilentRefusalClientMessage()

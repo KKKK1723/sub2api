@@ -1629,6 +1629,11 @@ func (h *OpenAIGatewayHandler) handleAnthropicFailoverExhausted(c *gin.Context, 
 		h.anthropicStreamingAwareError(c, status, "api_error", failoverErr.ClientMessage, streamStarted)
 		return
 	}
+	if failoverErr != nil && service.IsUpstreamBillingError(failoverErr.StatusCode, failoverErr.ResponseBody) {
+		service.SetOpsUpstreamError(c, failoverErr.StatusCode, service.ExtractUpstreamErrorMessage(failoverErr.ResponseBody), "")
+		h.anthropicStreamingAwareError(c, http.StatusServiceUnavailable, "api_error", service.UpstreamGroupUnavailableClientMessage, streamStarted)
+		return
+	}
 	status, errType, errMsg := h.mapUpstreamError(failoverErr.StatusCode)
 	h.anthropicStreamingAwareError(c, status, errType, errMsg, streamStarted)
 }
@@ -3551,16 +3556,13 @@ func (h *OpenAIGatewayHandler) handleFailoverExhausted(c *gin.Context, failoverE
 		return
 	}
 	if failoverErr.Reason == service.OpenAIImagesInsufficientBalanceReason {
-		status := failoverErr.ClientStatusCode
-		if status <= 0 {
-			status = http.StatusPaymentRequired
-		}
+		// 上游图片账号余额不足同属上游计费问题：后台记录原始原因，客户端与其他上游余额问题一致，统一提示分组暂不可用。
 		message := strings.TrimSpace(failoverErr.ClientMessage)
 		if message == "" {
 			message = service.OpenAIImagesInsufficientBalanceMessage
 		}
 		service.SetOpsUpstreamError(c, failoverErr.StatusCode, message, "")
-		h.handleStreamingAwareErrorWithCode(c, status, "upstream_error", service.OpenAIImagesInsufficientBalanceCode, message, streamStarted, false)
+		h.handleStreamingAwareError(c, http.StatusServiceUnavailable, "upstream_error", service.UpstreamGroupUnavailableClientMessage, streamStarted)
 		return
 	}
 	if failoverErr.IsCredentialFailure() {
@@ -3582,6 +3584,11 @@ func (h *OpenAIGatewayHandler) handleFailoverExhausted(c *gin.Context, failoverE
 		upstreamMsg := service.SanitizeUpstreamErrorMessage(service.ExtractUpstreamErrorMessage(responseBody))
 		service.SetOpsUpstreamError(c, statusCode, upstreamMsg, "")
 		service.WriteOpenAIUpstreamClientError(c, statusCode, responseBody, upstreamMsg)
+		return
+	}
+	if service.IsUpstreamBillingError(statusCode, responseBody) {
+		service.SetOpsUpstreamError(c, statusCode, service.ExtractUpstreamErrorMessage(responseBody), "")
+		h.handleStreamingAwareError(c, http.StatusServiceUnavailable, "upstream_error", service.UpstreamGroupUnavailableClientMessage, streamStarted)
 		return
 	}
 	if service.IsOpenAISilentRefusalErrorBody(responseBody) {
