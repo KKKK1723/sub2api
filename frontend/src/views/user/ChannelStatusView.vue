@@ -1,26 +1,19 @@
 <template>
   <AppLayout>
-    <MonitorHero
-      :overall-status="overallStatus"
-      :interval-seconds="DEFAULT_INTERVAL_SECONDS"
-      :window="currentWindow"
-      :loading="loading"
-      :auto-refresh="autoRefresh"
-      @update:window="handleWindowChange"
-      @refresh="manualReload"
-    />
-
-    <MonitorCardGrid
+    <MonitorStatusBoard
       :items="items"
       :window="currentWindow"
       :countdown-seconds="countdown"
+      :interval-seconds="DEFAULT_INTERVAL_SECONDS"
       :loading="loading"
       :detail-cache="detailCache"
       :is-admin="isAdmin"
       :probe-cache="probeCache"
       :probe-loading="probeLoading"
+      @update:window="handleWindowChange"
       @card-click="openDetail"
       @card-hover="handleCardHover"
+      @probe-view="loadAllProbes"
     />
 
     <MonitorDetailDialog
@@ -47,13 +40,10 @@ import {
 import { adminAPI } from '@/api/admin'
 import type { MonitorProbe } from '@/api/admin/channelMonitor'
 import AppLayout from '@/components/layout/AppLayout.vue'
-import MonitorHero, {
-  type MonitorWindow,
-  type OverallStatus,
-} from '@/components/user/monitor/MonitorHero.vue'
-import MonitorCardGrid from '@/components/user/monitor/MonitorCardGrid.vue'
+import MonitorStatusBoard from '@/components/user/monitor/MonitorStatusBoard.vue'
+import type { MonitorWindow } from '@/components/user/monitor/MonitorHero.vue'
 import MonitorDetailDialog from '@/components/user/MonitorDetailDialog.vue'
-import { DEFAULT_INTERVAL_SECONDS, STATUS_OPERATIONAL } from '@/constants/channelMonitor'
+import { DEFAULT_INTERVAL_SECONDS } from '@/constants/channelMonitor'
 import { useAutoRefresh } from '@/composables/useAutoRefresh'
 
 const { t } = useI18n()
@@ -82,16 +72,6 @@ const autoRefresh = useAutoRefresh({
 const countdown = autoRefresh.countdown
 const isAdmin = computed(() => authStore.isAdmin)
 
-// ── Computed ──
-const overallStatus = computed<OverallStatus>(() => {
-  if (items.value.length === 0) return 'operational'
-  for (const it of items.value) {
-    if (it.primary_status === 'failed' || it.primary_status === 'error') return 'degraded'
-    if (it.primary_status !== STATUS_OPERATIONAL) return 'degraded'
-  }
-  return 'operational'
-})
-
 const detailTitle = computed(() => {
   return detailTarget.value?.name || t('channelStatus.detailTitle')
 })
@@ -119,15 +99,6 @@ async function reload(silent = false) {
   }
 }
 
-async function manualReload() {
-  await reload(false)
-  // After base reload, refresh any cached detail records so non-7d availability
-  // values stay in sync without forcing the user to switch tabs again.
-  if (currentWindow.value !== '7d') {
-    await Promise.all(items.value.map(it => loadDetail(it.id, true)))
-  }
-}
-
 async function loadDetail(id: number, force = false) {
   if (!force && detailCache[id]) return
   try {
@@ -147,13 +118,18 @@ async function loadProbes(id: number, force = false) {
 
   probeLoading[id] = true
   try {
-    const monitor = await adminAPI.channelMonitor.get(id)
+    const monitor = await adminAPI.channelMonitor.get(id, { includeSecrets: true })
     probeCache[id] = monitor.probes ?? []
   } catch (err: unknown) {
     appStore.showError(extractApiErrorMessage(err, t('channelStatus.detailLoadError')))
   } finally {
     probeLoading[id] = false
   }
+}
+
+async function loadAllProbes() {
+  if (!authStore.isAdmin) return
+  await Promise.all(items.value.map(item => loadProbes(item.id)))
 }
 
 // ── Handlers ──

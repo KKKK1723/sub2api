@@ -853,7 +853,7 @@ func emptySliceIfNil(in []string) []string {
 func probesToJSON(in []service.MonitorProbe) []map[string]any {
 	out := make([]map[string]any, 0, len(in))
 	for _, p := range in {
-		item := map[string]any{"name": p.Name, "endpoint": p.Endpoint, "api_key": p.APIKey, "enabled": p.Enabled}
+		item := map[string]any{"name": p.Name, "endpoint": p.Endpoint, "api_key": p.APIKey, "model": p.Model, "enabled": p.Enabled}
 		if p.Status != "" {
 			item["status"] = p.Status
 		}
@@ -876,6 +876,9 @@ func probesFromJSON(in []map[string]any) []service.MonitorProbe {
 		}
 		if v, ok := m["api_key"].(string); ok {
 			p.APIKey = v
+		}
+		if v, ok := m["model"].(string); ok {
+			p.Model = v
 		}
 		if v, ok := m["enabled"].(bool); ok {
 			p.Enabled = v

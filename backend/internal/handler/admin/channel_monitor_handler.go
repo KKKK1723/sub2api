@@ -170,11 +170,11 @@ func channelMonitorToResponse(m *service.ChannelMonitor) *channelMonitorResponse
 			probes := m.Probes
 			if len(probes) == 0 {
 				// 兼容多探针迁移前的旧监控：旧记录的主 endpoint/API Key 视为默认探针。
-				probes = []service.MonitorProbe{{Name: "默认探针", Endpoint: m.Endpoint, APIKey: m.APIKey, Enabled: true}}
+				probes = []service.MonitorProbe{{Name: "默认探针", Endpoint: m.Endpoint, APIKey: m.APIKey, Model: m.PrimaryModel, Enabled: true}}
 			}
 			out := make([]map[string]any, 0, len(probes))
 			for _, p := range probes {
-				out = append(out, map[string]any{"name": p.Name, "endpoint": p.Endpoint, "api_key_masked": maskAPIKey(p.APIKey), "enabled": p.Enabled, "status": p.Status, "latency_ms": p.LatencyMs})
+				out = append(out, map[string]any{"name": p.Name, "endpoint": p.Endpoint, "model": p.Model, "api_key_masked": maskAPIKey(p.APIKey), "enabled": p.Enabled, "status": p.Status, "latency_ms": p.LatencyMs})
 			}
 			return out
 		}(),
@@ -183,6 +183,24 @@ func channelMonitorToResponse(m *service.ChannelMonitor) *channelMonitorResponse
 	if m.LastCheckedAt != nil {
 		s := m.LastCheckedAt.UTC().Format(time.RFC3339)
 		resp.LastCheckedAt = &s
+	}
+	return resp
+}
+
+// channelMonitorToSecretResponse 仅供管理员探针状态页按需查看完整探针凭据。
+func channelMonitorToSecretResponse(m *service.ChannelMonitor) *channelMonitorResponse {
+	resp := channelMonitorToResponse(m)
+	if resp == nil {
+		return nil
+	}
+	probes := m.Probes
+	if len(probes) == 0 {
+		probes = []service.MonitorProbe{{Name: "默认探针", Endpoint: m.Endpoint, APIKey: m.APIKey, Model: m.PrimaryModel, Enabled: true}}
+	}
+	for i, probe := range probes {
+		if i < len(resp.Probes) {
+			resp.Probes[i]["api_key"] = probe.APIKey
+		}
 	}
 	return resp
 }
@@ -305,6 +323,10 @@ func (h *ChannelMonitorHandler) Get(c *gin.Context) {
 	m, err := h.monitorService.Get(c.Request.Context(), id)
 	if err != nil {
 		response.ErrorFrom(c, err)
+		return
+	}
+	if c.Query("include_secrets") == "true" {
+		response.Success(c, channelMonitorToSecretResponse(m))
 		return
 	}
 	response.Success(c, channelMonitorToResponse(m))

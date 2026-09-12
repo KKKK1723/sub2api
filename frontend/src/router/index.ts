@@ -281,6 +281,17 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/ai-products',
+    name: 'AiProductService',
+    component: () => import('@/views/user/AiProductServiceView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: false,
+      title: 'AI 商品服务',
+      titleKey: 'nav.aiProducts'
+    }
+  },
+  {
     path: '/subscriptions',
     name: 'Subscriptions',
     component: () => import('@/views/user/SubscriptionsView.vue'),

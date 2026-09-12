@@ -149,6 +149,9 @@ func (s *ChannelMonitorService) Create(ctx context.Context, p ChannelMonitorCrea
 		BodyOverride:     p.BodyOverride,
 		Probes:           p.Probes,
 	}
+	if m.PrimaryModel == "" && len(m.Probes) > 0 {
+		m.PrimaryModel = strings.TrimSpace(m.Probes[0].Model)
+	}
 	if err := s.encryptAndNormalizeProbes(m); err != nil {
 		return nil, err
 	}
@@ -159,7 +162,9 @@ func (s *ChannelMonitorService) Create(ctx context.Context, p ChannelMonitorCrea
 	// 这样可避免 SecretEncryptor 解密失败时 APIKey 被静默清空的问题（见 Fix 4）。
 	m.APIKey = strings.TrimSpace(p.APIKey)
 	for i := range m.Probes {
-		if plainProbe, probeErr := s.encryptor.Decrypt(m.Probes[i].APIKey); probeErr == nil { m.Probes[i].APIKey = plainProbe }
+		if plainProbe, probeErr := s.encryptor.Decrypt(m.Probes[i].APIKey); probeErr == nil {
+			m.Probes[i].APIKey = plainProbe
+		}
 		m.Probes[i].Status = ""
 		m.Probes[i].LatencyMs = nil
 	}
@@ -363,7 +368,11 @@ func validateCreateParams(p ChannelMonitorCreateParams) error {
 	if strings.TrimSpace(p.APIKey) == "" {
 		return ErrChannelMonitorMissingAPIKey
 	}
-	if normalizeMonitorPrimaryModel(p.Provider, p.PrimaryModel) == "" {
+	primaryModel := normalizeMonitorPrimaryModel(p.Provider, p.PrimaryModel)
+	if primaryModel == "" && len(p.Probes) > 0 {
+		primaryModel = strings.TrimSpace(p.Probes[0].Model)
+	}
+	if primaryModel == "" {
 		return ErrChannelMonitorMissingPrimaryModel
 	}
 	return nil
@@ -381,16 +390,34 @@ func (s *ChannelMonitorService) Update(ctx context.Context, id int64, p ChannelM
 	if p.Probes != nil {
 		incoming := append([]MonitorProbe(nil), (*p.Probes)...)
 		for i := range incoming {
-			if strings.TrimSpace(incoming[i].Endpoint) == "" { return nil, ErrChannelMonitorInvalidEndpoint }
+			if strings.TrimSpace(incoming[i].Endpoint) == "" {
+				return nil, ErrChannelMonitorInvalidEndpoint
+			}
 			incoming[i].Status = ""
 			incoming[i].LatencyMs = nil
 			incoming[i].Endpoint = normalizeEndpoint(incoming[i].Endpoint)
+			incoming[i].Model = strings.TrimSpace(incoming[i].Model)
+			if incoming[i].Model == "" && i < len(existing.Probes) {
+				incoming[i].Model = strings.TrimSpace(existing.Probes[i].Model)
+			}
+			if incoming[i].Model == "" {
+				incoming[i].Model = strings.TrimSpace(existing.PrimaryModel)
+			}
+			if incoming[i].Model == "" {
+				return nil, ErrChannelMonitorMissingPrimaryModel
+			}
 			if strings.TrimSpace(incoming[i].APIKey) == "" && i < len(existing.Probes) {
 				incoming[i].APIKey = existing.Probes[i].APIKey
 				continue
 			}
-			if strings.TrimSpace(incoming[i].APIKey) == "" { return nil, ErrChannelMonitorMissingAPIKey }
-			encrypted, encryptErr := s.encryptor.Encrypt(strings.TrimSpace(incoming[i].APIKey)); if encryptErr != nil { return nil, fmt.Errorf("encrypt probe api key: %w", encryptErr) }; incoming[i].APIKey = encrypted
+			if strings.TrimSpace(incoming[i].APIKey) == "" {
+				return nil, ErrChannelMonitorMissingAPIKey
+			}
+			encrypted, encryptErr := s.encryptor.Encrypt(strings.TrimSpace(incoming[i].APIKey))
+			if encryptErr != nil {
+				return nil, fmt.Errorf("encrypt probe api key: %w", encryptErr)
+			}
+			incoming[i].APIKey = encrypted
 		}
 		existing.Probes = incoming
 	}
@@ -481,14 +508,14 @@ func (s *ChannelMonitorService) RunCheck(ctx context.Context, id int64) ([]*Chec
 	if err := s.repo.UpdateProbeStatuses(ctx, m.ID, statuses); err != nil {
 		slog.Error("channel_monitor: update probe statuses failed", "monitor_id", m.ID, "error", err)
 	}
-	results := aggregateProbeResults(all, m.PrimaryModel, m.ExtraModels)
+	results := aggregateMonitorProbeResults(all, m)
 	s.persistCheckResults(ctx, m, results)
 	return results, nil
 }
 
 func (s *ChannelMonitorService) encryptAndNormalizeProbes(m *ChannelMonitor) error {
 	if len(m.Probes) == 0 {
-		m.Probes = []MonitorProbe{{Name: "默认探针", Endpoint: m.Endpoint, APIKey: m.APIKey, Enabled: true}}
+		m.Probes = []MonitorProbe{{Name: "默认探针", Endpoint: m.Endpoint, APIKey: m.APIKey, Model: m.PrimaryModel, Enabled: true}}
 		return nil
 	}
 	for i := range m.Probes {
@@ -499,6 +526,13 @@ func (s *ChannelMonitorService) encryptAndNormalizeProbes(m *ChannelMonitor) err
 		p.Endpoint = normalizeEndpoint(p.Endpoint)
 		if strings.TrimSpace(p.APIKey) == "" {
 			return ErrChannelMonitorMissingAPIKey
+		}
+		p.Model = strings.TrimSpace(p.Model)
+		if p.Model == "" {
+			p.Model = strings.TrimSpace(m.PrimaryModel)
+		}
+		if p.Model == "" {
+			return ErrChannelMonitorMissingPrimaryModel
 		}
 		encrypted, err := s.encryptor.Encrypt(strings.TrimSpace(p.APIKey))
 		if err != nil {
@@ -511,13 +545,13 @@ func (s *ChannelMonitorService) encryptAndNormalizeProbes(m *ChannelMonitor) err
 
 func (s *ChannelMonitorService) runProbeChecks(ctx context.Context, m *ChannelMonitor) []*CheckResult {
 	all, _ := s.runProbeChecksDetailed(ctx, m)
-	return aggregateProbeResults(all, m.PrimaryModel, m.ExtraModels)
+	return aggregateMonitorProbeResults(all, m)
 }
 
 func (s *ChannelMonitorService) runProbeChecksDetailed(ctx context.Context, m *ChannelMonitor) ([][]*CheckResult, []MonitorProbeStatus) {
 	probes := m.Probes
 	if len(probes) == 0 {
-		probes = []MonitorProbe{{Endpoint: m.Endpoint, APIKey: m.APIKey, Enabled: true}}
+		probes = []MonitorProbe{{Endpoint: m.Endpoint, APIKey: m.APIKey, Model: m.PrimaryModel, Enabled: true}}
 	}
 	// 每个探针拥有独立的请求上下文，使用 errgroup 让同一监控的探针同时开始检测。
 	all := make([][]*CheckResult, len(probes))
@@ -532,6 +566,8 @@ func (s *ChannelMonitorService) runProbeChecksDetailed(ctx context.Context, m *C
 			copy := *m
 			copy.Endpoint = probe.Endpoint
 			copy.APIKey = probe.APIKey
+			copy.PrimaryModel = probeModel(probe, m.PrimaryModel)
+			copy.ExtraModels = nil
 			all[index] = s.runChecksConcurrent(ctx, &copy)
 			return nil
 		})
@@ -543,7 +579,7 @@ func (s *ChannelMonitorService) runProbeChecksDetailed(ctx context.Context, m *C
 		if !probes[index].Enabled {
 			continue
 		}
-		result := findProbePrimaryResult(results, m.PrimaryModel)
+		result := findProbePrimaryResult(results, probeModel(probes[index], m.PrimaryModel))
 		if result == nil {
 			continue
 		}
@@ -554,6 +590,44 @@ func (s *ChannelMonitorService) runProbeChecksDetailed(ctx context.Context, m *C
 		})
 	}
 	return all, statuses
+}
+
+func probeModel(probe MonitorProbe, fallback string) string {
+	model := strings.TrimSpace(probe.Model)
+	if model == "" {
+		return strings.TrimSpace(fallback)
+	}
+	return model
+}
+
+func monitorModels(m *ChannelMonitor) []string {
+	if len(m.Probes) > 0 {
+		models := make([]string, 0, len(m.Probes))
+		seen := make(map[string]struct{}, len(m.Probes))
+		for _, probe := range m.Probes {
+			model := probeModel(probe, m.PrimaryModel)
+			if model == "" {
+				continue
+			}
+			if _, ok := seen[model]; ok {
+				continue
+			}
+			seen[model] = struct{}{}
+			models = append(models, model)
+		}
+		if len(models) > 0 {
+			return models
+		}
+	}
+	return append([]string{m.PrimaryModel}, m.ExtraModels...)
+}
+
+func aggregateMonitorProbeResults(all [][]*CheckResult, m *ChannelMonitor) []*CheckResult {
+	models := monitorModels(m)
+	if len(models) == 0 {
+		return []*CheckResult{{Status: MonitorStatusError, Message: "no configured probe models", CheckedAt: time.Now()}}
+	}
+	return aggregateProbeResults(all, models[0], models[1:])
 }
 
 func findProbePrimaryResult(results []*CheckResult, primary string) *CheckResult {

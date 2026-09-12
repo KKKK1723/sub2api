@@ -9,7 +9,7 @@ export type Provider = 'openai' | 'anthropic' | 'gemini' | 'grok'
 export type MonitorStatus = 'operational' | 'degraded' | 'failed' | 'error'
 export type BodyOverrideMode = 'off' | 'merge' | 'replace'
 export type APIMode = 'chat_completions' | 'responses'
-export interface MonitorProbe { name: string; endpoint: string; api_key?: string; api_key_masked?: string; enabled: boolean; status?: MonitorStatus | ''; latency_ms?: number | null }
+export interface MonitorProbe { name: string; endpoint: string; model?: string; api_key?: string; api_key_masked?: string; enabled: boolean; status?: MonitorStatus | ''; latency_ms?: number | null }
 
 export interface ChannelMonitor {
   id: number
@@ -146,8 +146,10 @@ export async function list(
 /**
  * Get a channel monitor by ID
  */
-export async function get(id: number): Promise<ChannelMonitor> {
-  const { data } = await apiClient.get<ChannelMonitor>(`/admin/channel-monitors/${id}`)
+export async function get(id: number, options?: { includeSecrets?: boolean }): Promise<ChannelMonitor> {
+  const { data } = await apiClient.get<ChannelMonitor>(`/admin/channel-monitors/${id}`, {
+    params: options?.includeSecrets ? { include_secrets: true } : undefined,
+  })
   return data
 }
 
