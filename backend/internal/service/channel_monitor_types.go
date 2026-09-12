@@ -76,6 +76,7 @@ type MonitorProbe struct {
 	Name      string `json:"name"`
 	Endpoint  string `json:"endpoint"`
 	APIKey    string `json:"api_key"`
+	Model     string `json:"model"`
 	Enabled   bool   `json:"enabled"`
 	Status    string `json:"status,omitempty"`
 	LatencyMs *int   `json:"latency_ms,omitempty"`

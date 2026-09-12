@@ -30,16 +30,6 @@
         </div>
         <div class="flex max-w-full shrink-0 flex-wrap items-center justify-end gap-2">
           <LocaleSwitcher />
-          <a
-            v-if="docUrl"
-            :href="docUrl"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 dark:text-dark-400 dark:hover:bg-dark-800"
-            :title="t('home.viewDocs')"
-          >
-            <Icon name="book" size="md" />
-          </a>
           <router-link
             v-if="showModelPlazaEntry"
             to="/model-plaza"
@@ -128,18 +118,6 @@
         <div class="flex items-center gap-3">
           <!-- Language Switcher -->
           <LocaleSwitcher />
-
-          <!-- Doc Link -->
-          <a
-            v-if="docUrl"
-            :href="docUrl"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-dark-400 dark:hover:bg-dark-800 dark:hover:text-white"
-            :title="t('home.viewDocs')"
-          >
-            <Icon name="book" size="md" />
-          </a>
 
           <!-- Model Plaza Link -->
           <router-link

@@ -10,12 +10,9 @@ const homeViewSource = readFileSync(resolve(dir, '../../../views/HomeView.vue'),
 const keyUsageViewSource = readFileSync(resolve(dir, '../../../views/KeyUsageView.vue'), 'utf8')
 
 describe('doc_url sanitization', () => {
-  it('AppHeader imports sanitizeUrl', () => {
-    expect(headerSource).toContain("import { sanitizeUrl } from '@/utils/url'")
-  })
-
-  it('AppHeader applies sanitizeUrl to docUrl', () => {
-    expect(headerSource).toContain('sanitizeUrl(appStore.docUrl)')
+  it('AppHeader does not render the external documentation link', () => {
+    expect(headerSource).not.toContain('Docs Link')
+    expect(headerSource).not.toContain("t('nav.docs')")
   })
 
   it('HomeView imports sanitizeUrl', () => {

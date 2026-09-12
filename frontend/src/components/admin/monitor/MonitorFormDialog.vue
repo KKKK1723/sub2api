@@ -96,35 +96,12 @@
         </div>
       </div>
 
-      <div v-if="usesProbePart">
-        <label class="input-label">{{ t('admin.channelMonitor.form.primaryModel') }} <span class="text-red-500">*</span></label>
-        <input
-          v-model="form.primary_model"
-          data-testid="monitor-primary-model"
-          type="text"
-          required
-          class="input font-medium"
-          :class="getPlatformTextClass(form.provider)"
-          :placeholder="t('admin.channelMonitor.form.primaryModelPlaceholder')"
-        />
-      </div>
-
-      <div v-if="usesProbePart">
-        <label class="input-label">{{ t('admin.channelMonitor.form.extraModels') }}</label>
-        <ModelTagInput
-          :models="form.extra_models"
-          :platform="form.provider"
-          :placeholder="t('admin.channelMonitor.form.extraModelsPlaceholder')"
-          @update:models="form.extra_models = $event"
-        />
-      </div>
-
       <div v-if="usesProbePart" class="space-y-3">
         <div class="flex items-center justify-between"><label class="input-label mb-0">探针列表</label><button type="button" class="btn btn-secondary" @click="addProbe">添加探针</button></div>
         <div v-for="(probe, index) in form.probes" :key="index" class="rounded-lg border border-gray-200 p-3 dark:border-dark-700">
           <div class="mb-2 flex items-center justify-between"><span class="text-sm font-medium">探针 {{ index + 1 }}</span><button v-if="form.probes.length > 1" type="button" class="text-sm text-red-500" @click="removeProbe(index)">删除</button></div>
-          <div class="grid gap-2 sm:grid-cols-2"><input v-model="probe.name" class="input" placeholder="探针名称" /><input v-model="probe.endpoint" :data-testid="index === 0 ? 'monitor-endpoint' : undefined" required class="input" placeholder="接口地址" /></div>
-          <div class="mt-2 flex gap-2"><input v-model="probe.api_key" type="password" required class="input flex-1" :placeholder="probe.api_key_masked || 'API Key'" /><button type="button" @click="openMyKeyPicker(index)" class="btn btn-secondary whitespace-nowrap">选择 Key</button></div>
+          <div class="grid gap-2 sm:grid-cols-3"><input v-model="probe.name" class="input" placeholder="探针名称" /><input v-model="probe.endpoint" :data-testid="index === 0 ? 'monitor-endpoint' : undefined" required class="input" placeholder="接口地址" /><input v-model="probe.model" :data-testid="index === 0 ? 'monitor-primary-model' : undefined" required class="input" :class="getPlatformTextClass(form.provider)" placeholder="探测模型" /></div>
+          <div class="mt-2 flex gap-2"><input v-model="probe.api_key" type="password" :required="!probe.api_key_masked || !!monitor?.api_key_decrypt_failed" class="input flex-1" :placeholder="probe.api_key_masked || 'API Key'" /><button type="button" @click="openMyKeyPicker(index)" class="btn btn-secondary whitespace-nowrap">选择 Key</button></div>
           <label class="mt-2 flex items-center gap-2 text-sm"><input v-model="probe.enabled" type="checkbox" />启用探针</label>
         </div>
       </div>
@@ -231,7 +208,6 @@ import type { ApiKey } from '@/types'
 import BaseDialog from '@/components/common/BaseDialog.vue'
 import Toggle from '@/components/common/Toggle.vue'
 import Select from '@/components/common/Select.vue'
-import ModelTagInput from '@/components/admin/channel/ModelTagInput.vue'
 import { getPlatformTextClass } from '@/components/admin/channel/types'
 import MonitorKeyPickerDialog from '@/components/admin/monitor/MonitorKeyPickerDialog.vue'
 import MonitorAdvancedRequestConfig from '@/components/admin/monitor/MonitorAdvancedRequestConfig.vue'
@@ -326,7 +302,7 @@ const form = reactive<MonitorForm>({
   api_key: '',
   primary_model: '',
   extra_models: [],
-  probes: [{ name: '默认探针', endpoint: '', api_key: '', enabled: true }],
+  probes: [{ name: '默认探针', endpoint: '', model: '', api_key: '', enabled: true }],
   interval_seconds: systemDefaultInterval.value,
   jitter_seconds: 0,
   enabled: true,
@@ -648,7 +624,7 @@ function selectProvider(provider: Provider) {
   const clearGrokEndpoint =
     previousProvider === PROVIDER_GROK && form.probes[0]?.endpoint === DEFAULT_GROK_ENDPOINT
   const clearGrokModel =
-    previousProvider === PROVIDER_GROK && form.primary_model === DEFAULT_GROK_MODEL
+    previousProvider === PROVIDER_GROK && form.probes[0]?.model === DEFAULT_GROK_MODEL
   const clearPrevDefaultEndpoint =
     !!PROVIDER_DEFAULT_ENDPOINTS[previousProvider] && form.probes[0]?.endpoint === PROVIDER_DEFAULT_ENDPOINTS[previousProvider]
   form.provider = provider
@@ -667,14 +643,15 @@ function selectProvider(provider: Provider) {
   if (previousProvider === PROVIDER_ANTIGRAVITY && form.check_mode === CHECK_MODE_QUOTA) {
     form.check_mode = CHECK_MODE_PROBE
     if (form.primary_model.trim() === 'quota') form.primary_model = ''
+    if (form.probes[0]?.model?.trim() === 'quota') form.probes[0].model = ''
   }
   if (provider === PROVIDER_GROK) {
     if (!form.probes[0]?.endpoint.trim()) form.probes[0].endpoint = DEFAULT_GROK_ENDPOINT
-    if (!form.primary_model.trim()) form.primary_model = DEFAULT_GROK_MODEL
+    if (!form.probes[0]?.model?.trim()) form.probes[0].model = DEFAULT_GROK_MODEL
     return
   }
   if (clearGrokEndpoint || clearPrevDefaultEndpoint) form.probes[0].endpoint = ''
-  if (clearGrokModel) form.primary_model = ''
+  if (clearGrokModel && form.probes[0]) form.probes[0].model = ''
   const defaultEndpoint = PROVIDER_DEFAULT_ENDPOINTS[provider]
   if (defaultEndpoint && !form.probes[0]?.endpoint.trim()) form.probes[0].endpoint = defaultEndpoint
 }
@@ -686,7 +663,10 @@ function selectProvider(provider: Provider) {
 // 同时清空 template_id（模板有 provider 归属，跨平台不通用）。
 watch(() => form.provider, () => {
   if (suppressFormWatchers) return
-  form.probes.forEach(p => { p.api_key = '' })
+  form.probes.forEach(p => {
+    p.api_key = ''
+    delete p.api_key_masked
+  })
   if (form.provider !== PROVIDER_OPENAI) {
     form.api_mode = API_MODE_CHAT_COMPLETIONS
   }
@@ -711,7 +691,7 @@ function resetForm() {
   accountHydrationFailed.value = false
   form.primary_model = ''
   form.extra_models = []
-  form.probes = [{ name: '默认探针', endpoint: '', api_key: '', enabled: true }]
+  form.probes = [{ name: '默认探针', endpoint: '', model: '', api_key: '', enabled: true }]
   form.interval_seconds = systemDefaultInterval.value
   form.jitter_seconds = 0
   form.enabled = true
@@ -731,7 +711,9 @@ function loadFromMonitor(m: ChannelMonitor) {
   form.account_id = m.account_id ?? null
   form.primary_model = m.primary_model
   form.extra_models = [...(m.extra_models || [])]
-  form.probes = m.probes?.length ? m.probes.map(p => ({ ...p, api_key: '' })) : [{ name: '默认探针', endpoint: m.endpoint, api_key: '', api_key_masked: m.api_key_masked, enabled: true }]
+  form.probes = m.probes?.length
+    ? m.probes.map(p => ({ ...p, model: p.model || m.primary_model, api_key: '' }))
+    : [{ name: '默认探针', endpoint: m.endpoint, model: m.primary_model, api_key: '', api_key_masked: m.api_key_masked, enabled: true }]
   form.interval_seconds = m.interval_seconds || systemDefaultInterval.value
   form.jitter_seconds = m.jitter_seconds || 0
   form.enabled = m.enabled
@@ -755,7 +737,7 @@ watch(
   { immediate: true },
 )
 
-function addProbe() { form.probes.push({ name: `探针 ${form.probes.length + 1}`, endpoint: '', api_key: '', enabled: true }) }
+function addProbe() { form.probes.push({ name: `探针 ${form.probes.length + 1}`, endpoint: '', model: '', api_key: '', enabled: true }) }
 function removeProbe(index: number) { if (form.probes.length > 1) form.probes.splice(index, 1) }
 
 let keyPickerIndex = 0
@@ -798,10 +780,10 @@ function buildPayload(): CreateParams {
     account_id: usesQuotaMode.value ? form.account_id : null,
     endpoint: usesProbePart.value ? form.probes[0]?.endpoint.trim() || '' : '',
     api_key: usesProbePart.value ? form.probes[0]?.api_key?.trim() || '' : '',
-    primary_model: usesProbePart.value ? form.primary_model.trim() : 'quota',
+    primary_model: usesProbePart.value ? form.probes[0]?.model?.trim() || form.primary_model.trim() : 'quota',
     extra_models: usesProbePart.value ? form.extra_models : [],
     probes: usesProbePart.value
-      ? form.probes.map(p => ({ ...p, endpoint: p.endpoint.trim(), api_key: p.api_key?.trim() || '' }))
+      ? form.probes.map(p => ({ ...p, endpoint: p.endpoint.trim(), model: p.model?.trim() || '', api_key: p.api_key?.trim() || '' }))
       : undefined,
     enabled: form.enabled,
     interval_seconds: form.interval_seconds,
@@ -823,7 +805,7 @@ async function handleSubmit() {
     appStore.showError(t('admin.channelMonitor.linkedAccountRequired'))
     return
   }
-  if (usesProbePart.value && !form.primary_model.trim()) {
+  if (usesProbePart.value && form.probes.some((probe) => !probe.model?.trim())) {
     appStore.showError(t('admin.channelMonitor.primaryModelRequired'))
     return
   }
