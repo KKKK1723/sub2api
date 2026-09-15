@@ -14,7 +14,10 @@
       @card-click="openDetail"
       @card-hover="handleCardHover"
       @probe-view="loadAllProbes"
+      @sort-order="showOrder = true"
     />
+
+    <MonitorOrderDialog v-if="isAdmin" :show="showOrder" @close="showOrder = false" @saved="reload()" />
 
     <MonitorDetailDialog
       :show="showDetail"
@@ -41,6 +44,7 @@ import { adminAPI } from '@/api/admin'
 import type { MonitorProbe } from '@/api/admin/channelMonitor'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import MonitorStatusBoard from '@/components/user/monitor/MonitorStatusBoard.vue'
+import MonitorOrderDialog from '@/components/admin/monitor/MonitorOrderDialog.vue'
 import type { MonitorWindow } from '@/components/user/monitor/MonitorHero.vue'
 import MonitorDetailDialog from '@/components/user/MonitorDetailDialog.vue'
 import { DEFAULT_INTERVAL_SECONDS } from '@/constants/channelMonitor'
@@ -53,6 +57,7 @@ const authStore = useAuthStore()
 // ── State ──
 const items = ref<UserMonitorView[]>([])
 const loading = ref(false)
+const showOrder = ref(false)
 const currentWindow = ref<MonitorWindow>('7d')
 const detailCache = reactive<Record<number, UserMonitorDetail>>({})
 const probeCache = reactive<Record<number, MonitorProbe[]>>({})
@@ -67,7 +72,7 @@ const autoRefresh = useAutoRefresh({
   intervals: [30, 60, 120] as const,
   defaultInterval: DEFAULT_INTERVAL_SECONDS,
   onRefresh: () => reload(true),
-  shouldPause: () => document.hidden || loading.value,
+  shouldPause: () => document.hidden || loading.value || showOrder.value,
 })
 const countdown = autoRefresh.countdown
 const isAdmin = computed(() => authStore.isAdmin)

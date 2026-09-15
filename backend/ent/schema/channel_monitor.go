@@ -61,6 +61,10 @@ func (ChannelMonitor) Fields() []ent.Field {
 			Optional().
 			Default("").
 			MaxLen(100),
+		field.Int64("sort_order").
+			Optional().
+			Annotations(entsql.DefaultExpr("nextval('channel_monitor_sort_order_seq')")).
+			Comment("管理员维护的显示顺序，新增记录由数据库序列追加到末尾"),
 		field.Bool("enabled").
 			Default(true),
 		field.Int("interval_seconds").

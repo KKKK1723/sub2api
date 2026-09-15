@@ -73,6 +73,22 @@ export interface ListResponse {
   pages: number
 }
 
+export interface MonitorOrderItem {
+  id: number
+  name: string
+  group_name: string
+  enabled: boolean
+}
+
+export async function getOrder(options?: { signal?: AbortSignal }): Promise<MonitorOrderItem[]> {
+  const { data } = await apiClient.get<{ items: MonitorOrderItem[] }>('/admin/channel-monitors/sort-order', options)
+  return data.items
+}
+
+export async function updateOrder(ids: number[], expectedIds: number[]): Promise<void> {
+  await apiClient.put('/admin/channel-monitors/sort-order', { ids, expected_ids: expectedIds })
+}
+
 export interface CreateParams {
   name: string
   provider: Provider
@@ -283,6 +299,8 @@ export async function listHistory(
 }
 
 export const channelMonitorAPI = {
+  getOrder,
+  updateOrder,
   list,
   get,
   create,

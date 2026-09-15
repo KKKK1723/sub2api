@@ -37,6 +37,7 @@ type ChannelMonitor struct {
 	PrimaryModel    string
 	ExtraModels     []string
 	GroupName       string
+	SortOrder       int64
 	Enabled         bool
 	IntervalSeconds int
 	JitterSeconds   int // 每次调度 ± [0, jitter] 的随机偏移（秒），0 = 固定间隔
@@ -87,6 +88,14 @@ type ChannelMonitorListParams struct {
 	Provider string
 	Enabled  *bool
 	Search   string
+}
+
+// ChannelMonitorOrderItem 只返回排序所需的显示信息，不读取探针凭据。
+type ChannelMonitorOrderItem struct {
+	ID        int64  `json:"id"`
+	Name      string `json:"name"`
+	GroupName string `json:"group_name"`
+	Enabled   bool   `json:"enabled"`
 }
 
 // ChannelMonitorCreateParams 创建参数。

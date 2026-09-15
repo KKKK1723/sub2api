@@ -37,6 +37,31 @@ func NewChannelMonitorHandler(monitorService *service.ChannelMonitorService) *Ch
 
 // --- Request / Response ---
 
+func (h *ChannelMonitorHandler) ListOrder(c *gin.Context) {
+	items, err := h.monitorService.ListOrder(c.Request.Context())
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, gin.H{"items": items})
+}
+
+func (h *ChannelMonitorHandler) UpdateOrder(c *gin.Context) {
+	var req struct {
+		IDs         []int64 `json:"ids" binding:"required,min=1"`
+		ExpectedIDs []int64 `json:"expected_ids" binding:"required,min=1"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "排序参数无效")
+		return
+	}
+	if err := h.monitorService.UpdateOrder(c.Request.Context(), req.IDs, req.ExpectedIDs); err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, gin.H{"message": "排序已保存"})
+}
+
 type channelMonitorCreateRequest struct {
 	Name             string                 `json:"name" binding:"required,max=100"`
 	Provider         string                 `json:"provider" binding:"required,oneof=openai anthropic gemini grok"`

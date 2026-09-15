@@ -746,6 +746,8 @@ func registerChannelRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 func registerChannelMonitorRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 	monitors := admin.Group("/channel-monitors")
 	{
+		monitors.GET("/sort-order", h.Admin.ChannelMonitor.ListOrder)
+		monitors.PUT("/sort-order", h.Admin.ChannelMonitor.UpdateOrder)
 		monitors.GET("", h.Admin.ChannelMonitor.List)
 		monitors.POST("", h.Admin.ChannelMonitor.Create)
 		monitors.GET("/:id", h.Admin.ChannelMonitor.Get)
