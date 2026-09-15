@@ -37,6 +37,9 @@
         </button>
       </div>
       <div class="status-board__actions">
+        <button v-if="isAdmin" type="button" class="status-board__sort" title="调整分组顺序" aria-label="调整分组顺序" @click="emit('sort-order')">
+          <Icon name="arrowsUpDown" size="md" />
+        </button>
         <div class="status-board__windows" role="tablist" aria-label="可用性时间范围">
           <button
             v-for="option in windowOptions"
@@ -178,6 +181,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import Icon from '@/components/icons/Icon.vue'
 import type { MonitorProbe, MonitorStatus, Provider } from '@/api/admin/channelMonitor'
 import type { MonitorTimelinePoint, UserMonitorDetail, UserMonitorView } from '@/api/channelMonitor'
 import ProviderIcon from './ProviderIcon.vue'
@@ -201,6 +205,7 @@ const emit = defineEmits<{
   (event: 'cardClick', item: UserMonitorView): void
   (event: 'cardHover', item: UserMonitorView): void
   (event: 'probe-view'): void
+  (event: 'sort-order'): void
 }>()
 
 const { statusLabel, formatLatency, formatPercent } = useChannelMonitorFormat()
@@ -280,6 +285,8 @@ function providerClass(provider: Provider | string): string {
 </script>
 
 <style scoped>
+.status-board__sort { display: inline-flex; width: 34px; height: 34px; flex: 0 0 34px; align-items: center; justify-content: center; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--muted); }
+.status-board__sort:hover { color: var(--ink); border-color: var(--muted); }
 .status-board { --canvas: #f5f7fb; --surface: #fff; --line: #e5e9f0; --ink: #172033; --muted: #667085; --navy: #172a46; --cyan: #1ca6a8; --green: #168653; --green-soft: #e9f9f1; --yellow: #d89a22; --yellow-soft: #fff3df; --red: #c74d58; --red-soft: #fdecee; color: var(--ink); }
 .status-board__hero { position: relative; display: flex; min-height: 248px; margin: 0 0 22px; overflow: hidden; align-items: center; justify-content: center; padding: 34px 32px; border-radius: 16px; background: linear-gradient(115deg, #142842 0%, #1b4760 52%, #168f92 100%); color: #fff; text-align: center; box-shadow: 0 20px 42px rgba(18,58,81,.2); }
 .status-board__hero-content { position: relative; z-index: 1; }
