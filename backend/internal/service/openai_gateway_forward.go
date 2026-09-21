@@ -1042,21 +1042,17 @@ func (s *OpenAIGatewayService) Forward(ctx context.Context, c *gin.Context, acco
 	rejectedFieldRetryState := openAIResponsesRejectedFieldRetryStateForRequest(c, body)
 	for {
 		// Build upstream request
-		upstreamCtx, releaseUpstreamCtx := detachUpstreamContext(ctx)
+		upstreamCtx, releaseUpstreamCtx := newOpenAIHTTPUpstreamContext(ctx)
 		var headerGuard *openAIFirstOutputHeaderGuard
 		if firstOutputTimeout > 0 {
 			upstreamCtx, headerGuard = newOpenAIFirstOutputHeaderGuard(
 				upstreamCtx, releaseUpstreamCtx, startTime.Add(firstOutputTimeout),
 			)
+			releaseUpstreamCtx = headerGuard.close
 		}
 		upstreamReq, err := s.buildUpstreamRequest(upstreamCtx, c, account, body, token, reqStream, promptCacheKey, isCodexCLI)
-		if headerGuard == nil {
-			releaseUpstreamCtx()
-		}
 		if err != nil {
-			if headerGuard != nil {
-				headerGuard.close()
-			}
+			releaseUpstreamCtx()
 			return nil, err
 		}
 
@@ -1085,17 +1081,13 @@ func (s *OpenAIGatewayService) Forward(ctx context.Context, c *gin.Context, acco
 			if resp != nil && resp.Body != nil {
 				_ = resp.Body.Close()
 			}
-			if headerGuard != nil {
-				headerGuard.close()
-			}
+			releaseUpstreamCtx()
 			// Transport-level failure (proxy/DNS/TCP/TLS — no HTTP response). Convert to
 			// a failover so the handler switches to a healthy account, and temporarily
 			// unschedule the account on durable faults (e.g. rejected proxy credentials).
 			return nil, s.handleOpenAIUpstreamTransportError(ctx, c, account, err, false)
 		}
-		if headerGuard != nil {
-			resp.Body = &openAIRequestContextReadCloser{ReadCloser: resp.Body, cleanup: headerGuard.close}
-		}
+		resp.Body = &openAIRequestContextReadCloser{ReadCloser: resp.Body, cleanup: releaseUpstreamCtx}
 
 		// Handle error response
 		if resp.StatusCode >= 400 {
