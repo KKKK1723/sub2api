@@ -186,10 +186,10 @@ func (s *OpenAIGatewayService) forwardOpenAIPassthrough(
 	agentTaskRecoveryTried := false
 	var resp *http.Response
 	for {
-		upstreamCtx, releaseUpstreamCtx := detachUpstreamContext(ctx)
+		upstreamCtx, releaseUpstreamCtx := newOpenAIHTTPUpstreamContext(ctx)
 		upstreamReq, buildErr := s.buildUpstreamRequestOpenAIPassthrough(upstreamCtx, c, account, body, token)
-		releaseUpstreamCtx()
 		if buildErr != nil {
+			releaseUpstreamCtx()
 			return nil, buildErr
 		}
 
@@ -197,10 +197,15 @@ func (s *OpenAIGatewayService) forwardOpenAIPassthrough(
 		resp, err = s.httpUpstream.Do(upstreamReq, proxyURL, account.ID, account.Concurrency)
 		SetOpsLatencyMs(c, OpsUpstreamLatencyMsKey, time.Since(upstreamStart).Milliseconds())
 		if err != nil {
+			if resp != nil && resp.Body != nil {
+				_ = resp.Body.Close()
+			}
+			releaseUpstreamCtx()
 			// Transport-level failure (proxy/DNS/TCP/TLS — no HTTP response). Convert to
 			// a failover so the handler switches to a healthy account.
 			return nil, s.handleOpenAIUpstreamTransportError(ctx, c, account, err, true)
 		}
+		resp.Body = &openAIRequestContextReadCloser{ReadCloser: resp.Body, cleanup: releaseUpstreamCtx}
 		if resp.StatusCode < 400 {
 			break
 		}

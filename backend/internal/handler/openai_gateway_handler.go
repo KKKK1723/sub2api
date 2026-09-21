@@ -9,6 +9,7 @@ import (
 	"runtime/debug"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -562,6 +563,11 @@ func (h *OpenAIGatewayHandler) Responses(c *gin.Context) {
 					zap.Error(err),
 				)
 			} else {
+				// 取连接期间客户端取消不代表账号故障，也不能再写兜底 502。
+				if errors.Is(err, context.Canceled) && failoverClientGone(c) {
+					reqLog.Info("openai.forward_aborted_client_disconnected", zap.Int64("account_id", account.ID))
+					return
+				}
 				var failoverErr *service.UpstreamFailoverError
 				if errors.As(err, &failoverErr) {
 					if failoverClientGone(c) {
@@ -1353,6 +1359,15 @@ func (h *OpenAIGatewayHandler) acquireResponsesUserSlot(
 	return wrapReleaseOnDone(ctx, userReleaseFunc), true
 }
 
+// wrapOpenAIAccountRelease 将账号槽位保留到 Forward 返回，并保证只释放一次。
+// 客户端断开后上游仍可能继续执行，不能提前把这部分容量提供给新请求。
+func wrapOpenAIAccountRelease(release func()) func() {
+	if release == nil {
+		return nil
+	}
+	return sync.OnceFunc(release)
+}
+
 func (h *OpenAIGatewayHandler) acquireResponsesAccountSlot(
 	c *gin.Context,
 	groupID *int64,
@@ -1371,7 +1386,7 @@ func (h *OpenAIGatewayHandler) acquireResponsesAccountSlot(
 	ctx := c.Request.Context()
 	account := selection.Account
 	if selection.Acquired {
-		return wrapReleaseOnDone(ctx, selection.ReleaseFunc), true
+		return wrapOpenAIAccountRelease(selection.ReleaseFunc), true
 	}
 	if selection.WaitPlan == nil {
 		markOpsRoutingCapacityLimited(c)
@@ -1393,7 +1408,7 @@ func (h *OpenAIGatewayHandler) acquireResponsesAccountSlot(
 		if err := h.gatewayService.BindStickySession(ctx, groupID, sessionHash, account.ID); err != nil {
 			reqLog.Warn("openai.bind_sticky_session_failed", zap.Int64("account_id", account.ID), zap.Error(err))
 		}
-		return wrapReleaseOnDone(ctx, fastReleaseFunc), true
+		return wrapOpenAIAccountRelease(fastReleaseFunc), true
 	}
 
 	canWait, waitErr := h.concurrencyHelper.IncrementAccountWaitCount(ctx, account.ID, selection.WaitPlan.MaxWaiting)
@@ -1436,7 +1451,7 @@ func (h *OpenAIGatewayHandler) acquireResponsesAccountSlot(
 	if err := h.gatewayService.BindStickySession(ctx, groupID, sessionHash, account.ID); err != nil {
 		reqLog.Warn("openai.bind_sticky_session_failed", zap.Int64("account_id", account.ID), zap.Error(err))
 	}
-	return wrapReleaseOnDone(ctx, accountReleaseFunc), true
+	return wrapOpenAIAccountRelease(accountReleaseFunc), true
 }
 
 // ResponsesWebSocket handles OpenAI Responses API WebSocket ingress endpoint
