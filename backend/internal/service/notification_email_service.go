@@ -1627,47 +1627,52 @@ func notificationEmailVerificationCard(locale string) string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body { margin: 0; padding: 28px 16px; background: #eef1f6; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #172033; }
-    .mail { max-width: 760px; margin: 0 auto; overflow: hidden; border: 1px solid #e5e9f0; border-radius: 12px; background: #ffffff; box-shadow: 0 18px 50px rgba(23, 32, 51, .10); }
-    .mail-meta { padding: 20px 28px 18px; border-bottom: 1px solid #e5e9f0; }
-    .sender-row { display: flex; align-items: center; gap: 12px; }
-    .avatar { display: inline-block; width: 38px; height: 38px; border-radius: 11px; background: #162033; color: #ffffff; font-size: 16px; font-weight: 700; line-height: 38px; text-align: center; }
-    .sender-name { font-size: 14px; font-weight: 700; }
-    .sender-address { margin-top: 3px; color: #738096; font-size: 12px; }
-    .subject { margin: 18px 0 0; font-size: 19px; line-height: 1.35; }
-    .mail-body { padding: 42px 56px 50px; text-align: center; }
-    .brand { margin: 0; color: #5f6c81; font-size: 12px; font-weight: 700; letter-spacing: .13em; text-transform: uppercase; }
-    .mail-body h1 { margin: 18px 0 0; font-size: 30px; line-height: 1.2; }
-    .lead { max-width: 490px; margin: 15px auto 0; color: #5d6b81; font-size: 14px; line-height: 1.8; }
-    .code-card { width: 330px; max-width: 100%; margin: 30px auto 0; padding: 19px 18px; border: 1px solid #cfe0ff; border-radius: 10px; background: #eaf2ff; }
-    .code { color: #1f6feb; font-size: 32px; font-weight: 700; letter-spacing: 8px; line-height: 1; }
-    .expires { margin: 15px 0 0; color: #738096; font-size: 12px; }
-    .expires strong { color: #172033; font-weight: 650; }
-    .divider { height: 1px; margin: 34px auto 24px; background: #e5e9f0; }
-    .notice { max-width: 500px; margin: 0 auto; color: #6b778b; font-size: 12px; line-height: 1.8; text-align: left; }
-    .notice strong { color: #44516a; }
-    .mail-footer { padding: 18px 28px 22px; border-top: 1px solid #e5e9f0; background: #fafbfd; color: #8a95a7; font-size: 11px; line-height: 1.7; text-align: center; }
-    @media (max-width: 560px) { body { padding: 14px 10px; } .mail-meta { padding: 18px 18px 16px; } .mail-body { padding: 34px 20px 38px; } .mail-body h1 { font-size: 26px; } .mail-footer { padding-right: 18px; padding-left: 18px; } }
-  </style>
 </head>
-<body>
-  <div class="mail">
-    <header class="mail-meta">
-      <div class="sender-row"><span class="avatar">K</span><div><div class="sender-name">{{site_name}}</div><div class="sender-address">{{site_name}} 系统邮件</div></div></div>
-      <h2 class="subject">{{site_name}} 注册验证码</h2>
-    </header>
-    <article class="mail-body">
-      <p class="brand">{{site_name}}</p>
-      <h1>验证你的邮箱地址</h1>
-      <p class="lead">{{recipient_name}}，你正在创建 {{site_name}} 账号。请使用下面的验证码完成邮箱验证。</p>
-      <div class="code-card"><span class="code">{{verification_code}}</span></div>
-      <p class="expires">验证码将在 <strong>{{expires_in_minutes}}</strong> 分钟后失效</p>
-      <div class="divider"></div>
-      <div class="notice"><strong>安全提示</strong><br>如果这不是你的操作，请忽略此邮件。请不要将验证码转发给任何人，{{site_name}} 不会通过电话或聊天向你索要验证码。</div>
-    </article>
-    <footer class="mail-footer">这是一封系统自动发送的邮件，请勿直接回复。<br>© 2026 {{site_name}}</footer>
-  </div>
+<body style="margin:0;padding:0;background:#eef1f6;color:#172033;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:collapse;background:#eef1f6;">
+    <tr>
+      <td align="center" style="padding:28px 16px;">
+        <table role="presentation" width="760" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:760px;border:1px solid #e5e9f0;border-radius:12px;background:#ffffff;box-shadow:0 18px 50px rgba(23,32,51,.10);border-collapse:separate;overflow:hidden;">
+          <tr>
+            <td style="padding:20px 28px 18px;border-bottom:1px solid #e5e9f0;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+                <tr>
+                  <td valign="middle" style="width:38px;height:38px;border-radius:11px;background:#162033;color:#ffffff;font-size:16px;font-weight:700;line-height:38px;text-align:center;">K</td>
+                  <td valign="middle" style="padding-left:12px;">
+                    <div style="font-size:14px;font-weight:700;line-height:1.4;">{{site_name}}</div>
+                    <div style="margin-top:3px;color:#738096;font-size:12px;line-height:1.4;">{{site_name}} 系统邮件</div>
+                  </td>
+                </tr>
+              </table>
+              <div style="margin-top:18px;font-size:19px;font-weight:700;line-height:1.35;">{{site_name}} 注册验证码</div>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding:42px 56px 50px;text-align:center;">
+              <div style="margin:0;color:#5f6c81;font-size:12px;font-weight:700;letter-spacing:.13em;line-height:1.4;text-transform:uppercase;">{{site_name}}</div>
+              <h1 style="margin:18px 0 0;font-size:30px;font-weight:700;line-height:1.2;">验证你的邮箱地址</h1>
+              <p style="max-width:490px;margin:15px auto 0;color:#5d6b81;font-size:14px;line-height:1.8;">{{recipient_name}}，你正在创建 {{site_name}} 账号。请使用下面的验证码完成邮箱验证。</p>
+              <table role="presentation" width="330" cellpadding="0" cellspacing="0" border="0" style="width:330px;max-width:100%;margin:30px auto 0;border:1px solid #cfe0ff;border-radius:10px;background:#eaf2ff;border-collapse:separate;">
+                <tr>
+                  <td align="center" style="padding:19px 18px;color:#1f6feb;font-size:32px;font-weight:700;letter-spacing:8px;line-height:1;">{{verification_code}}</td>
+                </tr>
+              </table>
+              <p style="margin:15px 0 0;color:#738096;font-size:12px;line-height:1.6;">验证码将在 <strong style="color:#172033;font-weight:700;">{{expires_in_minutes}}</strong> 分钟后失效</p>
+              <div style="height:1px;margin:34px auto 24px;background:#e5e9f0;font-size:0;line-height:0;">&nbsp;</div>
+              <table role="presentation" width="500" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:500px;margin:0 auto;border-collapse:collapse;">
+                <tr>
+                  <td style="color:#6b778b;font-size:12px;line-height:1.8;text-align:left;"><strong style="color:#44516a;font-weight:700;">安全提示</strong><br>如果这不是你的操作，请忽略此邮件。请不要将验证码转发给任何人，{{site_name}} 不会通过电话或聊天向你索要验证码。</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding:18px 28px 22px;border-top:1px solid #e5e9f0;background:#fafbfd;color:#8a95a7;font-size:11px;line-height:1.7;text-align:center;">这是一封系统自动发送的邮件，请勿直接回复。<br>© 2026 {{site_name}}</td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
 </body>
 </html>`
 	}
@@ -1677,47 +1682,52 @@ func notificationEmailVerificationCard(locale string) string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body { margin: 0; padding: 28px 16px; background: #eef1f6; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #172033; }
-    .mail { max-width: 760px; margin: 0 auto; overflow: hidden; border: 1px solid #e5e9f0; border-radius: 12px; background: #ffffff; box-shadow: 0 18px 50px rgba(23, 32, 51, .10); }
-    .mail-meta { padding: 20px 28px 18px; border-bottom: 1px solid #e5e9f0; }
-    .sender-row { display: flex; align-items: center; gap: 12px; }
-    .avatar { display: inline-block; width: 38px; height: 38px; border-radius: 11px; background: #162033; color: #ffffff; font-size: 16px; font-weight: 700; line-height: 38px; text-align: center; }
-    .sender-name { font-size: 14px; font-weight: 700; }
-    .sender-address { margin-top: 3px; color: #738096; font-size: 12px; }
-    .subject { margin: 18px 0 0; font-size: 19px; line-height: 1.35; }
-    .mail-body { padding: 42px 56px 50px; text-align: center; }
-    .brand { margin: 0; color: #5f6c81; font-size: 12px; font-weight: 700; letter-spacing: .13em; text-transform: uppercase; }
-    .mail-body h1 { margin: 18px 0 0; font-size: 30px; line-height: 1.2; }
-    .lead { max-width: 490px; margin: 15px auto 0; color: #5d6b81; font-size: 14px; line-height: 1.8; }
-    .code-card { width: 330px; max-width: 100%; margin: 30px auto 0; padding: 19px 18px; border: 1px solid #cfe0ff; border-radius: 10px; background: #eaf2ff; }
-    .code { color: #1f6feb; font-size: 32px; font-weight: 700; letter-spacing: 8px; line-height: 1; }
-    .expires { margin: 15px 0 0; color: #738096; font-size: 12px; }
-    .expires strong { color: #172033; font-weight: 650; }
-    .divider { height: 1px; margin: 34px auto 24px; background: #e5e9f0; }
-    .notice { max-width: 500px; margin: 0 auto; color: #6b778b; font-size: 12px; line-height: 1.8; text-align: left; }
-    .notice strong { color: #44516a; }
-    .mail-footer { padding: 18px 28px 22px; border-top: 1px solid #e5e9f0; background: #fafbfd; color: #8a95a7; font-size: 11px; line-height: 1.7; text-align: center; }
-    @media (max-width: 560px) { body { padding: 14px 10px; } .mail-meta { padding: 18px 18px 16px; } .mail-body { padding: 34px 20px 38px; } .mail-body h1 { font-size: 26px; } .mail-footer { padding-right: 18px; padding-left: 18px; } }
-  </style>
 </head>
-<body>
-  <div class="mail">
-    <header class="mail-meta">
-      <div class="sender-row"><span class="avatar">K</span><div><div class="sender-name">{{site_name}}</div><div class="sender-address">{{site_name}} system email</div></div></div>
-      <h2 class="subject">{{site_name}} email verification code</h2>
-    </header>
-    <article class="mail-body">
-      <p class="brand">{{site_name}}</p>
-      <h1>Verify your email address</h1>
-      <p class="lead">You are creating a {{site_name}} account. Use the verification code below to continue.</p>
-      <div class="code-card"><span class="code">{{verification_code}}</span></div>
-      <p class="expires">This code expires in <strong>{{expires_in_minutes}}</strong> minutes</p>
-      <div class="divider"></div>
-      <div class="notice"><strong>Security notice</strong><br>If you did not request this, please ignore this email. Never forward your verification code. {{site_name}} will never ask for it by phone or chat.</div>
-    </article>
-    <footer class="mail-footer">This is an automated email. Please do not reply directly.<br>© 2026 {{site_name}}</footer>
-  </div>
+<body style="margin:0;padding:0;background:#eef1f6;color:#172033;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:collapse;background:#eef1f6;">
+    <tr>
+      <td align="center" style="padding:28px 16px;">
+        <table role="presentation" width="760" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:760px;border:1px solid #e5e9f0;border-radius:12px;background:#ffffff;box-shadow:0 18px 50px rgba(23,32,51,.10);border-collapse:separate;overflow:hidden;">
+          <tr>
+            <td style="padding:20px 28px 18px;border-bottom:1px solid #e5e9f0;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+                <tr>
+                  <td valign="middle" style="width:38px;height:38px;border-radius:11px;background:#162033;color:#ffffff;font-size:16px;font-weight:700;line-height:38px;text-align:center;">K</td>
+                  <td valign="middle" style="padding-left:12px;">
+                    <div style="font-size:14px;font-weight:700;line-height:1.4;">{{site_name}}</div>
+                    <div style="margin-top:3px;color:#738096;font-size:12px;line-height:1.4;">{{site_name}} system email</div>
+                  </td>
+                </tr>
+              </table>
+              <div style="margin-top:18px;font-size:19px;font-weight:700;line-height:1.35;">{{site_name}} email verification code</div>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding:42px 56px 50px;text-align:center;">
+              <div style="margin:0;color:#5f6c81;font-size:12px;font-weight:700;letter-spacing:.13em;line-height:1.4;text-transform:uppercase;">{{site_name}}</div>
+              <h1 style="margin:18px 0 0;font-size:30px;font-weight:700;line-height:1.2;">Verify your email address</h1>
+              <p style="max-width:490px;margin:15px auto 0;color:#5d6b81;font-size:14px;line-height:1.8;">You are creating a {{site_name}} account. Use the verification code below to continue.</p>
+              <table role="presentation" width="330" cellpadding="0" cellspacing="0" border="0" style="width:330px;max-width:100%;margin:30px auto 0;border:1px solid #cfe0ff;border-radius:10px;background:#eaf2ff;border-collapse:separate;">
+                <tr>
+                  <td align="center" style="padding:19px 18px;color:#1f6feb;font-size:32px;font-weight:700;letter-spacing:8px;line-height:1;">{{verification_code}}</td>
+                </tr>
+              </table>
+              <p style="margin:15px 0 0;color:#738096;font-size:12px;line-height:1.6;">This code expires in <strong style="color:#172033;font-weight:700;">{{expires_in_minutes}}</strong> minutes</p>
+              <div style="height:1px;margin:34px auto 24px;background:#e5e9f0;font-size:0;line-height:0;">&nbsp;</div>
+              <table role="presentation" width="500" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:500px;margin:0 auto;border-collapse:collapse;">
+                <tr>
+                  <td style="color:#6b778b;font-size:12px;line-height:1.8;text-align:left;"><strong style="color:#44516a;font-weight:700;">Security notice</strong><br>If you did not request this, please ignore this email. Never forward your verification code. {{site_name}} will never ask for it by phone or chat.</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding:18px 28px 22px;border-top:1px solid #e5e9f0;background:#fafbfd;color:#8a95a7;font-size:11px;line-height:1.7;text-align:center;">This is an automated email. Please do not reply directly.<br>© 2026 {{site_name}}</td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
 </body>
 </html>`
 }
