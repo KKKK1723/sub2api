@@ -1654,7 +1654,7 @@ func notificationEmailVerificationCard(locale string) string {
 <body>
   <div class="mail">
     <header class="mail-meta">
-      <div class="sender-row"><span class="avatar">K</span><div><div class="sender-name">{{site_name}}</div><div class="sender-address">no-reply@taokc.xyz</div></div></div>
+      <div class="sender-row"><span class="avatar">K</span><div><div class="sender-name">{{site_name}}</div><div class="sender-address">{{site_name}} 系统邮件</div></div></div>
       <h2 class="subject">{{site_name}} 注册验证码</h2>
     </header>
     <article class="mail-body">
@@ -1704,7 +1704,7 @@ func notificationEmailVerificationCard(locale string) string {
 <body>
   <div class="mail">
     <header class="mail-meta">
-      <div class="sender-row"><span class="avatar">K</span><div><div class="sender-name">{{site_name}}</div><div class="sender-address">no-reply@taokc.xyz</div></div></div>
+      <div class="sender-row"><span class="avatar">K</span><div><div class="sender-name">{{site_name}}</div><div class="sender-address">{{site_name}} system email</div></div></div>
       <h2 class="subject">{{site_name}} email verification code</h2>
     </header>
     <article class="mail-body">
