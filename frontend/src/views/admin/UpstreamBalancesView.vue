@@ -2,6 +2,16 @@
   <AppLayout>
     <div class="mx-auto max-w-6xl p-4 md:p-6">
       <header class="mb-5 flex items-center justify-between gap-4"><h1 class="m-0 text-2xl font-bold text-gray-900 dark:text-white">{{ t('admin.upstreamBalances.title') }}</h1><div class="flex items-center gap-2"><button class="btn btn-secondary h-9 w-9 !p-0" :disabled="loading" :title="t('common.refresh')" @click="refresh"><Icon name="refresh" size="sm" :class="loading ? 'animate-spin' : ''" /></button><button class="btn btn-primary" @click="openCreate"><Icon name="plus" size="sm" />{{ t('admin.upstreamBalances.add') }}</button></div></header>
+      <div class="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-gray-200 pb-5 dark:border-dark-600" aria-live="polite" :aria-busy="loading" data-testid="upstream-balance-summary">
+        <div>
+          <p class="mb-2 text-sm text-gray-500 dark:text-gray-400">{{ t('admin.upstreamBalances.total') }}</p>
+          <div class="flex flex-wrap gap-x-6 gap-y-2">
+            <b v-for="total in summary.totals" :key="total.unit" class="text-2xl font-semibold tabular-nums text-gray-900 dark:text-white">{{ formatBalance(total) }}</b>
+            <b v-if="!summary.totals.length" class="text-2xl text-gray-400">{{ loading ? t('common.loading') : t('admin.upstreamBalances.unavailable') }}</b>
+          </div>
+        </div>
+        <p class="text-xs text-gray-500 dark:text-gray-400">{{ loading ? t('common.loading') : t('admin.upstreamBalances.coverage', { included: summary.included, total: items.length }) }}<span v-if="!loading && summary.excluded" class="ml-2 text-amber-600 dark:text-amber-400">{{ t('admin.upstreamBalances.excluded', { count: summary.excluded }) }}</span><span v-if="error && items.length" class="ml-2 text-amber-600 dark:text-amber-400">{{ t('admin.upstreamBalances.stale') }}</span></p>
+      </div>
       <div v-if="error" class="mb-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-300"><Icon name="exclamationTriangle" size="sm" class="mt-0.5 shrink-0" /><span>{{ error }}</span></div>
       <div v-if="loading && items.length === 0" class="rounded-lg border border-gray-200 bg-white py-16 text-center text-sm text-gray-500 shadow-sm dark:border-dark-600 dark:bg-dark-800"><Icon name="refresh" size="lg" class="mx-auto mb-3 animate-spin text-primary-500" /><p>{{ t('common.loading') }}</p></div>
       <div v-else-if="!loading && items.length === 0" class="rounded-lg border border-dashed border-gray-300 bg-white py-16 text-center text-sm text-gray-500 dark:border-dark-600 dark:bg-dark-800">{{ t('admin.upstreamBalances.empty') }}</div>
@@ -18,15 +28,17 @@
   </AppLayout>
 </template>
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import Icon from '@/components/icons/Icon.vue'
 import { adminAPI } from '@/api'
 import type { AdminGroup } from '@/types'
 import type { UpstreamBalanceOverviewItem } from '@/api/admin/upstreamBalances'
+import { summarizeUpstreamBalances } from '@/utils/upstreamBalanceTotals'
 const { t } = useI18n(); const items = ref<UpstreamBalanceOverviewItem[]>([]); const groups = ref<AdminGroup[]>([]); const loading = ref(false); const saving = ref(false); const error = ref(''); const modalOpen = ref(false); const editing = ref<UpstreamBalanceOverviewItem | null>(null); const form = ref({ base_url: '', name: '', api_key: '', group_ids: [] as number[] })
-function formatBalance(item: UpstreamBalanceOverviewItem): string { if (typeof item.balance !== 'number') return t('admin.upstreamBalances.unavailable'); const amount = new Intl.NumberFormat(undefined, { maximumFractionDigits: 4 }).format(item.balance); return item.unit === 'USD' ? `US$ ${amount}` : item.unit ? `${item.unit} ${amount}` : amount }
+const summary = computed(() => summarizeUpstreamBalances(items.value))
+function formatBalance(item: Pick<UpstreamBalanceOverviewItem, 'balance' | 'unit'>): string { if (typeof item.balance !== 'number') return t('admin.upstreamBalances.unavailable'); const amount = new Intl.NumberFormat(undefined, { maximumFractionDigits: 4 }).format(item.balance); return item.unit === 'USD' ? `US$ ${amount}` : item.unit ? `${item.unit} ${amount}` : amount }
 function formatTime(value?: string): string { return value ? new Date(value).toLocaleString() : t('admin.upstreamBalances.unavailable') }
 async function refresh() { loading.value = true; error.value = ''; try { items.value = await adminAPI.upstreamBalances.refresh() } catch (reason: any) { error.value = reason?.response?.data?.message || reason?.response?.data?.detail || reason?.message || t('admin.upstreamBalances.loadFailed') } finally { loading.value = false } }
 function openCreate() { editing.value = null; form.value = { base_url: '', name: '', api_key: '', group_ids: [] }; modalOpen.value = true }

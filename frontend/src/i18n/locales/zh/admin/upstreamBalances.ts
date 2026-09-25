@@ -1,6 +1,10 @@
 export default {
   upstreamBalances: {
     title: '上游余额',
+    total: '所有上游总额度',
+    coverage: '已统计 {included} / {total} 个上游',
+    excluded: '{count} 个余额或币种暂不可用，未计入合计',
+    stale: '刷新失败，显示上次统计',
     empty: '暂无可查询的上游余额。',
     loadFailed: '上游余额同步失败。',
     remaining: '剩余额度：',

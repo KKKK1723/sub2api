@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>可用模型 - 预览稿</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f7fb;
+      --surface: #ffffff;
+      --surface-soft: #f8fafc;
+      --line: #e5e7eb;
+      --line-soft: #eef2f7;
+      --text: #172033;
+      --muted: #6b7280;
+      --brand: #2563eb;
+      --brand-soft: #eff6ff;
+      --success: #047857;
+      --success-soft: #ecfdf5;
+      --shadow: 0 8px 24px rgba(15, 23, 42, .05);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    .shell { max-width: 1180px; margin: 0 auto; padding: 32px 24px 56px; }
+    .topbar { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; margin-bottom: 26px; }
+    .eyebrow { color: var(--brand); font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+    h1 { margin: 4px 0 6px; font-size: 28px; line-height: 1.2; letter-spacing: -.02em; }
+    .intro { margin: 0; color: var(--muted); }
+    .actions { display: flex; align-items: center; gap: 10px; }
+    .search { width: 240px; height: 38px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); padding: 0 12px; color: var(--text); outline: none; }
+    .search:focus { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(37, 99, 235, .1); }
+    button { height: 38px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); padding: 0 14px; color: #334155; font-weight: 600; cursor: pointer; }
+    button:hover { border-color: #bfdbfe; color: var(--brand); }
+    .groups { display: grid; gap: 10px; }
+    .group { display: grid; grid-template-columns: 220px minmax(0, 1fr) auto; align-items: center; gap: 24px; min-height: 88px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); padding: 16px 18px; box-shadow: var(--shadow); }
+    .group-name { margin: 0; font-size: 15px; font-weight: 700; }
+    .group-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 6px; color: var(--muted); font-size: 12px; }
+    .status { display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; background: var(--success-soft); padding: 3px 8px; color: var(--success); font-weight: 600; }
+    .dot { width: 6px; height: 6px; border-radius: 50%; background: #10b981; }
+    .models { display: flex; flex-wrap: wrap; gap: 8px; }
+    .model { display: inline-flex; align-items: center; gap: 8px; border: 1px solid #dbe4ef; border-radius: 8px; background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%); padding: 8px 11px; color: #263449; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; font-weight: 600; box-shadow: 0 1px 2px rgba(15, 23, 42, .04); }
+    .model::before { content: ""; width: 7px; height: 7px; border: 2px solid #60a5fa; border-radius: 50%; background: #dbeafe; box-shadow: 0 0 0 2px #eff6ff; }
+    .model:hover { border-color: #93c5fd; background: #eff6ff; color: #1d4ed8; }
+    .sync { white-space: nowrap; }
+    .footnote { margin-top: 14px; color: #94a3b8; font-size: 12px; }
+    @media (max-width: 820px) {
+      .shell { padding: 24px 16px 40px; }
+      .topbar { align-items: stretch; flex-direction: column; gap: 16px; }
+      .actions { width: 100%; }
+      .search { flex: 1; width: auto; }
+      .group { grid-template-columns: 1fr; gap: 12px; }
+      .sync { justify-self: start; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <div class="topbar">
+      <div>
+        <div class="eyebrow">Model Catalog</div>
+        <h1>可用模型</h1>
+        <p class="intro">按分组查看当前可调用的模型，名称保持与 API 返回值一致。</p>
+      </div>
+      <div class="actions">
+        <input class="search" type="search" placeholder="搜索分组或模型" aria-label="搜索分组或模型" />
+        <button type="button">↻&nbsp; 刷新</button>
+      </div>
+    </div>
+
+    <section class="groups" aria-label="模型分组列表">
+      <article class="group">
+        <div><h2 class="group-name">标准高速</h2><div class="group-meta"><span class="status"><span class="dot"></span>可用</span><span>5 个模型</span><span>刚刚同步</span></div></div>
+        <div class="models"><span class="model">standard-chat</span><span class="model">standard-reasoner</span><span class="model">standard-code</span><span class="model">standard-mini</span><span class="model">standard-long</span></div>
+        <button class="sync" type="button">↻&nbsp; 同步</button>
+      </article>
+      <article class="group">
+        <div><h2 class="group-name">编程专用</h2><div class="group-meta"><span class="status"><span class="dot"></span>可用</span><span>4 个模型</span><span>5 分钟前同步</span></div></div>
+        <div class="models"><span class="model">code-plus</span><span class="model">code-fast</span><span class="model">code-review</span><span class="model">code-mini</span></div>
+        <button class="sync" type="button">↻&nbsp; 同步</button>
+      </article>
+      <article class="group">
+        <div><h2 class="group-name">低成本通道</h2><div class="group-meta"><span class="status"><span class="dot"></span>可用</span><span>4 个模型</span><span>12 分钟前同步</span></div></div>
+        <div class="models"><span class="model">economy-chat</span><span class="model">economy-fast</span><span class="model">economy-mini</span><span class="model">economy-long</span></div>
+        <button class="sync" type="button">↻&nbsp; 同步</button>
+      </article>
+      <article class="group">
+        <div><h2 class="group-name">企业专享</h2><div class="group-meta"><span class="status"><span class="dot"></span>专属可用</span><span>3 个模型</span><span>18 分钟前同步</span></div></div>
+        <div class="models"><span class="model">enterprise-pro</span><span class="model">enterprise-reasoner</span><span class="model">enterprise-long</span></div>
+        <button class="sync" type="button">↻&nbsp; 同步</button>
+      </article>
+    </section>
+    <p class="footnote">预览稿 · 页面只渲染后端返回的可见分组，正式页面将直接使用站点现有分组和模型数据。</p>
+  </main>
+</body>
+</html>

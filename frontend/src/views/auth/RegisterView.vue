@@ -1,124 +1,8 @@
 <template>
-  <AuthLayout>
-    <div class="space-y-6">
-      <!-- Title -->
-      <div class="text-center">
-        <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
-          {{ t('auth.createAccount') }}
-        </h2>
-        <p class="mt-2 text-sm text-gray-500 dark:text-dark-400">
-          {{ t('auth.signUpToStart', { siteName }) }}
-        </p>
-      </div>
-
-      <!-- Registration Disabled Message -->
-      <div
-        v-if="!registrationEnabled && settingsLoaded"
-        class="rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-800/50 dark:bg-amber-900/20"
-      >
-        <div class="flex items-start gap-3">
-          <div class="flex-shrink-0">
-            <Icon name="exclamationCircle" size="md" class="text-amber-500" />
-          </div>
-          <p class="text-sm text-amber-700 dark:text-amber-400">
-            {{ t('auth.registrationDisabled') }}
-          </p>
-        </div>
-      </div>
-
-      <!-- Registration Form -->
-      <form v-else @submit.prevent="handleRegister" class="space-y-5">
-        <!-- Email Input -->
-        <div>
-          <label for="email" class="input-label">
-            {{ t('auth.emailLabel') }}
-          </label>
-          <div class="relative">
-            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
-              <Icon name="mail" size="md" class="text-gray-400 dark:text-dark-500" />
-            </div>
-            <input
-              id="email"
-              v-model="formData.email"
-              type="email"
-              required
-              autofocus
-              autocomplete="email"
-              :disabled="registrationActionDisabled"
-              class="input pl-11"
-              :class="{ 'input-error': errors.email }"
-              :placeholder="t('auth.emailPlaceholder')"
-            />
-          </div>
-        </div>
-
-        <!-- Password Input -->
-        <div>
-          <label for="password" class="input-label">
-            {{ t('auth.passwordLabel') }}
-          </label>
-          <div class="relative">
-            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
-              <Icon name="lock" size="md" class="text-gray-400 dark:text-dark-500" />
-            </div>
-            <input
-              id="password"
-              v-model="formData.password"
-              :type="showPassword ? 'text' : 'password'"
-              required
-              autocomplete="new-password"
-              :disabled="registrationActionDisabled"
-              class="input pl-11 pr-11"
-              :class="{ 'input-error': errors.password }"
-              :placeholder="t('auth.createPasswordPlaceholder')"
-            />
-            <button
-              type="button"
-              :disabled="registrationActionDisabled"
-              @click="showPassword = !showPassword"
-              class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-dark-300"
-            >
-              <Icon v-if="showPassword" name="eyeOff" size="md" />
-              <Icon v-else name="eye" size="md" />
-            </button>
-          </div>
-          <p class="input-hint">
-            {{ t('auth.passwordHint') }}
-          </p>
-        </div>
-
-        <!-- Confirm Password Input -->
-        <div>
-          <label for="confirmPassword" class="input-label">
-            {{ t('auth.confirmPassword') }}
-          </label>
-          <div class="relative">
-            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
-              <Icon name="lock" size="md" class="text-gray-400 dark:text-dark-500" />
-            </div>
-            <input
-              id="confirmPassword"
-              v-model="confirmPassword"
-              :type="showConfirmPassword ? 'text' : 'password'"
-              required
-              autocomplete="new-password"
-              :disabled="registrationActionDisabled"
-              class="input pl-11 pr-11"
-              :class="{ 'input-error': errors.confirmPassword }"
-              :placeholder="t('auth.confirmPasswordPlaceholder')"
-            />
-            <button
-              type="button"
-              :disabled="registrationActionDisabled"
-              @click="showConfirmPassword = !showConfirmPassword"
-              class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-dark-300"
-            >
-              <Icon v-if="showConfirmPassword" name="eyeOff" size="md" />
-              <Icon v-else name="eye" size="md" />
-            </button>
-          </div>
-        </div>
-
+  <AuthLayout is-register :show-verification-step="emailVerifyEnabled">
+    <div v-if="!registrationEnabled && settingsLoaded" class="auth-notice" role="status">{{ t('auth.registrationDisabled') }}</div>
+    <form v-else class="auth-form" novalidate @submit.prevent="handleRegister">
+      <PublicAccountFields :c="c" is-register v-model:email="formData.email" v-model:password="formData.password" :errors="errors" :disabled="registrationActionDisabled" @clear="field => { errors[field] = ''; errorMessage = '' }" :email-hint="registrationEmailHint" :email-placeholder="registrationEmailPlaceholder" />
         <!-- Invitation Code Input (Required when enabled) -->
         <div v-if="invitationCodeEnabled">
           <label for="invitation_code" class="input-label">
@@ -236,18 +120,10 @@
         </div>
 
         <!-- Turnstile Widget -->
-        <div v-if="captchaEnabled" data-testid="registration-turnstile">
+        <div v-if="turnstileEnabled && turnstileSiteKey" data-testid="registration-turnstile">
           <TurnstileWidget
             ref="turnstileRef"
-            :turnstile-enabled="turnstileEnabled"
-            :turnstile-site-key="turnstileSiteKey"
-            :tencent-enabled="tencentCaptchaEnabled"
-            :tencent-app-id="tencentCaptchaAppId"
-            :tencent-region="tencentCaptchaRegion"
-            :aliyun-enabled="aliyunCaptchaEnabled"
-            :aliyun-scene-id="aliyunCaptchaSceneId"
-            :aliyun-prefix="aliyunCaptchaPrefix"
-            :aliyun-region="aliyunCaptchaRegion"
+            :site-key="turnstileSiteKey"
             @verify="onTurnstileVerify"
             @expire="onTurnstileExpire"
             @error="onTurnstileError"
@@ -266,44 +142,12 @@
           @open="showAgreementModal = true"
         />
 
-        <!-- Submit Button -->
-        <button
-          type="submit"
-          :disabled="registrationActionDisabled || (turnstileEnabled && !turnstileToken)"
-          class="btn btn-primary w-full"
-        >
-          <svg
-            v-if="isLoading"
-            class="-ml-1 mr-2 h-4 w-4 animate-spin text-white"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              class="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              stroke-width="4"
-            ></circle>
-            <path
-              class="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-            ></path>
-          </svg>
-          <Icon v-else name="userPlus" size="md" class="mr-2" />
-          {{
-            isLoading
-              ? t('auth.processing')
-              : emailVerifyEnabled
-                ? t('auth.continue')
-                : t('auth.createAccount')
-          }}
-        </button>
 
-      </form>
-
+      <div v-if="errorMessage" class="auth-notice" role="alert"><Icon name="exclamationCircle" size="sm" /><p>{{ errorMessage }}</p></div>
+      <button class="button button-ink auth-submit" type="submit" :disabled="registrationActionDisabled || (turnstileEnabled && !turnstileToken)">
+        <span>{{ isLoading ? t('auth.processing') : (emailVerifyEnabled ? c.continue : t('auth.createAccount')) }}</span><Icon name="arrowRight" size="sm" />
+      </button>
+    </form>
       <div v-if="showOAuthLogin" class="space-y-3 pt-1">
         <div class="flex items-center gap-3">
           <div class="h-px flex-1 bg-gray-200 dark:bg-dark-700"></div>
@@ -320,7 +164,6 @@
           :github-enabled="githubOAuthEnabled"
           :google-enabled="googleOAuthEnabled"
           :show-divider="false"
-          @start="handleOAuthStart"
         />
 
         <LinuxDoOAuthSection
@@ -329,14 +172,12 @@
           :aff-code="formData.aff_code"
           :promo-code="formData.promo_code"
           :show-divider="false"
-          @start="handleOAuthStart"
         />
         <WechatOAuthSection
           v-if="wechatOAuthEnabled"
           :disabled="registrationActionDisabled"
           :aff-code="formData.aff_code"
           :show-divider="false"
-          @start="handleOAuthStart"
         />
         <OidcOAuthSection
           v-if="oidcOAuthEnabled"
@@ -344,50 +185,32 @@
           :provider-name="oidcOAuthProviderName"
           :aff-code="formData.aff_code"
           :show-divider="false"
-          @start="handleOAuthStart"
         />
       </div>
-    </div>
-
-    <!-- Footer -->
-    <template #footer>
-      <p class="text-gray-500 dark:text-dark-400">
-        {{ t('auth.alreadyHaveAccount') }}
-        <router-link
-          to="/login"
-          class="font-medium text-primary-600 transition-colors hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300"
-        >
-          {{ t('auth.signIn') }}
-        </router-link>
-      </p>
-    </template>
   </AuthLayout>
-</template>
 
+</template>
 <script setup lang="ts">
 import { computed, ref, reactive, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { AuthLayout } from '@/components/layout'
+import AuthLayout from '@/components/public/PublicAuthLayout.vue'
+import PublicAccountFields from '@/components/public/PublicAccountFields.vue'
 import LinuxDoOAuthSection from '@/components/auth/LinuxDoOAuthSection.vue'
 import OidcOAuthSection from '@/components/auth/OidcOAuthSection.vue'
 import WechatOAuthSection from '@/components/auth/WechatOAuthSection.vue'
 import EmailOAuthButtons from '@/components/auth/EmailOAuthButtons.vue'
 import LoginAgreementPrompt from '@/components/auth/LoginAgreementPrompt.vue'
 import Icon from '@/components/icons/Icon.vue'
-import TurnstileWidget from '@/components/CaptchaChallenge.vue'
+import TurnstileWidget from '@/components/TurnstileWidget.vue'
 import { useAuthStore, useAppStore } from '@/stores'
 import {
-  buildOAuthLoginStartURL,
   getPublicSettings,
   isWeChatWebOAuthEnabled,
-  startOAuthLogin,
-  type OAuthLoginStart,
   validatePromoCode,
   validateInvitationCode
 } from '@/api/auth'
 import { buildAuthErrorMessage } from '@/utils/authError'
-import { extractApiErrorCode, extractI18nErrorMessage } from '@/utils/apiError'
 import {
   formatRegistrationEmailSuffixWhitelistForMessage,
   isRegistrationEmailSuffixAllowed,
@@ -400,7 +223,16 @@ import {
 } from '@/utils/oauthAffiliate'
 import type { LoginAgreementDocument } from '@/types'
 
+import { authCopy } from '@/components/public/auth-content'
 const { t, locale } = useI18n()
+const publicCopy = computed(() => authCopy[locale.value === 'en' ? 'en' : 'zh'])
+const c = publicCopy
+const defaultEmailPolicy = computed(() => {
+  const allowed = registrationEmailSuffixWhitelist.value.map(value => value.replace(/^@/, '').toLowerCase()).sort()
+  return allowed.join(',') === 'gmail.com,qq.com'
+})
+const registrationEmailHint = computed(() => defaultEmailPolicy.value ? publicCopy.value.emailHint : registrationEmailSuffixWhitelist.value.join(' / '))
+const registrationEmailPlaceholder = computed(() => defaultEmailPolicy.value ? publicCopy.value.registerEmailPlaceholder : publicCopy.value.emailPlaceholder)
 const LOGIN_AGREEMENT_STORAGE_KEY = 'sub2api_login_agreement_consent'
 
 // ==================== Router & Stores ====================
@@ -415,9 +247,6 @@ const appStore = useAppStore()
 const isLoading = ref<boolean>(false)
 const settingsLoaded = ref<boolean>(false)
 const errorMessage = ref<string>('')
-const showPassword = ref<boolean>(false)
-const showConfirmPassword = ref<boolean>(false)
-const confirmPassword = ref('')
 
 // Public settings
 const registrationEnabled = ref<boolean>(true)
@@ -433,14 +262,7 @@ const invitationCodeEnabled = ref<boolean>(false)
 const affiliateEnabled = ref<boolean>(false)
 const turnstileEnabled = ref<boolean>(false)
 const turnstileSiteKey = ref<string>('')
-const tencentCaptchaEnabled = ref<boolean>(false)
-const tencentCaptchaAppId = ref<string>('')
-const tencentCaptchaRegion = ref<string>('cn')
-const aliyunCaptchaEnabled = ref<boolean>(false)
-const aliyunCaptchaSceneId = ref<string>('')
-const aliyunCaptchaPrefix = ref<string>('')
-const aliyunCaptchaRegion = ref<string>('cn')
-const siteName = ref<string>('Sub2API')
+const siteName = ref<string>('KeepCoding API')
 const linuxdoOAuthEnabled = ref<boolean>(false)
 const wechatOAuthEnabled = ref<boolean>(false)
 const oidcOAuthEnabled = ref<boolean>(false)
@@ -448,8 +270,6 @@ const oidcOAuthProviderName = ref<string>('OIDC')
 const githubOAuthEnabled = ref<boolean>(false)
 const googleOAuthEnabled = ref<boolean>(false)
 const registrationEmailSuffixWhitelist = ref<string[]>([])
-// 域名限量注册开关：开启时非白名单域名可注册 1 个账户（由后端判定），前端不做白名单预检。
-const emailDomainQuotaEnabled = ref<boolean>(false)
 const loginAgreementEnabled = ref<boolean>(false)
 const loginAgreementMode = ref<'modal' | 'checkbox' | string>('modal')
 const loginAgreementUpdatedAt = ref<string>('')
@@ -461,23 +281,6 @@ const showAgreementModal = ref<boolean>(false)
 // Turnstile
 const turnstileRef = ref<InstanceType<typeof TurnstileWidget> | null>(null)
 const turnstileToken = ref<string>('')
-const tencentCaptchaRandstr = ref<string>('')
-const aliyunCaptchaReady = computed(
-  () =>
-    aliyunCaptchaEnabled.value &&
-    Boolean(aliyunCaptchaSceneId.value) &&
-    Boolean(aliyunCaptchaPrefix.value)
-)
-// 动作触发式验证码（腾讯/阿里云）：提交、OAuth 启动时弹窗验证
-const actionCaptchaEnabled = computed(
-  () =>
-    (tencentCaptchaEnabled.value && Boolean(tencentCaptchaAppId.value)) ||
-    aliyunCaptchaReady.value
-)
-const captchaEnabled = computed(
-  () =>
-    (turnstileEnabled.value && Boolean(turnstileSiteKey.value)) || actionCaptchaEnabled.value
-)
 
 // Promo code validation
 const promoValidating = ref<boolean>(false)
@@ -509,7 +312,6 @@ const formData = reactive({
 const errors = reactive({
   email: '',
   password: '',
-  confirmPassword: '',
   turnstile: '',
   invitation_code: ''
 })
@@ -517,7 +319,6 @@ const errors = reactive({
 const validationToastMessage = computed(() =>
   errors.email ||
   errors.password ||
-  errors.confirmPassword ||
   (invitationValidation.invalid ? invitationValidation.message : '') ||
   errors.invitation_code ||
   (promoValidation.invalid ? promoValidation.message : '') ||
@@ -570,14 +371,7 @@ onMounted(async () => {
     affiliateEnabled.value = settings.affiliate_enabled
     turnstileEnabled.value = settings.turnstile_enabled
     turnstileSiteKey.value = settings.turnstile_site_key || ''
-    tencentCaptchaEnabled.value = settings.tencent_captcha_enabled === true
-    tencentCaptchaAppId.value = settings.tencent_captcha_app_id || ''
-    tencentCaptchaRegion.value = settings.tencent_captcha_region || 'cn'
-    aliyunCaptchaEnabled.value = settings.aliyun_captcha_enabled === true
-    aliyunCaptchaSceneId.value = settings.aliyun_captcha_scene_id || ''
-    aliyunCaptchaPrefix.value = settings.aliyun_captcha_prefix || ''
-    aliyunCaptchaRegion.value = settings.aliyun_captcha_region || 'cn'
-    siteName.value = settings.site_name || 'Sub2API'
+    siteName.value = settings.site_name || 'KeepCoding API'
     linuxdoOAuthEnabled.value = settings.linuxdo_oauth_enabled
     wechatOAuthEnabled.value = isWeChatWebOAuthEnabled(settings)
     oidcOAuthEnabled.value = settings.oidc_oauth_enabled
@@ -587,7 +381,6 @@ onMounted(async () => {
     registrationEmailSuffixWhitelist.value = normalizeRegistrationEmailSuffixWhitelist(
       settings.registration_email_suffix_whitelist || []
     )
-    emailDomainQuotaEnabled.value = settings.registration_email_domain_quota_enabled === true
     applyLoginAgreementSettings(settings)
 
     // Read promo code from URL parameter only if promo code is enabled
@@ -826,77 +619,19 @@ function getInvitationErrorMessage(errorCode?: string): string {
 
 // ==================== Turnstile Handlers ====================
 
-function onTurnstileVerify(token: string, randstr = ''): void {
+function onTurnstileVerify(token: string): void {
   turnstileToken.value = token
-  tencentCaptchaRandstr.value = randstr
   errors.turnstile = ''
 }
 
 function onTurnstileExpire(): void {
   turnstileToken.value = ''
-  tencentCaptchaRandstr.value = ''
   errors.turnstile = t('auth.turnstileExpired')
 }
 
 function onTurnstileError(): void {
   turnstileToken.value = ''
-  tencentCaptchaRandstr.value = ''
   errors.turnstile = t('auth.turnstileFailed')
-}
-
-function resetCaptchaProof(): void {
-  turnstileRef.value?.reset()
-  turnstileToken.value = ''
-  tencentCaptchaRandstr.value = ''
-  errors.turnstile = ''
-}
-
-async function acquireActionProof(): Promise<boolean> {
-  if (!actionCaptchaEnabled.value) return true
-
-  const proof = await turnstileRef.value?.verifyAction()
-  if (!proof) return false
-
-  turnstileToken.value = proof.token
-  tencentCaptchaRandstr.value = proof.randstr
-  return true
-}
-
-async function handleOAuthStart(request: OAuthLoginStart): Promise<void> {
-  if (registrationActionDisabled.value) return
-
-  if (!actionCaptchaEnabled.value) {
-    window.location.href = buildOAuthLoginStartURL(request)
-    return
-  }
-
-  isLoading.value = true
-  try {
-    const proof = await turnstileRef.value?.verifyAction()
-    if (!proof) return
-
-    const result = await startOAuthLogin(
-      request,
-      tencentCaptchaEnabled.value
-        ? {
-            tencent_captcha_ticket: proof.token,
-            tencent_captcha_randstr: proof.randstr
-          }
-        : { turnstile_token: proof.token }
-    )
-    window.location.href = result.authorize_url
-  } catch (error: unknown) {
-    errorMessage.value = extractI18nErrorMessage(
-      error,
-      t,
-      'auth.errors',
-      t('auth.turnstileFailed')
-    )
-    appStore.showError(errorMessage.value)
-  } finally {
-    resetCaptchaProof()
-    isLoading.value = false
-  }
 }
 
 // ==================== Validation ====================
@@ -926,7 +661,6 @@ function validateForm(): boolean {
   // Reset errors
   errors.email = ''
   errors.password = ''
-  errors.confirmPassword = ''
   errors.turnstile = ''
   errors.invitation_code = ''
 
@@ -948,10 +682,8 @@ function validateForm(): boolean {
     errors.email = t('auth.invalidEmail')
     isValid = false
   } else if (
-    !emailDomainQuotaEnabled.value &&
     !isRegistrationEmailSuffixAllowed(formData.email, registrationEmailSuffixWhitelist.value)
   ) {
-    // 域名限量注册关闭时保持严格白名单预检；开启时交给后端按域名额度判定
     errors.email = buildEmailSuffixNotAllowedMessage()
     isValid = false
   }
@@ -962,15 +694,6 @@ function validateForm(): boolean {
     isValid = false
   } else if (formData.password.length < 6) {
     errors.password = t('auth.passwordMinLength')
-    isValid = false
-  }
-
-  // Confirm password validation
-  if (!confirmPassword.value) {
-    errors.confirmPassword = t('auth.confirmPasswordRequired')
-    isValid = false
-  } else if (formData.password !== confirmPassword.value) {
-    errors.confirmPassword = t('auth.passwordsDoNotMatch')
     isValid = false
   }
 
@@ -994,6 +717,8 @@ function validateForm(): boolean {
 // ==================== Form Handlers ====================
 
 async function handleRegister(): Promise<void> {
+  if (registrationActionDisabled.value || !registrationEnabled.value) return
+  formData.email = formData.email.trim()
   // Clear previous error
   errorMessage.value = ''
 
@@ -1040,10 +765,6 @@ async function handleRegister(): Promise<void> {
     }
   }
 
-  if (!(await acquireActionProof())) {
-    return
-  }
-
   isLoading.value = true
 
   try {
@@ -1060,10 +781,7 @@ async function handleRegister(): Promise<void> {
         JSON.stringify({
           email: formData.email,
           password: formData.password,
-          turnstile_token:
-            turnstileEnabled.value || aliyunCaptchaEnabled.value ? turnstileToken.value : undefined,
-          tencent_captcha_ticket: tencentCaptchaEnabled.value ? turnstileToken.value : undefined,
-          tencent_captcha_randstr: tencentCaptchaEnabled.value ? tencentCaptchaRandstr.value : undefined,
+          turnstile_token: turnstileToken.value,
           promo_code: formData.promo_code || undefined,
           invitation_code: formData.invitation_code || undefined,
           ...(affCode ? { aff_code: affCode } : {})
@@ -1079,10 +797,7 @@ async function handleRegister(): Promise<void> {
     await authStore.register({
       email: formData.email,
       password: formData.password,
-      turnstile_token:
-        turnstileEnabled.value || aliyunCaptchaEnabled.value ? turnstileToken.value : undefined,
-      tencent_captcha_ticket: tencentCaptchaEnabled.value ? turnstileToken.value : undefined,
-      tencent_captcha_randstr: tencentCaptchaEnabled.value ? tencentCaptchaRandstr.value : undefined,
+      turnstile_token: turnstileEnabled.value ? turnstileToken.value : undefined,
       promo_code: formData.promo_code || undefined,
       invitation_code: formData.invitation_code || undefined,
       ...(affCode ? { aff_code: affCode } : {})
@@ -1095,27 +810,24 @@ async function handleRegister(): Promise<void> {
     // Redirect to dashboard
     await router.push('/dashboard')
   } catch (error: unknown) {
+    // Reset Turnstile on error
+    if (turnstileRef.value) {
+      turnstileRef.value.reset()
+      turnstileToken.value = ''
+    }
+
     // Handle registration error
-    errorMessage.value = buildRegistrationErrorMessage(error, t('auth.registrationFailed'))
+    errorMessage.value = buildAuthErrorMessage(error, {
+      fallback: t('auth.registrationFailed')
+    })
 
     // Also show error toast
     appStore.showError(errorMessage.value)
   } finally {
-    if (captchaEnabled.value) {
-      resetCaptchaProof()
-    }
     isLoading.value = false
   }
 }
-
-function buildRegistrationErrorMessage(error: unknown, fallback: string): string {
-  if (extractApiErrorCode(error) === 'EMAIL_DOMAIN_REGISTRATION_LIMIT') {
-    return t('auth.emailDomainRegistrationLimit')
-  }
-  return buildAuthErrorMessage(error, { fallback })
-}
 </script>
-
 <style scoped>
 .fade-enter-active,
 .fade-leave-active {

@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>上游额度 - 预览稿</title>
+  <style>
+    :root { --page:#f5f7fb; --surface:#fff; --line:#e5e7eb; --text:#172033; --muted:#64748b; --brand:#2563eb; --brand-soft:#eff6ff; --shadow:0 8px 24px rgba(15,23,42,.05); }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--page); color:var(--text); font:14px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    .app { display:flex; min-height:100vh; }
+    .sidebar { width:236px; flex:0 0 236px; border-right:1px solid var(--line); background:var(--surface); padding:22px 12px; }
+    .brand { display:flex; align-items:center; gap:10px; margin:0 10px 30px; color:#111827; font-size:17px; font-weight:750; }
+    .brand-mark { display:grid; width:30px; height:30px; place-items:center; border-radius:8px; background:var(--brand); color:#fff; font-size:14px; font-weight:800; }
+    .nav-title { margin:20px 10px 8px; color:#94a3b8; font-size:11px; font-weight:700; letter-spacing:.08em; }
+    .nav-link { display:flex; align-items:center; gap:10px; min-height:40px; margin:2px 0; border-radius:7px; padding:0 10px; color:#475569; text-decoration:none; font-weight:560; }
+    .nav-link:hover { background:#f8fafc; color:#1e293b; }
+    .nav-link.active { background:var(--brand-soft); color:#1d4ed8; font-weight:700; }
+    .nav-icon { width:18px; height:18px; flex:0 0 auto; }
+    .content { min-width:0; flex:1; }
+    .shell { max-width:1040px; margin:0 auto; padding:32px 32px 56px; }
+    .topbar { display:flex; align-items:center; justify-content:space-between; gap:18px; margin-bottom:20px; }
+    h1 { margin:0; font-size:28px; line-height:1.25; letter-spacing:0; }
+    .refresh { display:grid; width:36px; height:36px; place-items:center; border:1px solid var(--line); border-radius:8px; background:#fff; color:#64748b; cursor:pointer; }
+    .refresh:hover { border-color:#bfdbfe; color:var(--brand); }
+    .refresh svg { width:17px; height:17px; }
+    .list { overflow:hidden; border:1px solid var(--line); border-radius:9px; background:var(--surface); box-shadow:var(--shadow); }
+    .upstream { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:28px; min-height:66px; border-bottom:1px solid #eef2f7; padding:14px 18px; }
+    .upstream:last-child { border-bottom:0; }
+    .site { min-width:0; }
+    .url { display:inline-flex; min-width:0; align-items:center; gap:9px; color:#1d4ed8; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:13px; font-weight:650; text-decoration:none; }
+    .url:hover { color:#1e40af; text-decoration:underline; }
+    .url svg { width:16px; height:16px; flex:0 0 auto; }
+    .url span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .balance { color:#334155; font-size:14px; white-space:nowrap; }
+    .balance b { margin-left:6px; color:#172033; font-size:16px; font-weight:750; }
+    .synced { margin:3px 0 0 25px; color:#94a3b8; font-size:11px; white-space:nowrap; }
+    .hint { margin:12px 0 0; color:#94a3b8; font-size:12px; }
+    @media (max-width:760px) { .app { display:block; } .sidebar { display:none; } .shell { padding:24px 16px 40px; } .upstream { grid-template-columns:1fr; gap:7px; min-height:0; padding:15px; } .balance { padding-left:25px; } }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" aria-label="管理员导航">
+      <div class="brand"><span class="brand-mark">S2</span><span>Sub2API</span></div>
+      <div class="nav-title">管理</div>
+      <a class="nav-link" href="#"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 13h8V3H3v10Zm0 8h8v-4H3v4Zm10 0h8V11h-8v10Zm0-18v4h8V3h-8Z"/></svg>仪表盘</a>
+      <a class="nav-link" href="#"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>用户管理</a>
+      <a class="nav-link" href="#"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7.5 12 3l9 4.5L12 12 3 7.5Z"/><path d="M3 12l9 4.5 9-4.5M3 16.5 12 21l9-4.5"/></svg>分组管理</a>
+      <a class="nav-link" href="#"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h.01M11 8h6M7 12h.01M11 12h6M7 16h.01M11 16h6"/></svg>账号管理</a>
+      <a class="nav-link active" href="#" aria-current="page"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h.01M11 8h6M7 12h.01M11 12h6M7 16h.01M11 16h6"/></svg>上游额度</a>
+      <a class="nav-link" href="#"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3v18h18"/><path d="m7 16 4-5 3 2 5-7"/></svg>用量统计</a>
+      <div class="nav-title">系统</div>
+      <a class="nav-link" href="#"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/></svg>系统设置</a>
+    </aside>
+    <main class="content">
+      <div class="shell">
+        <div class="topbar">
+          <h1>上游额度</h1>
+          <button class="refresh" type="button" aria-label="刷新额度" title="刷新额度"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 11a8 8 0 1 0 2 5.3"/><path d="M20 4v7h-7"/></svg></button>
+        </div>
+        <section class="list" aria-label="上游额度列表">
+          <div class="upstream"><div class="site"><a class="url" href="https://api.openai.com" target="_blank" rel="noreferrer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 3h7v7M10 14 21 3M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg><span>https://api.openai.com</span></a><div class="synced">最近同步：刚刚</div></div><div class="balance">剩余额度：<b>US$ 126.80</b></div></div>
+          <div class="upstream"><div class="site"><a class="url" href="https://api.anthropic.com" target="_blank" rel="noreferrer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 3h7v7M10 14 21 3M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg><span>https://api.anthropic.com</span></a><div class="synced">最近同步：2 分钟前</div></div><div class="balance">剩余额度：<b>US$ 42.50</b></div></div>
+          <div class="upstream"><div class="site"><a class="url" href="https://generativelanguage.googleapis.com" target="_blank" rel="noreferrer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 3h7v7M10 14 21 3M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg><span>https://generativelanguage.googleapis.com</span></a><div class="synced">最近同步：5 分钟前</div></div><div class="balance">剩余额度：<b>6,480 次</b></div></div>
+          <div class="upstream"><div class="site"><a class="url" href="https://azure.microsoft.com" target="_blank" rel="noreferrer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 3h7v7M10 14 21 3M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg><span>https://azure.microsoft.com</span></a><div class="synced">最近同步：8 分钟前</div></div><div class="balance">剩余额度：<b>US$ 78.00</b></div></div>
+        </section>
+        <p class="hint">同一上游地址只显示一行，点击网址会在新窗口打开该上游。</p>
+      </div>
+    </main>
+  </div>
+</body>
+</html>
