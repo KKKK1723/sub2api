@@ -46,6 +46,7 @@ const messages: Record<string, string> = {
 vi.mock('@/api/admin', () => ({
   adminAPI: {
     groups: {
+      getLiveCapability: async () => ({ supported: false }),
       list: listGroups,
       getAll: getAllGroups,
       getModelsListCandidates,

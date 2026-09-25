@@ -5,9 +5,9 @@
       <div class="status-board__hero-content">
         <span class="status-board__eyebrow"><i></i>实时监控</span>
         <h1>监控服务运行正常</h1>
-        <p>最近一次采样 · 下一轮将在 {{ countdownSeconds }} 秒后开始</p>
+        <p>状态将在 {{ countdownSeconds }} 秒后刷新</p>
         <div class="status-board__hero-stat">
-          <span>采样周期</span>
+          <span>刷新周期</span>
           <strong>{{ Math.round(intervalSeconds / 60) }} min</strong>
           <small>自动</small>
         </div>
@@ -54,20 +54,38 @@
       </div>
     </div>
 
+    <nav v-if="platformSections.length" class="status-board__platforms" aria-label="平台分组">
+      <button
+        v-for="platform in platformSections"
+        :key="platform.value"
+        type="button"
+        :aria-pressed="selectedPlatform === platform.value"
+        :class="{ active: selectedPlatform === platform.value }"
+        @click="selectedPlatform = platform.value"
+      >
+        <ProviderIcon :provider="platform.value" :size="18" />
+        <span>{{ platform.label }}</span>
+        <small>{{ platform.items.length }}</small>
+      </button>
+    </nav>
+
     <div v-if="activeView === 'groups'" class="status-board__panel">
       <div class="status-board__panel-head">
         <div>
           <h2>分组状态</h2>
           <p>每个分组显示最近 5 小时探测结果</p>
         </div>
-        <span class="status-board__panel-note">{{ items.length }} 个分组</span>
+        <span class="status-board__panel-note">{{ selectedItems.length }} 个分组</span>
       </div>
 
       <div v-if="loading && items.length === 0" class="status-board__empty">正在加载监控状态…</div>
       <div v-else-if="items.length === 0" class="status-board__empty">暂无可展示的分组</div>
-      <div v-else class="status-board__rows">
+      <div v-else>
+        <section v-for="platform in selectedSections" :key="platform.value" class="platform-section">
+          <h3 class="platform-section__title"><ProviderIcon :provider="platform.value" :size="20" />{{ platform.label }} 平台 <small>{{ platform.items.length }} 个分组</small></h3>
+          <div class="status-board__rows">
         <button
-          v-for="item in items"
+          v-for="item in platform.items"
           :key="item.id"
           type="button"
           class="status-row"
@@ -114,6 +132,8 @@
             </span>
           </span>
         </button>
+          </div>
+        </section>
       </div>
 
       <div class="status-board__legend">
@@ -135,7 +155,9 @@
 
       <div v-if="items.length === 0" class="status-board__empty">暂无可展示的分组</div>
       <div v-else class="probe-board__groups">
-        <article v-for="item in items" :key="item.id" class="probe-group">
+        <section v-for="platform in selectedSections" :key="platform.value" class="platform-section">
+          <h3 class="platform-section__title"><ProviderIcon :provider="platform.value" :size="20" />{{ platform.label }} 平台 <small>{{ platform.items.length }} 个分组</small></h3>
+        <article v-for="item in platform.items" :key="item.id" class="probe-group">
           <header class="probe-group__head">
             <div class="probe-group__title">
               <span class="status-row__provider" :class="providerClass(item.provider)">
@@ -174,18 +196,20 @@
             <strong :class="probeStatusClass(probeOverallStatus(item.id))">{{ statusLabel(probeOverallStatus(item.id)) }}</strong>
           </footer>
         </article>
+        </section>
       </div>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import Icon from '@/components/icons/Icon.vue'
 import type { MonitorProbe, MonitorStatus, Provider } from '@/api/admin/channelMonitor'
 import type { MonitorTimelinePoint, UserMonitorDetail, UserMonitorView } from '@/api/channelMonitor'
 import ProviderIcon from './ProviderIcon.vue'
 import type { MonitorWindow } from './MonitorHero.vue'
+import { groupMonitorPlatforms } from '@/utils/monitorPlatforms'
 import { useChannelMonitorFormat } from '@/composables/useChannelMonitorFormat'
 
 const props = defineProps<{
@@ -209,6 +233,15 @@ const emit = defineEmits<{
 }>()
 
 const { statusLabel, formatLatency, formatPercent } = useChannelMonitorFormat()
+const platformSections = computed(() => groupMonitorPlatforms(props.items))
+const selectedPlatform = ref('')
+watch(platformSections, sections => {
+  if (!sections.some(section => section.value === selectedPlatform.value)) {
+    selectedPlatform.value = sections[0]?.value ?? ''
+  }
+}, { immediate: true })
+const selectedSections = computed(() => platformSections.value.filter(section => section.value === selectedPlatform.value))
+const selectedItems = computed(() => selectedSections.value[0]?.items ?? [])
 const activeView = ref<'groups' | 'probes'>('groups')
 const windowOptions: { value: MonitorWindow; label: string }[] = [
   { value: '7d', label: '7 天' },
@@ -216,8 +249,8 @@ const windowOptions: { value: MonitorWindow; label: string }[] = [
   { value: '30d', label: '30 天' },
 ]
 
-const probeTotalCount = computed(() => props.items.reduce((sum, item) => sum + probesFor(item.id).length, 0))
-const probeHealthyCount = computed(() => props.items.reduce((sum, item) => {
+const probeTotalCount = computed(() => selectedItems.value.reduce((sum, item) => sum + probesFor(item.id).length, 0))
+const probeHealthyCount = computed(() => selectedItems.value.reduce((sum, item) => {
   return sum + probesFor(item.id).filter(probe => probe.enabled && (!probe.status || probe.status === 'operational')).length
 }, 0))
 
@@ -285,6 +318,11 @@ function providerClass(provider: Provider | string): string {
 </script>
 
 <style scoped>
+.platform-section + .platform-section { border-top: 1px solid var(--line); }
+.platform-section__title { display: flex; align-items: center; gap: 10px; padding: 18px 20px; font-size: 15px; font-weight: 700; }
+.platform-section__title small { margin-left: auto; color: var(--muted); font-size: 12px; font-weight: 400; }
+.probe-board__groups .platform-section { display: grid; gap: 12px; }
+
 .status-board__sort { display: inline-flex; width: 34px; height: 34px; flex: 0 0 34px; align-items: center; justify-content: center; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--muted); }
 .status-board__sort:hover { color: var(--ink); border-color: var(--muted); }
 .status-board { --canvas: #f5f7fb; --surface: #fff; --line: #e5e9f0; --ink: #172033; --muted: #667085; --navy: #172a46; --cyan: #1ca6a8; --green: #168653; --green-soft: #e9f9f1; --yellow: #d89a22; --yellow-soft: #fff3df; --red: #c74d58; --red-soft: #fdecee; color: var(--ink); }
@@ -304,6 +342,11 @@ function providerClass(provider: Provider | string): string {
 .status-board__views, .status-board__actions, .status-board__windows { display: flex; align-items: center; gap: 8px; }
 .status-board__views button { padding: 0 14px 11px; border: 0; background: transparent; color: #778398; font-size: 12px; font-weight: 700; }
 .status-board__views button.active { color: var(--navy); box-shadow: inset 0 -2px var(--cyan); }
+.status-board__platforms { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 18px; padding: 2px 2px 8px; }
+.status-board__platforms button { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 8px; padding: 9px 14px; border: 1px solid var(--line); border-radius: 8px; background: transparent; color: var(--muted); font-size: 13px; font-weight: 600; white-space: nowrap; }
+.status-board__platforms button.active { border-color: var(--cyan); background: #e9f8f7; color: var(--navy); }
+.status-board__platforms button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+.status-board__platforms small { font-size: 11px; opacity: .7; }
 .status-board__windows { padding: 3px; border: 1px solid var(--line); border-radius: 9px; background: #f8fafc; }
 .status-board__windows button { padding: 4px 9px; border: 0; border-radius: 6px; background: transparent; color: #7b8796; font-size: 10px; }
 .status-board__windows button.active { background: #fff; color: var(--navy); box-shadow: 0 1px 4px rgba(23,42,70,.1); font-weight: 750; }

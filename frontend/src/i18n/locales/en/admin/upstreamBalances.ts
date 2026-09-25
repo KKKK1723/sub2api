@@ -1,6 +1,10 @@
 export default {
   upstreamBalances: {
     title: 'Upstream Balances',
+    total: 'Total upstream balance',
+    coverage: '{included} / {total} upstreams included',
+    excluded: '{count} unavailable balances or currencies excluded',
+    stale: 'Refresh failed; showing previous totals',
     empty: 'No upstream balances are available.',
     loadFailed: 'Failed to refresh upstream balances.',
     remaining: 'Remaining:',

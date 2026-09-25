@@ -168,6 +168,26 @@ describe('CreateAccountModal OpenAI long-context billing', () => {
     createOpenAICodexPATMock.mockReset().mockResolvedValue({})
   })
 
+  it.each([
+    ['kimi', 'Kimi'], ['zhipu', 'GLM'], ['deepseek', 'DeepSeek'], ['minimax', 'MiniMax'], ['opencode_go', 'OpenCode']
+  ])('保存新增平台 %s 的 API Key 和自适应端点', async (platform, label) => {
+    const wrapper = mountModal()
+    await selectButtonByText(wrapper, label)
+    await wrapper.get('form#create-account-form input[type="text"]').setValue(`${platform} account`)
+    await wrapper.get('form#create-account-form input[type="password"]').setValue('test-cn-key')
+    await wrapper.get('form#create-account-form').trigger('submit.prevent')
+    await flushPromises()
+    expect(createAccountMock).toHaveBeenCalledTimes(1)
+    const payload = createAccountMock.mock.calls[0]?.[0]
+    expect(payload.platform).toBe(platform)
+    expect(payload.type).toBe('apikey')
+    expect(payload.credentials.api_key).toBe('test-cn-key')
+    expect(payload.credentials.api_protocol).toBe('adaptive')
+    expect(payload.credentials.api_base_urls.chat_completions).toMatch(/^https:\/\//)
+    expect(payload.credentials.base_url).toBe(payload.credentials.api_base_urls.chat_completions)
+    expect(payload.credentials.api_base_urls.anthropic).toMatch(/^https:\/\//)
+  })
+
   it('sends false explicitly for normal OpenAI account creation by default', async () => {
     await submitApiKeyAccount('openai')
 

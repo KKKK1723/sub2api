@@ -13,9 +13,23 @@ export const PROVIDER_OPENAI: Provider = 'openai'
 export const PROVIDER_ANTHROPIC: Provider = 'anthropic'
 export const PROVIDER_GEMINI: Provider = 'gemini'
 export const PROVIDER_GROK: Provider = 'grok'
+export const PROVIDER_ANTIGRAVITY: Provider = 'antigravity'
+export const PROVIDER_KIMI: Provider = 'kimi'
+export const PROVIDER_ZHIPU: Provider = 'zhipu'
+export const PROVIDER_DEEPSEEK: Provider = 'deepseek'
+export const PROVIDER_MINIMAX: Provider = 'minimax'
+export const PROVIDER_OPENCODE_GO: Provider = 'opencode_go'
 
 export const DEFAULT_GROK_ENDPOINT = 'https://api.x.ai'
 export const DEFAULT_GROK_MODEL = 'grok-4.5'
+
+/** 国产 provider 的官方 endpoint（探活模式预填；配额模式可留空）。 */
+export const DEFAULT_KIMI_ENDPOINT = 'https://api.moonshot.cn'
+export const DEFAULT_ZHIPU_ENDPOINT = 'https://open.bigmodel.cn'
+export const DEFAULT_DEEPSEEK_ENDPOINT = 'https://api.deepseek.com'
+export const DEFAULT_MINIMAX_ENDPOINT = 'https://api.minimaxi.com'
+export const DEFAULT_OPENCODE_GO_ENDPOINT = 'https://opencode.ai/zen/go/v1'
+
 
 export const API_MODE_CHAT_COMPLETIONS: APIMode = 'chat_completions'
 export const API_MODE_RESPONSES: APIMode = 'responses'
@@ -25,7 +39,17 @@ export const PROVIDERS: readonly Provider[] = [
   PROVIDER_ANTHROPIC,
   PROVIDER_GEMINI,
   PROVIDER_GROK,
+  PROVIDER_ANTIGRAVITY,
+  PROVIDER_KIMI,
+  PROVIDER_ZHIPU,
+  PROVIDER_DEEPSEEK,
+  PROVIDER_MINIMAX,
+  PROVIDER_OPENCODE_GO,
 ]
+
+/** 仅支持配额模式（无探活 adapter）的 provider。 */
+export const QUOTA_ONLY_PROVIDERS: readonly Provider[] = [PROVIDER_ANTIGRAVITY]
+
 
 export const API_MODES: readonly APIMode[] = [
   API_MODE_CHAT_COMPLETIONS,
@@ -46,3 +70,7 @@ export const MONITOR_STATUSES: readonly MonitorStatus[] = [
 
 /** Default polling interval (seconds) for new monitors. */
 export const DEFAULT_INTERVAL_SECONDS = 60
+
+export function supportsMonitorAPIMode(provider: string): boolean {
+  return ['openai', 'kimi', 'deepseek', 'minimax', 'opencode_go'].includes(provider)
+}

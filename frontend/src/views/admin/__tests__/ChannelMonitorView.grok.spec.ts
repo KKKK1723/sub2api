@@ -82,7 +82,7 @@ describe('channel monitor Grok provider', () => {
 
     expect(PROVIDERS).toContain(PROVIDER_GROK)
     const providerButtons = wrapper.findAll('[data-testid^="monitor-provider-"]')
-    expect(providerButtons).toHaveLength(4)
+    expect(providerButtons).toHaveLength(PROVIDERS.length)
     expect(providerButtons[0].element.parentElement?.className).toContain('grid-cols-2')
     expect(providerButtons[0].element.parentElement?.className).toContain('sm:grid-cols-4')
 
@@ -92,8 +92,8 @@ describe('channel monitor Grok provider', () => {
     await grokButton.trigger('click')
     expect(grokButton.classes().join(' ')).toContain('zinc')
 
-    const endpoint = wrapper.get('[data-testid="monitor-endpoint"]')
-    const model = wrapper.get('[data-testid="monitor-primary-model"]')
+    const endpoint = wrapper.get('input[placeholder="\u63a5\u53e3\u5730\u5740"]')
+    const model = wrapper.get('input[placeholder="\u63a2\u6d4b\u6a21\u578b"]')
     expect((endpoint.element as HTMLInputElement).value).toBe(DEFAULT_GROK_ENDPOINT)
     expect((model.element as HTMLInputElement).value).toBe(DEFAULT_GROK_MODEL)
 
@@ -113,8 +113,8 @@ describe('channel monitor Grok provider', () => {
     const wrapper = mountDialog()
     await flushPromises()
 
-    const endpoint = wrapper.get('[data-testid="monitor-endpoint"]')
-    const model = wrapper.get('[data-testid="monitor-primary-model"]')
+    const endpoint = wrapper.get('input[placeholder="\u63a5\u53e3\u5730\u5740"]')
+    const model = wrapper.get('input[placeholder="\u63a2\u6d4b\u6a21\u578b"]')
     const grokButton = wrapper.get('[data-testid="monitor-provider-grok"]')
     const anthropicButton = wrapper.get('[data-testid="monitor-provider-anthropic"]')
 

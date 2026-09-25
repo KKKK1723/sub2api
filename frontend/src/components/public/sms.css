@@ -1,0 +1,178 @@
+
+:where(.kc-public) .sms-flow {
+  position: relative;
+  margin: 0;
+  padding: 27px 30px 30px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--page);
+}
+:where(.kc-public) .sms-flow figcaption {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--muted);
+  font-size: 12px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--line);
+}
+:where(.kc-public) .sms-flow-tag {
+  margin-left: auto;
+  font:
+    10px ui-monospace,
+    monospace;
+  color: var(--amber);
+}
+:where(.kc-public) .sms-flow-platforms {
+  display: flex;
+  align-items: center;
+  gap: 25px;
+  padding-block: 22px 26px;
+}
+:where(.kc-public) .sms-flow-platforms > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 550;
+}
+:where(.kc-public) .sms-flow-platforms img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+:where(.kc-public) .sms-flow-nodes {
+  display: grid;
+  gap: 30px;
+}
+:where(.kc-public) .sms-flow-nodes > li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 17px;
+}
+:where(.kc-public) .sms-flow-nodes > li:not(:last-child)::after {
+  position: absolute;
+  content: '';
+  top: 47px;
+  bottom: -23px;
+  left: 20px;
+  width: 1px;
+  background: var(--line);
+}
+:where(.kc-public) .sms-flow-nodes > li:not(:first-child)::before {
+  position: absolute;
+  content: '';
+  top: -13px;
+  left: 17px;
+  width: 7px;
+  height: 7px;
+  border-right: 1px solid var(--accent);
+  border-bottom: 1px solid var(--accent);
+  transform: rotate(45deg);
+}
+:where(.kc-public) .sms-node-icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--accent);
+}
+:where(.kc-public) .sms-node-icon.amber {
+  color: var(--amber);
+}
+:where(.kc-public) .sms-node-icon.blue {
+  color: var(--blue);
+}
+:where(.kc-public) .sms-node-number {
+  float: right;
+  margin-left: 10px;
+  color: var(--subtle);
+  font:
+    10px/22px ui-monospace,
+    monospace;
+}
+:where(.kc-public) .sms-flow-nodes h3 {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.6;
+}
+:where(.kc-public) .sms-flow-nodes p {
+  font-size: 11px;
+  line-height: 1.8;
+  color: var(--muted);
+  margin-top: 5px;
+}
+:where(.kc-public) .sms-code-placeholder {
+  display: flex;
+  gap: 7px;
+  margin-top: 11px;
+}
+:where(.kc-public) .sms-code-placeholder > span {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--surface);
+}
+:where(.kc-public) .sms-code-placeholder i {
+  width: 7px;
+  height: 2px;
+  background: var(--blue);
+  opacity: 0.7;
+}
+@media (max-width: 850px) {
+  :where(.kc-public) .sms-flow {
+    padding: 23px;
+  }
+  :where(.kc-public) .sms-flow-nodes > li {
+    gap: 12px;
+  }
+  :where(.kc-public) .sms-code-placeholder {
+    gap: 5px;
+  }
+  :where(.kc-public) .sms-code-placeholder > span {
+    width: 23px;
+    height: 29px;
+  }
+}
+@media (max-width: 600px) {
+  :where(.kc-public) .sms-flow {
+    padding: 24px;
+  }
+  :where(.kc-public) .sms-flow-nodes > li {
+    gap: 15px;
+  }
+}
+@media (max-width: 360px) {
+  :where(.kc-public) .sms-flow {
+    padding: 20px;
+  }
+  :where(.kc-public) .sms-flow-nodes > li {
+    gap: 12px;
+    grid-template-columns: 36px minmax(0, 1fr);
+  }
+  :where(.kc-public) .sms-node-icon {
+    width: 36px;
+    height: 36px;
+  }
+  :where(.kc-public) .sms-flow-nodes > li:not(:last-child)::after {
+    left: 17px;
+    top: 41px;
+  }
+  :where(.kc-public) .sms-flow-nodes > li:not(:first-child)::before {
+    left: 14px;
+  }
+  :where(.kc-public) .sms-flow-nodes h3 {
+    font-size: 12px;
+  }
+  :where(.kc-public) .sms-code-placeholder > span {
+    width: 22px;
+    height: 28px;
+  }
+}

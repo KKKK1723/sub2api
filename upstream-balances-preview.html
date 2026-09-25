@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>上游余额 - 页面预览</title>
+  <style>
+    :root {
+      --page: #f4f7fb;
+      --surface: #ffffff;
+      --surface-muted: #f8fafc;
+      --line: #e2e8f0;
+      --line-soft: #edf2f7;
+      --text: #172033;
+      --muted: #64748b;
+      --muted-2: #94a3b8;
+      --brand: #2563eb;
+      --brand-soft: #eff6ff;
+      --danger: #dc2626;
+      --danger-soft: #fef2f2;
+      --shadow: 0 10px 30px rgba(15, 23, 42, .06);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--page); color: var(--text); font: 14px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    .app { display: flex; min-height: 100vh; }
+    .sidebar { width: 236px; flex: 0 0 236px; border-right: 1px solid var(--line); background: var(--surface); padding: 22px 12px; }
+    .brand { display: flex; align-items: center; gap: 10px; margin: 0 10px 30px; color: #111827; font-size: 17px; font-weight: 750; }
+    .brand-mark { display: grid; width: 30px; height: 30px; place-items: center; border-radius: 8px; background: var(--brand); color: #fff; font-size: 14px; font-weight: 800; }
+    .nav-title { margin: 20px 10px 8px; color: var(--muted-2); font-size: 11px; font-weight: 700; letter-spacing: .08em; }
+    .nav-link { display: flex; align-items: center; gap: 10px; min-height: 40px; margin: 2px 0; border-radius: 7px; padding: 0 10px; color: #475569; text-decoration: none; font-weight: 560; }
+    .nav-link:hover { background: #f8fafc; color: #1e293b; }
+    .nav-link.active { background: var(--brand-soft); color: #1d4ed8; font-weight: 700; }
+    .nav-icon { width: 18px; height: 18px; flex: 0 0 auto; }
+    .content { min-width: 0; flex: 1; }
+    .shell { max-width: 1180px; margin: 0 auto; padding: 32px 32px 56px; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 20px; }
+    h1 { margin: 0; font-size: 28px; line-height: 1.25; letter-spacing: 0; }
+    .toolbar { display: flex; align-items: center; gap: 8px; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 36px; border: 1px solid transparent; border-radius: 8px; padding: 0 12px; font-weight: 650; }
+    .btn-primary { background: var(--brand); color: #fff; box-shadow: 0 3px 8px rgba(37, 99, 235, .18); }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-secondary { border-color: var(--line); background: var(--surface); color: #475569; }
+    .btn-secondary:hover { border-color: #bfdbfe; color: var(--brand); }
+    .btn svg { width: 16px; height: 16px; }
+    .icon-btn { display: grid; width: 34px; height: 34px; place-items: center; border: 1px solid transparent; border-radius: 7px; background: transparent; color: var(--muted); }
+    .icon-btn:hover { border-color: var(--line); background: var(--surface-muted); color: var(--brand); }
+    .icon-btn.danger:hover { border-color: #fecaca; background: var(--danger-soft); color: var(--danger); }
+    .icon-btn svg { width: 16px; height: 16px; }
+    .list { overflow: hidden; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); box-shadow: var(--shadow); }
+    .upstream { display: grid; grid-template-columns: minmax(280px, 1.25fr) minmax(220px, .9fr) minmax(155px, auto) auto; align-items: center; gap: 22px; min-height: 90px; border-bottom: 1px solid var(--line-soft); padding: 15px 18px; }
+    .upstream:last-child { border-bottom: 0; }
+    .site, .groups { min-width: 0; }
+    .url { display: inline-flex; min-width: 0; align-items: center; gap: 8px; color: #1d4ed8; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; font-weight: 650; text-decoration: none; }
+    .url:hover { color: #1e40af; text-decoration: underline; }
+    .url svg { width: 16px; height: 16px; flex: 0 0 auto; }
+    .url span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .synced { margin: 3px 0 0 24px; color: var(--muted-2); font-size: 11px; white-space: nowrap; }
+    .group-label { margin-bottom: 6px; color: var(--muted-2); font-size: 11px; }
+    .group-list { display: flex; flex-wrap: wrap; gap: 5px; }
+    .group-chip { display: inline-flex; align-items: center; max-width: 150px; border: 1px solid #dbeafe; border-radius: 5px; padding: 3px 8px; overflow: hidden; color: #1d4ed8; background: #f8fbff; font-size: 12px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+    .group-chip.more { border-color: var(--line); color: var(--muted); background: var(--surface-muted); }
+    .balance { color: #475569; font-size: 13px; white-space: nowrap; }
+    .balance b { display: block; margin-top: 2px; color: var(--text); font-size: 17px; font-weight: 750; }
+    .status { color: #16a34a; font-size: 11px; }
+    .status::before { display: inline-block; width: 6px; height: 6px; margin: 0 5px 1px 0; border-radius: 50%; background: currentColor; content: ""; }
+    .actions { display: flex; align-items: center; gap: 2px; }
+    .empty-hint { margin: 12px 0 0; color: var(--muted-2); font-size: 12px; }
+    .modal-backdrop { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; padding: 20px; background: rgba(15, 23, 42, .38); }
+    .modal-backdrop.open { display: flex; }
+    .modal { width: min(520px, 100%); border: 1px solid var(--line); border-radius: 10px; background: var(--surface); box-shadow: 0 24px 70px rgba(15, 23, 42, .2); }
+    .modal-head { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line-soft); padding: 17px 20px; }
+    .modal-head h2 { margin: 0; font-size: 17px; }
+    .modal-body { display: grid; gap: 18px; padding: 20px; }
+    .field-label { display: block; margin-bottom: 7px; color: #334155; font-size: 13px; font-weight: 650; }
+    .input { width: 100%; height: 38px; border: 1px solid #cbd5e1; border-radius: 7px; outline: none; padding: 0 10px; color: var(--text); background: #fff; }
+    .input:focus { border-color: #60a5fa; box-shadow: 0 0 0 3px #dbeafe; }
+    .check-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .check { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 7px; padding: 9px 10px; color: #475569; }
+    .check:has(input:checked) { border-color: #93c5fd; color: #1d4ed8; background: #f8fbff; }
+    .check input { accent-color: var(--brand); }
+    .modal-foot { display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid var(--line-soft); padding: 14px 20px; }
+    @media (max-width: 940px) { .upstream { grid-template-columns: minmax(240px, 1fr) minmax(190px, .8fr) auto auto; gap: 14px; } }
+    @media (max-width: 760px) { .app { display: block; } .sidebar { display: none; } .shell { padding: 24px 16px 40px; } h1 { font-size: 24px; } .upstream { grid-template-columns: 1fr auto; gap: 10px 14px; min-height: 0; padding: 15px; } .groups { grid-column: 1 / -1; } .balance { grid-column: 1; padding-left: 24px; } .actions { grid-column: 2; grid-row: 3; } }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" aria-label="管理员导航">
+      <div class="brand"><span class="brand-mark">S2</span><span>Sub2API</span></div>
+      <div class="nav-title">管理</div>
+      <a class="nav-link" href="#"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 13h8V3H3v10Zm0 8h8v-4H3v4Zm10 0h8V11h-8v10Zm0-18v4h8V3h-8Z"/></svg>仪表盘</a>
+      <a class="nav-link" href="#"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>用户管理</a>
+      <a class="nav-link" href="#"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m3 7.5 9-4.5 9 4.5-9 4.5-9-4.5Z"/><path d="m3 12 9 4.5 9-4.5M3 16.5 12 21l9-4.5"/></svg>分组管理</a>
+      <a class="nav-link" href="#"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h.01M11 8h6M7 12h.01M11 12h6M7 16h.01M11 16h6"/></svg>账号管理</a>
+      <a class="nav-link active" href="#" aria-current="page"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="8" cy="6" r="2" fill="currentColor"/><circle cx="15" cy="12" r="2" fill="currentColor"/><circle cx="10" cy="18" r="2" fill="currentColor"/></svg>上游余额</a>
+      <a class="nav-link" href="#"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3v18h18"/><path d="m7 16 4-5 3 2 5-7"/></svg>用量统计</a>
+      <div class="nav-title">系统</div>
+      <a class="nav-link" href="#"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/></svg>系统设置</a>
+    </aside>
+    <main class="content">
+      <div class="shell">
+        <div class="topbar">
+          <h1>上游余额</h1>
+          <div class="toolbar">
+            <button class="btn btn-secondary" type="button" title="刷新全部上游余额" onclick="refreshAll(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 11a8 8 0 1 0 2 5.3"/><path d="M20 4v7h-7"/></svg><span>刷新</span></button>
+            <button class="btn btn-primary" type="button" onclick="openModal('新增上游')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg><span>新增上游</span></button>
+          </div>
+        </div>
+        <section class="list" aria-label="上游余额列表">
+          <div class="upstream">
+            <div class="site"><a class="url" href="https://api.openai.com" target="_blank" rel="noreferrer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 3h7v7M10 14 21 3M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg><span>https://api.openai.com</span></a><div class="synced">最近同步：刚刚</div></div>
+            <div class="groups"><div class="group-label">关联分组</div><div class="group-list"><span class="group-chip">OpenAI 官方</span><span class="group-chip">高速通道</span><span class="group-chip">OpenAI 备用</span></div></div>
+            <div class="balance"><span class="status">同步成功</span><b>US$ 126.80</b></div>
+            <div class="actions"><button class="icon-btn" title="编辑上游" aria-label="编辑上游" onclick="openModal('编辑上游')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m4 16-.7 4.7L8 20l11.5-11.5a2.1 2.1 0 0 0-3-3L5 17Z"/><path d="m14.5 7.5 2 2"/></svg></button><button class="icon-btn danger" title="删除上游" aria-label="删除上游" onclick="removeRow(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></div>
+          </div>
+          <div class="upstream">
+            <div class="site"><a class="url" href="https://gateway.anthropic.com" target="_blank" rel="noreferrer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 3h7v7M10 14 21 3M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg><span>https://gateway.anthropic.com</span></a><div class="synced">最近同步：2 分钟前</div></div>
+            <div class="groups"><div class="group-label">关联分组</div><div class="group-list"><span class="group-chip">Claude Max</span><span class="group-chip">通用模型</span></div></div>
+            <div class="balance"><span class="status">同步成功</span><b>US$ 42.50</b></div>
+            <div class="actions"><button class="icon-btn" title="编辑上游" aria-label="编辑上游" onclick="openModal('编辑上游')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m4 16-.7 4.7L8 20l11.5-11.5a2.1 2.1 0 0 0-3-3L5 17Z"/><path d="m14.5 7.5 2 2"/></svg></button><button class="icon-btn danger" title="删除上游" aria-label="删除上游" onclick="removeRow(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></div>
+          </div>
+          <div class="upstream">
+            <div class="site"><a class="url" href="https://generativelanguage.googleapis.com" target="_blank" rel="noreferrer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 3h7v7M10 14 21 3M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg><span>https://generativelanguage.googleapis.com</span></a><div class="synced">最近同步：5 分钟前</div></div>
+            <div class="groups"><div class="group-label">关联分组</div><div class="group-list"><span class="group-chip">Gemini</span></div></div>
+            <div class="balance"><span class="status">同步成功</span><b>6,480 次</b></div>
+            <div class="actions"><button class="icon-btn" title="编辑上游" aria-label="编辑上游" onclick="openModal('编辑上游')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m4 16-.7 4.7L8 20l11.5-11.5a2.1 2.1 0 0 0-3-3L5 17Z"/><path d="m14.5 7.5 2 2"/></svg></button><button class="icon-btn danger" title="删除上游" aria-label="删除上游" onclick="removeRow(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></div>
+          </div>
+        </section>
+        <p class="empty-hint">同一实际站点只显示一行，新增账号后刷新页面会重新同步并更新关联分组。</p>
+      </div>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" onclick="closeOnBackdrop(event)">
+    <div class="modal">
+      <div class="modal-head"><h2 id="modal-title">新增上游</h2><button class="icon-btn" title="关闭" aria-label="关闭" onclick="closeModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
+      <div class="modal-body">
+        <div><label class="field-label" for="url-input">上游网址</label><input id="url-input" class="input" value="https://api.example.com" /></div>
+        <div><span class="field-label">关联分组</span><div class="check-grid"><label class="check"><input type="checkbox" checked />OpenAI 官方</label><label class="check"><input type="checkbox" />高速通道</label><label class="check"><input type="checkbox" />Claude Max</label><label class="check"><input type="checkbox" />通用模型</label></div></div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-secondary" type="button" onclick="closeModal()">取消</button><button class="btn btn-primary" type="button" onclick="saveModal()">保存</button></div>
+    </div>
+  </div>
+  <script>
+    function openModal(title) { document.getElementById('modal-title').textContent = title; document.getElementById('modal').classList.add('open'); }
+    function closeModal() { document.getElementById('modal').classList.remove('open'); }
+    function closeOnBackdrop(event) { if (event.target.id === 'modal') closeModal(); }
+    function saveModal() { closeModal(); }
+    function removeRow(button) { if (window.confirm('确认删除这个上游吗？')) button.closest('.upstream').remove(); }
+    function refreshAll(button) { const icon = button.querySelector('svg'); icon.style.transform = 'rotate(360deg)'; icon.style.transition = 'transform .55s ease'; setTimeout(() => { icon.style.transform = ''; }, 600); }
+  </script>
+</body>
+</html>

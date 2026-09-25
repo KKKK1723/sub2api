@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>渠道状态 · 多探针悬浮预览</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f7fb;
+      --surface: rgba(255, 255, 255, .9);
+      --solid: #fff;
+      --soft: #f8fafc;
+      --line: #e5eaf0;
+      --ink: #17212b;
+      --muted: #73808d;
+      --blue: #2563eb;
+      --blue-soft: #eff6ff;
+      --green: #11865a;
+      --green-soft: #e9f8f0;
+      --amber: #b66d0a;
+      --amber-soft: #fff6e6;
+      --red: #c33d4c;
+      --red-soft: #fff0f2;
+      --shadow: 0 10px 28px rgba(32, 47, 64, .06);
+      --shadow-hover: 0 18px 34px rgba(32, 47, 64, .12);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 320px; background: var(--bg); color: var(--ink); font: 14px/1.5 Inter, "Microsoft YaHei", "PingFang SC", system-ui, sans-serif; }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    .app { min-height: 100vh; }
+    .sidebar { position: fixed; inset: 0 auto 0 0; z-index: 3; width: 224px; padding: 22px 14px; border-right: 1px solid var(--line); background: #fff; }
+    .brand { display: flex; align-items: center; gap: 10px; padding: 0 12px 26px; font-weight: 760; }
+    .brand-mark { width: 31px; height: 31px; display: grid; place-items: center; border-radius: 9px; background: #151d27; color: #fff; font-size: 11px; }
+    .nav-label { padding: 0 12px 8px; color: #a0aab4; font-size: 10px; font-weight: 750; letter-spacing: .12em; text-transform: uppercase; }
+    .nav { display: grid; gap: 3px; }
+    .nav a { display: flex; align-items: center; gap: 10px; min-height: 38px; padding: 0 12px; border-radius: 8px; color: #71808d; text-decoration: none; font-size: 13px; }
+    .nav a:hover { background: #f5f7fa; color: var(--ink); }
+    .nav a.active { background: var(--blue-soft); color: var(--blue); font-weight: 700; }
+    .nav-icon { width: 18px; color: currentColor; font-size: 16px; text-align: center; }
+    .sidebar-foot { position: absolute; right: 14px; bottom: 20px; left: 14px; padding: 13px 12px; border-top: 1px solid var(--line); color: #9aa5af; font-size: 11px; }
+    .main { min-height: 100vh; margin-left: 224px; }
+    .topbar { height: 62px; display: flex; align-items: center; justify-content: flex-end; gap: 14px; padding: 0 30px; border-bottom: 1px solid var(--line); background: rgba(255, 255, 255, .82); }
+    .role-caption { color: var(--muted); font-size: 12px; }
+    .role-toggle { display: inline-flex; padding: 3px; border: 1px solid var(--line); border-radius: 8px; background: #eef2f6; }
+    .role-toggle button { min-height: 27px; padding: 3px 9px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); font-size: 11px; font-weight: 650; }
+    .role-toggle button.active { background: #fff; color: var(--blue); box-shadow: 0 1px 4px rgba(32, 47, 64, .13); }
+    .avatar { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%; background: #dbeafe; color: #1d4ed8; font-size: 12px; font-weight: 750; }
+    .content { max-width: 1320px; margin: 0 auto; padding: 32px 30px 54px; }
+    .page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 22px; margin-bottom: 21px; }
+    .crumbs { margin-bottom: 7px; color: #96a1aa; font-size: 12px; }
+    h1, h2, h3, p { margin: 0; }
+    h1 { font-size: 27px; line-height: 1.2; letter-spacing: -.02em; }
+    .subtitle { margin-top: 7px; color: var(--muted); }
+    .admin-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: 1px solid #cdddf8; border-radius: 999px; background: var(--blue-soft); color: var(--blue); font-size: 11px; font-weight: 700; white-space: nowrap; }
+    .admin-badge i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 19px; }
+    .toolbar-left { display: flex; align-items: center; gap: 8px; }
+    .segmented { display: flex; padding: 3px; border: 1px solid var(--line); border-radius: 9px; background: #eef2f6; }
+    .segment { min-height: 29px; padding: 4px 11px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); font-size: 12px; font-weight: 650; }
+    .segment.active { background: #fff; color: var(--blue); box-shadow: 0 1px 4px rgba(32, 47, 64, .13); }
+    .overall { display: inline-flex; align-items: center; gap: 7px; padding: 5px 10px; border-radius: 999px; background: var(--green-soft); color: var(--green); font-size: 11px; font-weight: 750; letter-spacing: .04em; }
+    .overall-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 4px rgba(17, 134, 90, .1); }
+    .refresh { width: 33px; height: 33px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 8px; background: transparent; color: #74818d; font-size: 19px; }
+    .refresh:hover { background: #eef2f6; color: var(--ink); }
+    .refresh.spinning { animation: spin .65s linear; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .auto { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-size: 12px; white-space: nowrap; }
+    .switch { width: 34px; height: 20px; padding: 2px; border: 0; border-radius: 20px; background: #c5ced7; }
+    .switch::after { content: ""; display: block; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .17); transition: .15s ease; }
+    .switch.on { background: var(--blue); }
+    .switch.on::after { transform: translateX(14px); }
+    .search { width: 230px; height: 34px; padding: 0 12px; border: 1px solid var(--line); border-radius: 7px; background: #fff; color: var(--ink); outline: 0; }
+    .search:focus { border-color: #7da7f2; box-shadow: 0 0 0 3px rgba(37, 99, 235, .1); }
+    .card-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; }
+    .hover-zone { position: relative; min-width: 0; z-index: 1; }
+    .hover-zone:hover, .hover-zone:focus-within { z-index: 10; }
+    .monitor-card { width: 100%; min-height: 284px; display: flex; flex-direction: column; padding: 19px; border: 1px solid rgba(218, 226, 234, .95); border-radius: 16px; background: var(--surface); box-shadow: var(--shadow); outline: 0; text-align: left; transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
+    .monitor-card:hover, .monitor-card:focus-visible { transform: translateY(-3px); border-color: #cbd7e2; box-shadow: var(--shadow-hover); }
+    .monitor-card:focus-visible { box-shadow: 0 0 0 3px rgba(37, 99, 235, .17), var(--shadow-hover); }
+    .card-head { display: flex; align-items: flex-start; gap: 11px; min-width: 0; }
+    .provider-icon { width: 37px; height: 37px; display: grid; place-items: center; flex: 0 0 auto; border: 1px solid rgba(0, 0, 0, .04); border-radius: 12px; font-size: 11px; font-weight: 800; }
+    .provider-icon.openai { background: #e9f8f0; color: #108457; }
+    .provider-icon.anthropic { background: #fff2df; color: #a76316; }
+    .provider-icon.gemini { background: #eaf2ff; color: #3268cd; }
+    .provider-icon.grok { background: #edf0f3; color: #3b4650; }
+    .card-title-wrap { min-width: 0; flex: 1; }
+    .card-title { overflow: hidden; color: #1b2632; font-size: 15px; font-weight: 700; line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; }
+    .card-subtitle { display: flex; align-items: center; gap: 6px; min-width: 0; margin-top: 4px; color: var(--muted); font-size: 11px; }
+    .provider-badge, .group-badge { overflow: hidden; flex: 0 0 auto; max-width: 104px; padding: 2px 6px; border-radius: 5px; text-overflow: ellipsis; white-space: nowrap; }
+    .provider-badge { font-weight: 650; }
+    .provider-badge.openai { background: #e9f8f0; color: #11865a; }
+    .provider-badge.anthropic { background: #fff2df; color: #a76316; }
+    .provider-badge.gemini { background: #eaf2ff; color: #3268cd; }
+    .provider-badge.grok { background: #edf0f3; color: #3b4650; }
+    .group-badge { background: #f0f3f6; color: #667481; }
+    .status { display: inline-flex; align-items: center; gap: 5px; flex: 0 0 auto; padding: 4px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+    .status::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    .status.operational { background: var(--green-soft); color: var(--green); }
+    .status.degraded { background: var(--amber-soft); color: var(--amber); }
+    .status.failed { background: var(--red-soft); color: var(--red); }
+    .metric-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 19px; }
+    .metric { min-width: 0; padding: 10px 11px; border: 1px solid #edf0f3; border-radius: 11px; background: rgba(248, 250, 252, .83); }
+    .metric-label { display: flex; align-items: center; gap: 5px; overflow: hidden; color: #98a2ac; font-size: 10px; font-weight: 700; letter-spacing: .07em; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
+    .metric-symbol { font-size: 13px; letter-spacing: 0; }
+    .metric-value { overflow: hidden; margin-top: 5px; color: #263340; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 18px; font-weight: 760; text-overflow: ellipsis; white-space: nowrap; }
+    .metric-unit { margin-left: 3px; color: #9aa4ad; font-family: inherit; font-size: 10px; font-weight: 500; }
+    .divider { margin-top: 15px; border-top: 1px solid #edf0f3; }
+    .availability { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-top: 13px; }
+    .availability-label { color: #98a2ac; font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+    .availability-value { color: #10a36a; font-size: 29px; font-weight: 780; letter-spacing: -.035em; line-height: .95; }
+    .availability-value.warn { color: #d08a19; }
+    .availability-value.fail { color: #d35662; }
+    .availability-unit { margin-left: 2px; font-size: 14px; font-weight: 700; }
+    .extra { margin-top: 5px; color: #9aa4ad; font-size: 10px; text-align: right; }
+    .timeline { margin-top: auto; padding-top: 15px; }
+    .timeline-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; color: #9aa4ad; font-size: 10px; letter-spacing: .09em; text-transform: uppercase; }
+    .timeline-bars { display: flex; align-items: flex-end; gap: 2px; height: 24px; }
+    .bar { min-width: 2px; flex: 1; border-radius: 2px; background: #10a36a; opacity: .9; }
+    .bar.degraded { background: #d99420; }
+    .bar.failed { background: #d35662; }
+    .timeline-foot { display: flex; justify-content: space-between; margin-top: 4px; color: #a5aeb7; font-size: 9px; letter-spacing: .12em; }
+    .probe-popover { position: absolute; top: 0; left: calc(100% + 12px); width: 342px; padding: 16px; border: 1px solid #d9e3ee; border-radius: 14px; background: rgba(255, 255, 255, .98); box-shadow: 0 18px 42px rgba(25, 42, 58, .17), 0 2px 8px rgba(25, 42, 58, .06); opacity: 0; pointer-events: none; transform: translateX(-5px); transition: opacity .16s ease, transform .16s ease; }
+    .hover-zone:hover .probe-popover, .hover-zone:focus-within .probe-popover { opacity: 1; pointer-events: auto; transform: translateX(0); }
+    .probe-popover::before { content: ""; position: absolute; top: 22px; left: -7px; width: 12px; height: 12px; border-bottom: 1px solid #d9e3ee; border-left: 1px solid #d9e3ee; background: #fff; transform: rotate(45deg); }
+    .popover-head { position: relative; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+    .popover-kicker { color: #95a0aa; font-size: 10px; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; }
+    .popover-title { margin-top: 3px; color: var(--ink); font-size: 14px; font-weight: 750; }
+    .probe-count { color: var(--muted); font-size: 11px; white-space: nowrap; }
+    .probe-list { position: relative; display: grid; gap: 8px; margin-top: 12px; }
+    .probe-row { padding: 10px 10px 9px; border: 1px solid #edf0f3; border-radius: 9px; background: #fbfcfd; }
+    .probe-row-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .probe-name { overflow: hidden; color: #273644; font-size: 12px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+    .probe-status { display: inline-flex; align-items: center; gap: 5px; flex: 0 0 auto; color: var(--green); font-size: 10px; font-weight: 700; }
+    .probe-status i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    .probe-status.degraded { color: var(--amber); }
+    .probe-status.failed { color: var(--red); }
+    .probe-row-meta { display: flex; align-items: center; gap: 8px; margin-top: 5px; color: #85919c; font-size: 10px; }
+    .probe-endpoint { overflow: hidden; flex: 1; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; text-overflow: ellipsis; white-space: nowrap; }
+    .probe-latency { color: #526372; font-weight: 700; white-space: nowrap; }
+    .probe-row-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; color: #a0aab3; font-size: 10px; }
+    .key-mask { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .probe-disabled { color: #9aa4ad; }
+    .popover-footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; padding-top: 11px; border-top: 1px solid var(--line); color: #87939d; font-size: 10px; }
+    .popover-footer strong { color: var(--amber); font-weight: 700; }
+    .user-only { display: none; }
+    body.user-mode .admin-badge { border-color: #dfe4e9; background: #f5f7f9; color: #7a8792; }
+    body.user-mode .admin-badge i { background: #99a4ad; }
+    body.user-mode .probe-popover { display: none; }
+    body.user-mode .user-only { display: inline; }
+    .empty { display: none; padding: 62px 20px; border: 1px solid var(--line); border-radius: 14px; background: #fff; color: var(--muted); text-align: center; }
+    .empty.show { display: block; }
+    .note { margin-top: 17px; color: #9ba6b0; font-size: 11px; }
+    @media (max-width: 1180px) { .card-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } .hover-zone:nth-child(3n) .probe-popover { right: calc(100% + 12px); left: auto; transform: translateX(5px); } .hover-zone:nth-child(3n):hover .probe-popover, .hover-zone:nth-child(3n):focus-within .probe-popover { transform: translateX(0); } .hover-zone:nth-child(3n) .probe-popover::before { right: -7px; left: auto; border-top: 1px solid #d9e3ee; border-right: 1px solid #d9e3ee; border-bottom: 0; border-left: 0; } }
+    @media (max-width: 900px) { .sidebar { width: 70px; padding-inline: 10px; } .brand { justify-content: center; padding-inline: 0; } .brand span:last-child, .nav-label, .nav a span:not(.nav-icon), .sidebar-foot { display: none; } .nav a { justify-content: center; padding-inline: 0; } .main { margin-left: 70px; } .content { padding-inline: 20px; } .card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .hover-zone:nth-child(3n) .probe-popover { right: auto; left: calc(100% + 12px); } .hover-zone:nth-child(3n) .probe-popover::before { right: auto; left: -7px; border-top: 0; border-right: 0; border-bottom: 1px solid #d9e3ee; border-left: 1px solid #d9e3ee; } }
+    @media (max-width: 640px) { .topbar { height: 56px; padding-inline: 15px; } .role-caption { display: none; } .content { padding: 23px 15px 40px; } .page-head, .toolbar { align-items: flex-start; flex-direction: column; } .toolbar-left { width: 100%; flex-wrap: wrap; } .search { width: 100%; order: 3; } .card-grid { grid-template-columns: 1fr; gap: 12px; } .monitor-card { min-height: 270px; } .probe-popover { position: fixed; top: auto; right: 14px; bottom: 14px; left: 14px; width: auto; transform: translateY(7px); } .hover-zone:hover .probe-popover, .hover-zone:focus-within .probe-popover { transform: translateY(0); } .probe-popover::before { display: none; } }
+    .probe-popover { position: fixed !important; top: 50% !important; right: auto !important; bottom: auto !important; left: 50% !important; z-index: 20; width: min(342px, calc(100vw - 28px)) !important; transform: translate(-50%, calc(-50% + 6px)) !important; }
+    .hover-zone:hover .probe-popover, .hover-zone:focus-within .probe-popover { transform: translate(-50%, -50%) !important; }
+    .probe-popover::before { display: none !important; }
+    .hover-zone { perspective: 1000px; }
+    .monitor-card { position: relative; padding: 0; transform-style: preserve-3d; }
+    .monitor-card.is-flipped, .monitor-card.is-flipped:hover, .monitor-card.is-flipped:focus-visible { transform: rotateY(180deg) translateY(-3px); }
+    .card-face { position: absolute; inset: 0; display: flex; flex-direction: column; padding: 19px; border-radius: inherit; backface-visibility: hidden; }
+    .card-front { transform: rotateY(0deg); }
+    .card-back { overflow: hidden; transform: rotateY(180deg); background: var(--solid); color: var(--ink); }
+    .card-back .popover-head { flex: 0 0 auto; }
+    .card-back .probe-list { min-height: 0; overflow: hidden; }
+    .card-back .popover-footer { margin-top: auto; }
+    .probe-popover { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand"><span class="brand-mark">S2</span><span>Sub2API</span></div>
+      <div class="nav-label">工作台</div>
+      <nav class="nav" aria-label="侧边导航"><a href="#"><span class="nav-icon">⌂</span><span>概览</span></a><a href="#"><span class="nav-icon">⌁</span><span>API 密钥</span></a><a href="#"><span class="nav-icon">▦</span><span>使用记录</span></a><a href="#"><span class="nav-icon">◈</span><span>可用渠道</span></a><a class="active" href="#"><span class="nav-icon">◉</span><span>渠道状态</span></a></nav>
+      <div class="sidebar-foot">管理员可查看渠道探针详情</div>
+    </aside>
+    <div class="main">
+      <header class="topbar"><span class="role-caption">预览角色</span><div class="role-toggle" role="tablist" aria-label="预览角色"><button class="active" data-role="admin" type="button">管理员</button><button data-role="user" type="button">普通用户</button></div><span class="avatar">LM</span></header>
+      <main class="content">
+        <div class="page-head"><div><div class="crumbs">工作台 <span aria-hidden="true">/</span> 渠道状态</div><h1>渠道状态</h1><p class="subtitle">查看渠道可用性、延迟和近期状态</p></div><span class="admin-badge"><i></i><span class="admin-text">管理员专属 · 可查看全部探针</span><span class="user-only">普通用户视图</span></span></div>
+        <div class="toolbar"><div class="toolbar-left"><div class="segmented" role="tablist" aria-label="可用率时间范围"><button class="segment active" data-window="7d" type="button">7 天</button><button class="segment" data-window="15d" type="button">15 天</button><button class="segment" data-window="30d" type="button">30 天</button></div><span class="overall"><i class="overall-dot"></i>OPERATIONAL</span><button class="refresh" id="refreshIcon" type="button" title="刷新数据" aria-label="刷新数据">↻</button><label class="auto"><button class="switch on" id="autoSwitch" type="button" aria-label="切换自动刷新"></button><span id="autoLabel">自动刷新 · 30s</span></label></div><input class="search" id="searchInput" type="search" placeholder="搜索渠道..." aria-label="搜索渠道" /></div>
+        <div class="card-grid" id="cardGrid">
+          <div class="hover-zone" data-search="OpenAI 主线路 openai-main"><button class="monitor-card" type="button" aria-label="查看 OpenAI 主线路详情"><span class="card-head"><span class="provider-icon openai">OA</span><span class="card-title-wrap"><span class="card-title">OpenAI 主线路</span><span class="card-subtitle"><span class="provider-badge openai">OpenAI</span><span class="group-badge">openai-main</span></span></span><span class="status operational">正常</span></span><span class="metric-pair"><span class="metric"><span class="metric-label"><span class="metric-symbol">ϟ</span>对话延迟</span><span class="metric-value">142<span class="metric-unit">ms</span></span></span><span class="metric"><span class="metric-label"><span class="metric-symbol">◎</span>端点 PING</span><span class="metric-value">38<span class="metric-unit">ms</span></span></span></span><span class="divider"></span><span class="availability"><span class="availability-label" data-availability-label>可用性 · 7 天</span><span><span class="availability-value">99.98<span class="availability-unit">%</span></span><span class="extra">+ 2 个模型</span></span></span><span class="timeline"><span class="timeline-head"><span>最近 60 次记录</span><span>28s 后刷新</span></span><span class="timeline-bars" data-bars="operational"></span><span class="timeline-foot"><span>过去</span><span>现在</span></span></span></button><aside class="probe-popover" aria-label="OpenAI 主线路的全部探针"><div class="popover-head"><div><div class="popover-kicker">全部探针 · 3</div><div class="popover-title">OpenAI 主线路</div></div><span class="status operational">2 正常</span></div><div class="probe-list"><div class="probe-row"><div class="probe-row-head"><span class="probe-name">美东主探针</span><span class="probe-status"><i></i>正常</span></div><div class="probe-row-meta"><span class="probe-endpoint">api-east.example/v1</span><span class="probe-latency">142 ms</span></div><div class="probe-row-foot"><span class="key-mask">sk-••••••4KQ2</span><span>32 秒前 · 已启用</span></div></div><div class="probe-row"><div class="probe-row-head"><span class="probe-name">新加坡备用</span><span class="probe-status degraded"><i></i>降级</span></div><div class="probe-row-meta"><span class="probe-endpoint">api-sg.example/v1</span><span class="probe-latency">486 ms</span></div><div class="probe-row-foot"><span class="key-mask">sk-••••••7N8P</span><span>32 秒前 · 已启用</span></div></div><div class="probe-row"><div class="probe-row-head"><span class="probe-name">欧洲备用</span><span class="probe-status"><i></i>正常</span></div><div class="probe-row-meta"><span class="probe-endpoint">api-eu.example/v1</span><span class="probe-latency">178 ms</span></div><div class="probe-row-foot"><span class="key-mask">sk-••••••1D5M</span><span>32 秒前 · 已启用</span></div></div></div><div class="popover-footer"><span>探针整体状态</span><strong>部分降级</strong></div></aside></div>
+          <div class="hover-zone" data-search="Anthropic Claude claude-prod"><button class="monitor-card" type="button" aria-label="查看 Anthropic Claude 详情"><span class="card-head"><span class="provider-icon anthropic">AN</span><span class="card-title-wrap"><span class="card-title">Anthropic Claude</span><span class="card-subtitle"><span class="provider-badge anthropic">Anthropic</span><span class="group-badge">claude-prod</span></span></span><span class="status degraded">降级</span></span><span class="metric-pair"><span class="metric"><span class="metric-label"><span class="metric-symbol">ϟ</span>对话延迟</span><span class="metric-value">486<span class="metric-unit">ms</span></span></span><span class="metric"><span class="metric-label"><span class="metric-symbol">◎</span>端点 PING</span><span class="metric-value">92<span class="metric-unit">ms</span></span></span></span><span class="divider"></span><span class="availability"><span class="availability-label" data-availability-label>可用性 · 7 天</span><span><span class="availability-value warn">98.64<span class="availability-unit">%</span></span><span class="extra">+ 3 个模型</span></span></span><span class="timeline"><span class="timeline-head"><span>最近 60 次记录</span><span>28s 后刷新</span></span><span class="timeline-bars" data-bars="degraded"></span><span class="timeline-foot"><span>过去</span><span>现在</span></span></span></button><aside class="probe-popover" aria-label="Anthropic Claude 的全部探针"><div class="popover-head"><div><div class="popover-kicker">全部探针 · 2</div><div class="popover-title">Anthropic Claude</div></div><span class="status degraded">1 降级</span></div><div class="probe-list"><div class="probe-row"><div class="probe-row-head"><span class="probe-name">Claude 主站</span><span class="probe-status"><i></i>正常</span></div><div class="probe-row-meta"><span class="probe-endpoint">claude-primary.example</span><span class="probe-latency">218 ms</span></div><div class="probe-row-foot"><span class="key-mask">sk-••••••2AC9</span><span>32 秒前 · 已启用</span></div></div><div class="probe-row"><div class="probe-row-head"><span class="probe-name">Claude 备用</span><span class="probe-status degraded"><i></i>降级</span></div><div class="probe-row-meta"><span class="probe-endpoint">claude-backup.example</span><span class="probe-latency">486 ms</span></div><div class="probe-row-foot"><span class="key-mask">sk-••••••9QW4</span><span>32 秒前 · 已启用</span></div></div></div><div class="popover-footer"><span>探针整体状态</span><strong>部分降级</strong></div></aside></div>
+          <div class="hover-zone" data-search="Gemini 生产线路 gemini-pro"><button class="monitor-card" type="button" aria-label="查看 Gemini 生产线路详情"><span class="card-head"><span class="provider-icon gemini">GE</span><span class="card-title-wrap"><span class="card-title">Gemini 生产线路</span><span class="card-subtitle"><span class="provider-badge gemini">Gemini</span><span class="group-badge">gemini-pro</span></span></span><span class="status operational">正常</span></span><span class="metric-pair"><span class="metric"><span class="metric-label"><span class="metric-symbol">ϟ</span>对话延迟</span><span class="metric-value">168<span class="metric-unit">ms</span></span></span><span class="metric"><span class="metric-label"><span class="metric-symbol">◎</span>端点 PING</span><span class="metric-value">44<span class="metric-unit">ms</span></span></span></span><span class="divider"></span><span class="availability"><span class="availability-label" data-availability-label>可用性 · 7 天</span><span><span class="availability-value">99.91<span class="availability-unit">%</span></span><span class="extra">+ 1 个模型</span></span></span><span class="timeline"><span class="timeline-head"><span>最近 60 次记录</span><span>28s 后刷新</span></span><span class="timeline-bars" data-bars="operational"></span><span class="timeline-foot"><span>过去</span><span>现在</span></span></span></button><aside class="probe-popover" aria-label="Gemini 生产线路的全部探针"><div class="popover-head"><div><div class="popover-kicker">全部探针 · 3</div><div class="popover-title">Gemini 生产线路</div></div><span class="status operational">全部正常</span></div><div class="probe-list"><div class="probe-row"><div class="probe-row-head"><span class="probe-name">东京探针</span><span class="probe-status"><i></i>正常</span></div><div class="probe-row-meta"><span class="probe-endpoint">gemini-tokyo.example</span><span class="probe-latency">128 ms</span></div><div class="probe-row-foot"><span class="key-mask">AIza••••••M7P</span><span>32 秒前 · 已启用</span></div></div><div class="probe-row"><div class="probe-row-head"><span class="probe-name">法兰克福探针</span><span class="probe-status"><i></i>正常</span></div><div class="probe-row-meta"><span class="probe-endpoint">gemini-fra.example</span><span class="probe-latency">201 ms</span></div><div class="probe-row-foot"><span class="key-mask">AIza••••••L2X</span><span>32 秒前 · 已启用</span></div></div><div class="probe-row"><div class="probe-row-head"><span class="probe-name">美西探针</span><span class="probe-status"><i></i>正常</span></div><div class="probe-row-meta"><span class="probe-endpoint">gemini-us.example</span><span class="probe-latency">155 ms</span></div><div class="probe-row-foot"><span class="key-mask">AIza••••••R8V</span><span>32 秒前 · 已启用</span></div></div></div><div class="popover-footer"><span>探针整体状态</span><strong style="color:var(--green)">全部正常</strong></div></aside></div>
+          <div class="hover-zone" data-search="Grok 高速线路 grok-fast"><button class="monitor-card" type="button" aria-label="查看 Grok 高速线路详情"><span class="card-head"><span class="provider-icon grok">GR</span><span class="card-title-wrap"><span class="card-title">Grok 高速线路</span><span class="card-subtitle"><span class="provider-badge grok">Grok</span><span class="group-badge">grok-fast</span></span></span><span class="status failed">失败</span></span><span class="metric-pair"><span class="metric"><span class="metric-label"><span class="metric-symbol">ϟ</span>对话延迟</span><span class="metric-value">超时</span></span><span class="metric"><span class="metric-label"><span class="metric-symbol">◎</span>端点 PING</span><span class="metric-value">超时</span></span></span><span class="divider"></span><span class="availability"><span class="availability-label" data-availability-label>可用性 · 7 天</span><span><span class="availability-value fail">96.27<span class="availability-unit">%</span></span><span class="extra">+ 1 个模型</span></span></span><span class="timeline"><span class="timeline-head"><span>最近 60 次记录</span><span>28s 后刷新</span></span><span class="timeline-bars" data-bars="failed"></span><span class="timeline-foot"><span>过去</span><span>现在</span></span></span></button><aside class="probe-popover" aria-label="Grok 高速线路的全部探针"><div class="popover-head"><div><div class="popover-kicker">全部探针 · 2</div><div class="popover-title">Grok 高速线路</div></div><span class="status failed">全部失败</span></div><div class="probe-list"><div class="probe-row"><div class="probe-row-head"><span class="probe-name">主探针</span><span class="probe-status failed"><i></i>失败</span></div><div class="probe-row-meta"><span class="probe-endpoint">grok-primary.example</span><span class="probe-latency">超时</span></div><div class="probe-row-foot"><span class="key-mask">xai-••••••4F2</span><span>32 秒前 · 已启用</span></div></div><div class="probe-row"><div class="probe-row-head"><span class="probe-name">备用探针</span><span class="probe-status failed"><i></i>失败</span></div><div class="probe-row-meta"><span class="probe-endpoint">grok-backup.example</span><span class="probe-latency">1,320 ms</span></div><div class="probe-row-foot"><span class="key-mask">xai-••••••8K9</span><span>32 秒前 · 已启用</span></div></div></div><div class="popover-footer"><span>探针整体状态</span><strong style="color:var(--red)">不可用</strong></div></aside></div>
+          <div class="hover-zone" data-search="OpenAI 备用线路 openai-backup"><button class="monitor-card" type="button" aria-label="查看 OpenAI 备用线路详情"><span class="card-head"><span class="provider-icon openai">OA</span><span class="card-title-wrap"><span class="card-title">OpenAI 备用线路</span><span class="card-subtitle"><span class="provider-badge openai">OpenAI</span><span class="group-badge">openai-backup</span></span></span><span class="status operational">正常</span></span><span class="metric-pair"><span class="metric"><span class="metric-label"><span class="metric-symbol">ϟ</span>对话延迟</span><span class="metric-value">214<span class="metric-unit">ms</span></span></span><span class="metric"><span class="metric-label"><span class="metric-symbol">◎</span>端点 PING</span><span class="metric-value">58<span class="metric-unit">ms</span></span></span></span><span class="divider"></span><span class="availability"><span class="availability-label" data-availability-label>可用性 · 7 天</span><span><span class="availability-value">99.76<span class="availability-unit">%</span></span><span class="extra">+ 2 个模型</span></span></span><span class="timeline"><span class="timeline-head"><span>最近 60 次记录</span><span>28s 后刷新</span></span><span class="timeline-bars" data-bars="operational"></span><span class="timeline-foot"><span>过去</span><span>现在</span></span></span></button><aside class="probe-popover" aria-label="OpenAI 备用线路的全部探针"><div class="popover-head"><div><div class="popover-kicker">全部探针 · 2</div><div class="popover-title">OpenAI 备用线路</div></div><span class="status operational">全部正常</span></div><div class="probe-list"><div class="probe-row"><div class="probe-row-head"><span class="probe-name">西海岸探针</span><span class="probe-status"><i></i>正常</span></div><div class="probe-row-meta"><span class="probe-endpoint">api-west.example/v1</span><span class="probe-latency">214 ms</span></div><div class="probe-row-foot"><span class="key-mask">sk-••••••6T1A</span><span>32 秒前 · 已启用</span></div></div><div class="probe-row"><div class="probe-row-head"><span class="probe-name">加拿大探针</span><span class="probe-status"><i></i>正常</span></div><div class="probe-row-meta"><span class="probe-endpoint">api-ca.example/v1</span><span class="probe-latency">226 ms</span></div><div class="probe-row-foot"><span class="key-mask">sk-••••••0P6C</span><span>32 秒前 · 已启用</span></div></div></div><div class="popover-footer"><span>探针整体状态</span><strong style="color:var(--green)">全部正常</strong></div></aside></div>
+          <div class="hover-zone" data-search="Anthropic 长文本 claude-long"><button class="monitor-card" type="button" aria-label="查看 Anthropic 长文本详情"><span class="card-head"><span class="provider-icon anthropic">AN</span><span class="card-title-wrap"><span class="card-title">Anthropic 长文本</span><span class="card-subtitle"><span class="provider-badge anthropic">Anthropic</span><span class="group-badge">claude-long</span></span></span><span class="status operational">正常</span></span><span class="metric-pair"><span class="metric"><span class="metric-label"><span class="metric-symbol">ϟ</span>对话延迟</span><span class="metric-value">236<span class="metric-unit">ms</span></span></span><span class="metric"><span class="metric-label"><span class="metric-symbol">◎</span>端点 PING</span><span class="metric-value">76<span class="metric-unit">ms</span></span></span></span><span class="divider"></span><span class="availability"><span class="availability-label" data-availability-label>可用性 · 7 天</span><span><span class="availability-value">99.84<span class="availability-unit">%</span></span><span class="extra">+ 2 个模型</span></span></span><span class="timeline"><span class="timeline-head"><span>最近 60 次记录</span><span>28s 后刷新</span></span><span class="timeline-bars" data-bars="operational"></span><span class="timeline-foot"><span>过去</span><span>现在</span></span></span></button><aside class="probe-popover" aria-label="Anthropic 长文本的全部探针"><div class="popover-head"><div><div class="popover-kicker">全部探针 · 1</div><div class="popover-title">Anthropic 长文本</div></div><span class="status operational">全部正常</span></div><div class="probe-list"><div class="probe-row"><div class="probe-row-head"><span class="probe-name">长文本主探针</span><span class="probe-status"><i></i>正常</span></div><div class="probe-row-meta"><span class="probe-endpoint">claude-long.example</span><span class="probe-latency">236 ms</span></div><div class="probe-row-foot"><span class="key-mask">sk-••••••3J8Z</span><span>32 秒前 · 已启用</span></div></div></div><div class="popover-footer"><span>探针整体状态</span><strong style="color:var(--green)">全部正常</strong></div></aside></div>
+          <div class="empty" id="emptyState">暂无匹配的渠道</div>
+        </div>
+        <p class="note">预览稿 · 探针窗口仅在管理员角色下显示，正式页面继续使用现有监控接口。</p>
+      </main>
+    </div>
+  </div>
+  <script>
+    const zones = [...document.querySelectorAll('.hover-zone')]
+    const search = document.getElementById('searchInput')
+    const empty = document.getElementById('emptyState')
+    const roleButtons = [...document.querySelectorAll('[data-role]')]
+    const availabilityLabels = [...document.querySelectorAll('[data-availability-label]')]
+    const refreshIcon = document.getElementById('refreshIcon')
+
+    zones.forEach((zone) => {
+      const card = zone.querySelector('.monitor-card')
+      const popover = zone.querySelector('.probe-popover')
+      if (!card || !popover) return
+
+      const front = document.createElement('span')
+      front.className = 'card-face card-front'
+      front.append(...card.childNodes)
+
+      const back = document.createElement('span')
+      back.className = 'card-face card-back'
+      back.innerHTML = popover.innerHTML
+      card.replaceChildren(front, back)
+      popover.remove()
+
+      const flip = () => {
+        if (!document.body.classList.contains('user-mode')) card.classList.add('is-flipped')
+      }
+      const unflip = () => card.classList.remove('is-flipped')
+      zone.addEventListener('mouseenter', flip)
+      zone.addEventListener('mouseleave', unflip)
+      card.addEventListener('focus', flip)
+      card.addEventListener('blur', unflip)
+    })
+
+    function applySearch() {
+      const query = search.value.trim().toLowerCase()
+      let visible = 0
+      zones.forEach((zone) => {
+        const show = !query || zone.dataset.search.toLowerCase().includes(query)
+        zone.hidden = !show
+        if (show) visible += 1
+      })
+      empty.classList.toggle('show', visible === 0)
+    }
+    search.addEventListener('input', applySearch)
+
+    roleButtons.forEach((button) => button.addEventListener('click', () => {
+      const isUser = button.dataset.role === 'user'
+      roleButtons.forEach((item) => item.classList.toggle('active', item === button))
+      document.body.classList.toggle('user-mode', isUser)
+      if (isUser) zones.forEach((zone) => zone.querySelector('.monitor-card')?.classList.remove('is-flipped'))
+    }))
+
+    document.querySelectorAll('[data-window]').forEach((button) => button.addEventListener('click', () => {
+      document.querySelectorAll('[data-window]').forEach((item) => item.classList.remove('active'))
+      button.classList.add('active')
+      availabilityLabels.forEach((label) => { label.textContent = `可用性 · ${button.textContent.trim()}` })
+    }))
+
+    refreshIcon.addEventListener('click', () => {
+      refreshIcon.classList.remove('spinning')
+      void refreshIcon.offsetWidth
+      refreshIcon.classList.add('spinning')
+    })
+    document.getElementById('autoSwitch').addEventListener('click', (event) => {
+      const enabled = event.currentTarget.classList.toggle('on')
+      document.getElementById('autoLabel').textContent = enabled ? '自动刷新 · 30s' : '自动刷新已暂停'
+    })
+
+    function buildBars(container, status, count = 60) {
+      const fragment = document.createDocumentFragment()
+      for (let index = 0; index < count; index += 1) {
+        const bar = document.createElement('i')
+        const failed = status === 'failed' && index > count - 8
+        const degraded = status === 'degraded' && (index % 13 === 0 || index === count - 2)
+        bar.className = `bar ${failed ? 'failed' : degraded ? 'degraded' : status}`
+        bar.style.height = `${status === 'failed' ? 34 : status === 'degraded' ? 62 + (index % 3) * 9 : 84 + (index % 4) * 4}%`
+        fragment.appendChild(bar)
+      }
+      container.replaceChildren(fragment)
+    }
+    document.querySelectorAll('[data-bars]').forEach((container) => buildBars(container, container.dataset.bars))
+  </script>
+</body>
+</html>

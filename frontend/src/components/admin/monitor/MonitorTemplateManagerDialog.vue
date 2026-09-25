@@ -66,7 +66,7 @@
                 {{ modeLabel(tpl.body_override_mode) }}
               </span>
               <span
-                v-if="tpl.provider === PROVIDER_OPENAI"
+                v-if="supportsMonitorAPIMode(tpl.provider)"
                 class="inline-flex items-center rounded-md px-1.5 py-0.5 text-xs"
                 :class="apiModeBadgeClass(tpl.api_mode)"
               >
@@ -144,7 +144,7 @@
         </div>
       </div>
 
-      <div v-if="form.provider === PROVIDER_OPENAI" class="rounded-lg border border-blue-100 bg-blue-50/50 p-3 dark:border-blue-500/20 dark:bg-blue-500/10">
+      <div v-if="supportsMonitorAPIMode(form.provider)" class="rounded-lg border border-blue-100 bg-blue-50/50 p-3 dark:border-blue-500/20 dark:bg-blue-500/10">
         <label class="input-label">{{ t('admin.channelMonitor.form.apiMode') }}</label>
         <div class="grid gap-3 sm:grid-cols-2">
           <button
@@ -247,8 +247,15 @@ import { useChannelMonitorFormat } from '@/composables/useChannelMonitorFormat'
 import {
   PROVIDER_ANTHROPIC,
   PROVIDER_OPENAI,
+  supportsMonitorAPIMode,
   PROVIDER_GEMINI,
   PROVIDER_GROK,
+  PROVIDER_ANTIGRAVITY,
+  PROVIDER_KIMI,
+  PROVIDER_ZHIPU,
+  PROVIDER_DEEPSEEK,
+  PROVIDER_MINIMAX,
+  PROVIDER_OPENCODE_GO,
   API_MODE_CHAT_COMPLETIONS,
   API_MODE_RESPONSES,
 } from '@/constants/channelMonitor'
@@ -269,6 +276,12 @@ const providerTabs = computed<{ value: Provider; label: string }[]>(() => [
   { value: PROVIDER_OPENAI, label: t('monitorCommon.providers.openai') },
   { value: PROVIDER_GEMINI, label: t('monitorCommon.providers.gemini') },
   { value: PROVIDER_GROK, label: t('monitorCommon.providers.grok') },
+  { value: PROVIDER_ANTIGRAVITY, label: t('monitorCommon.providers.antigravity') },
+  { value: PROVIDER_KIMI, label: t('monitorCommon.providers.kimi') },
+  { value: PROVIDER_ZHIPU, label: t('monitorCommon.providers.zhipu') },
+  { value: PROVIDER_DEEPSEEK, label: t('monitorCommon.providers.deepseek') },
+  { value: PROVIDER_MINIMAX, label: t('monitorCommon.providers.minimax') },
+  { value: PROVIDER_OPENCODE_GO, label: t('monitorCommon.providers.opencode_go') },
 ])
 
 const activeProvider = ref<Provider>(PROVIDER_ANTHROPIC)
@@ -281,6 +294,7 @@ const templatesForActiveProvider = computed(() =>
 
 const countByProvider = computed<Record<Provider, number>>(() => {
   const out: Record<Provider, number> = {
+    antigravity: 0, kimi: 0, zhipu: 0, deepseek: 0, minimax: 0, opencode_go: 0,
     anthropic: 0,
     openai: 0,
     gemini: 0,
@@ -381,7 +395,7 @@ async function handleSubmit() {
       await adminAPI.channelMonitorTemplate.create({
         name: form.name.trim(),
         provider: form.provider,
-        api_mode: form.provider === PROVIDER_OPENAI ? form.api_mode : API_MODE_CHAT_COMPLETIONS,
+        api_mode: supportsMonitorAPIMode(form.provider) ? form.api_mode : API_MODE_CHAT_COMPLETIONS,
         description: form.description.trim(),
         extra_headers: form.extra_headers,
         body_override_mode: form.body_override_mode,
@@ -391,7 +405,7 @@ async function handleSubmit() {
     } else if (typeof editing.value === 'number') {
       await adminAPI.channelMonitorTemplate.update(editing.value, {
         name: form.name.trim(),
-        api_mode: form.provider === PROVIDER_OPENAI ? form.api_mode : API_MODE_CHAT_COMPLETIONS,
+        api_mode: supportsMonitorAPIMode(form.provider) ? form.api_mode : API_MODE_CHAT_COMPLETIONS,
         description: form.description.trim(),
         extra_headers: form.extra_headers,
         body_override_mode: form.body_override_mode,
@@ -496,7 +510,7 @@ const apiModeOptions = computed<{ value: APIMode; label: string; hint: string }[
 ])
 
 watch(() => form.provider, (provider) => {
-  if (provider !== PROVIDER_OPENAI) {
+  if (!supportsMonitorAPIMode(provider)) {
     form.api_mode = API_MODE_CHAT_COMPLETIONS
   }
 })

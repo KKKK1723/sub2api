@@ -26,6 +26,7 @@ const {
 vi.mock('@/api/admin', () => ({
   adminAPI: {
     groups: {
+      getLiveCapability: async () => ({ supported: false }),
       list: listGroups,
       duplicate: duplicateGroup,
       getModelsListCandidates,

@@ -170,6 +170,14 @@ type providerAdapter struct {
 var providerAdapters = map[string]providerAdapter{
 	MonitorProviderOpenAI: providerOpenAIChatAdapter,
 	MonitorProviderGrok:   providerGrokChatAdapter,
+	// 国产 3 家（配额模式引入）：均为 OpenAI 兼容 Chat Completions，
+	// 仅智谱路径前缀不同（/api/paas/v4/chat/completions）。
+	MonitorProviderKimi:        providerKimiChatAdapter,
+	MonitorProviderZhipu:       providerZhipuChatAdapter,
+	MonitorProviderDeepseek:    providerDeepseekChatAdapter,
+	MonitorProviderMiniMax:     providerMiniMaxChatAdapter,
+	MonitorProviderOpenCodeGo:  providerOpenAIChatAdapter,
+	MonitorProviderAntigravity: providerOpenAIChatAdapter,
 	MonitorProviderAnthropic: {
 		buildPath: func(string) string { return providerAnthropicPath },
 		buildBody: func(model, prompt string) ([]byte, error) {
@@ -212,6 +220,18 @@ var providerOpenAIChatAdapter = newOpenAICompatibleChatAdapter(providerOpenAIPat
 //nolint:gochecknoglobals // 适配器表是只读静态数据，初始化后不变更。
 var providerGrokChatAdapter = newOpenAICompatibleChatAdapter(providerGrokPath)
 
+//nolint:gochecknoglobals // 适配器表是只读静态数据，初始化后不变更。
+var providerKimiChatAdapter = newOpenAICompatibleChatAdapter(providerOpenAIPath)
+
+//nolint:gochecknoglobals // 适配器表是只读静态数据，初始化后不变更。
+var providerZhipuChatAdapter = newOpenAICompatibleChatAdapter("/api/paas/v4/chat/completions")
+
+//nolint:gochecknoglobals // 适配器表是只读静态数据，初始化后不变更。
+var providerDeepseekChatAdapter = newOpenAICompatibleChatAdapter(providerOpenAIPath)
+
+//nolint:gochecknoglobals // 适配器表是只读静态数据，初始化后不变更。
+var providerMiniMaxChatAdapter = newOpenAICompatibleChatAdapter(providerOpenAIPath)
+
 func newOpenAICompatibleChatAdapter(path string) providerAdapter {
 	return providerAdapter{
 		buildPath: func(string) string { return path },
@@ -250,7 +270,7 @@ var providerOpenAIResponsesAdapter = providerAdapter{
 
 // providerAdapterFor 按 provider + api_mode 选择具体 adapter。
 func providerAdapterFor(provider, apiMode string) (providerAdapter, string, bool) {
-	if provider == MonitorProviderOpenAI && defaultAPIMode(apiMode) == MonitorAPIModeResponses {
+	if isOpenAICompatibleChatProvider(provider) && defaultAPIMode(apiMode) == MonitorAPIModeResponses {
 		return providerOpenAIResponsesAdapter, MonitorAPIModeResponses, true
 	}
 	adapter, ok := providerAdapters[provider]
@@ -286,12 +306,15 @@ func callProvider(ctx context.Context, provider, endpoint, apiKey, model, prompt
 		return "", "", 0, err
 	}
 	headers := mergeHeaders(adapter.buildHeaders(apiKey), opts)
-	full := joinURL(endpoint, adapter.buildPath(model))
+	if provider == MonitorProviderOpenCodeGo {
+		headers["X-OpenCode-Session"] = "sub2api-monitor"
+	}
+	full := monitorProviderURL(provider, apiMode, endpoint, adapter.buildPath(model))
 	respBytes, status, err := postRawJSON(ctx, full, body, headers)
 	if err != nil {
 		return "", "", status, err
 	}
-	if provider == MonitorProviderOpenAI && apiMode == MonitorAPIModeResponses {
+	if isOpenAICompatibleChatProvider(provider) && apiMode == MonitorAPIModeResponses {
 		return extractOpenAIResponsesText(respBytes), string(respBytes), status, nil
 	}
 	return extractMonitorResponseText(adapter, respBytes), string(respBytes), status, nil
@@ -447,6 +470,11 @@ var bodyMergeKeyDenyList = map[string]map[string]bool{
 	MonitorProviderGrok:      {"model": true, "messages": true, "stream": true},
 	MonitorProviderAnthropic: {"model": true, "messages": true},
 	MonitorProviderGemini:    {"contents": true},
+	// 国产 3 家与 OpenAI Chat Completions 同构。
+	MonitorProviderKimi:     {"model": true, "messages": true, "stream": true},
+	MonitorProviderZhipu:    {"model": true, "messages": true, "stream": true},
+	MonitorProviderDeepseek: {"model": true, "messages": true, "stream": true},
+	MonitorProviderMiniMax:  {"model": true, "messages": true, "stream": true},
 }
 
 func checkAPIMode(opts *CheckOptions) string {
@@ -456,15 +484,52 @@ func checkAPIMode(opts *CheckOptions) string {
 	return defaultAPIMode(opts.APIMode)
 }
 
+// monitorProviderURL 兼容官方根地址和已带版本路径的自定义地址。
+func monitorProviderURL(provider, apiMode, endpoint, path string) string {
+	if !isOpenAICompatibleChatProvider(provider) {
+		return joinURL(endpoint, path)
+	}
+	if defaultAPIMode(apiMode) == MonitorAPIModeResponses {
+		return buildOpenAIResponsesURLForPlatform(provider, endpoint)
+	}
+	if provider == MonitorProviderZhipu {
+		if parsed, err := url.Parse(endpoint); err == nil && strings.Trim(parsed.Path, "/") == "" {
+			return joinURL(endpoint, path)
+		}
+	}
+	return buildOpenAIChatCompletionsURL(endpoint)
+}
+
 func bodyMergeDenyKey(provider, apiMode string) string {
-	if provider == MonitorProviderOpenAI {
-		return provider + ":" + defaultAPIMode(apiMode)
+	if isOpenAICompatibleChatProvider(provider) {
+		return MonitorProviderOpenAI + ":" + defaultAPIMode(apiMode)
 	}
 	return provider
 }
 
+// isOpenAICompatibleChatProvider 该 provider 的探活请求是否为 OpenAI Chat
+// Completions 同构（replace 模式的 body 校验按 messages 必填处理）。
+func supportsMonitorResponses(provider string) bool {
+	switch provider {
+	case MonitorProviderOpenAI, MonitorProviderKimi, MonitorProviderDeepseek, MonitorProviderMiniMax, MonitorProviderOpenCodeGo:
+		return true
+	default:
+		return false
+	}
+}
+
+func isOpenAICompatibleChatProvider(provider string) bool {
+	switch provider {
+	case MonitorProviderOpenAI, MonitorProviderGrok,
+		MonitorProviderKimi, MonitorProviderZhipu, MonitorProviderDeepseek, MonitorProviderMiniMax, MonitorProviderOpenCodeGo, MonitorProviderAntigravity:
+		return true
+	default:
+		return false
+	}
+}
+
 func validateReplaceRequestBody(provider, apiMode string, body map[string]any) error {
-	if provider != MonitorProviderOpenAI && provider != MonitorProviderGrok {
+	if !isOpenAICompatibleChatProvider(provider) {
 		return nil
 	}
 	switch defaultAPIMode(apiMode) {

@@ -24,15 +24,28 @@ export function useAutoRefresh(options: UseAutoRefreshOptions) {
   const fetching = ref(false)
 
   let timerId: number | undefined
+  let nextRefreshAt: number | null = null
+
+  function syncCountdown() {
+    countdown.value = nextRefreshAt === null
+      ? 0
+      : Math.max(0, Math.ceil((nextRefreshAt - Date.now()) / 1000))
+  }
 
   function loadFromStorage() {
     try {
       const saved = localStorage.getItem(storageKey)
       if (!saved) return
-      const parsed = JSON.parse(saved) as { enabled?: boolean; interval_seconds?: number }
+      const parsed = JSON.parse(saved) as {
+        enabled?: boolean
+        interval_seconds?: number
+        next_refresh_at?: number
+      }
       enabled.value = parsed.enabled === true
       const iv = Number(parsed.interval_seconds)
       if (intervals.includes(iv as any)) intervalSeconds.value = iv
+      if (Number.isFinite(parsed.next_refresh_at)) nextRefreshAt = parsed.next_refresh_at as number
+      syncCountdown()
     } catch { /* ignore */ }
   }
 
@@ -41,6 +54,7 @@ export function useAutoRefresh(options: UseAutoRefreshOptions) {
       localStorage.setItem(storageKey, JSON.stringify({
         enabled: enabled.value,
         interval_seconds: intervalSeconds.value,
+        next_refresh_at: nextRefreshAt,
       }))
     } catch { /* ignore */ }
   }
@@ -50,13 +64,15 @@ export function useAutoRefresh(options: UseAutoRefreshOptions) {
     if (shouldPause?.()) return
     if (fetching.value) return
 
+    syncCountdown()
     if (countdown.value <= 0) {
-      countdown.value = intervalSeconds.value
       fetching.value = true
-      try { await onRefresh() } finally { fetching.value = false }
+      try { await onRefresh() } finally {
+        fetching.value = false
+        resetCountdown()
+      }
       return
     }
-    countdown.value -= 1
   }
 
   function start() {
@@ -73,24 +89,34 @@ export function useAutoRefresh(options: UseAutoRefreshOptions) {
 
   function setEnabled(value: boolean) {
     enabled.value = value
-    saveToStorage()
     if (value) {
-      countdown.value = intervalSeconds.value
+      if (nextRefreshAt === null) resetCountdown()
+      else syncCountdown()
       start()
     } else {
       stop()
+      nextRefreshAt = null
       countdown.value = 0
     }
+    saveToStorage()
   }
 
   function setInterval_(seconds: number) {
     intervalSeconds.value = seconds
+    if (enabled.value) resetCountdown()
     saveToStorage()
-    if (enabled.value) countdown.value = seconds
   }
 
   function resetCountdown() {
-    countdown.value = intervalSeconds.value
+    if (!enabled.value) {
+      nextRefreshAt = null
+      countdown.value = 0
+      saveToStorage()
+      return
+    }
+    nextRefreshAt = Date.now() + intervalSeconds.value * 1000
+    syncCountdown()
+    saveToStorage()
   }
 
   loadFromStorage()

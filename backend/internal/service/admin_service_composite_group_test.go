@@ -162,6 +162,13 @@ func TestAdminService_CompositeModelsListCandidatesIncludeConcreteAccountMapping
 					"model_mapping": map[string]any{"gemini-custom": "gemini-2.5-flash"},
 				},
 			},
+			{
+				ID:       3,
+				Platform: PlatformKimi,
+				Credentials: map[string]any{
+					"model_mapping": map[string]any{"kimi-custom": "kimi-k2"},
+				},
+			},
 		},
 	}
 	groupRepo := &groupRepoStubForAdmin{
@@ -176,6 +183,15 @@ func TestAdminService_CompositeModelsListCandidatesIncludeConcreteAccountMapping
 	require.NoError(t, err)
 	require.Contains(t, candidates, "gpt-custom")
 	require.Contains(t, candidates, "gemini-custom")
+	require.Contains(t, candidates, "kimi-custom")
 	require.Contains(t, candidates, "gpt-5.5")
 	require.Contains(t, candidates, "gemini-2.5-flash")
+}
+
+// 国产平台候选来自实际账号，不使用 Claude 默认模型冒充可用模型。
+func TestAdminService_CNProviderModelsListCandidatesExcludeClaudeDefaults(t *testing.T) {
+	for _, platform := range []string{PlatformKimi, PlatformZhipu, PlatformDeepseek, PlatformMiniMax} {
+		require.Empty(t, defaultModelsListCandidateIDs(platform), "platform=%s", platform)
+	}
+	require.Equal(t, DefaultOpenCodeGoModelIDs(), defaultModelsListCandidateIDs(PlatformOpenCodeGo))
 }

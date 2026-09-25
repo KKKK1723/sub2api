@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1024" viewBox="0 0 1440 1024" role="img" aria-labelledby="title desc">
+  <title id="title">注册页面风格稿 v4</title>
+  <desc id="desc">克制、安静、工具型的邮箱注册页面预览</desc>
+  <rect width="1440" height="1024" fill="#edf2f6"/>
+  <rect y="0" width="1440" height="64" fill="#f9fbfc"/>
+  <path d="M0 64H1440" stroke="#dbe3e9"/>
+  <g transform="translate(88 20)" font-family="Inter, Microsoft YaHei, sans-serif">
+    <rect width="24" height="24" rx="6" fill="#3f607d"/>
+    <path d="M6 10H18M5 14H19M7 18H17" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
+    <text x="36" y="17" fill="#27313a" font-size="16" font-weight="700">KeepCoding API</text>
+  </g>
+  <g transform="translate(1190 27)" font-family="Inter, Microsoft YaHei, sans-serif">
+    <text fill="#7c817f" font-size="13">已有账户？</text>
+    <text x="70" fill="#3f607d" font-size="13" font-weight="700">登录</text>
+  </g>
+
+  <g transform="translate(480 126)" font-family="Inter, Microsoft YaHei, sans-serif">
+    <text x="240" text-anchor="middle" fill="#27313a" font-size="30" font-weight="700">创建账户</text>
+    <text x="240" y="34" text-anchor="middle" fill="#7c817f" font-size="14">验证邮箱后完成注册</text>
+
+    <g transform="translate(100 88)">
+      <circle cx="16" cy="16" r="16" fill="#3f607d"/>
+      <text x="16" y="21" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="700">1</text>
+      <text x="44" y="21" fill="#27313a" font-size="13" font-weight="700">邮箱验证</text>
+      <path d="M142 16H256" stroke="#c8cbc7" stroke-width="1"/>
+      <circle cx="272" cy="16" r="16" fill="#ffffff" stroke="#c8cbc7"/>
+      <text x="272" y="21" text-anchor="middle" fill="#8c918e" font-size="13" font-weight="700">2</text>
+      <text x="300" y="21" fill="#8c918e" font-size="13">设置密码</text>
+    </g>
+
+    <rect x="0" y="160" width="480" height="610" rx="10" fill="#ffffff" stroke="#dbe3e9"/>
+    <g transform="translate(40 202)">
+      <text fill="#27313a" font-size="15" font-weight="700">邮箱地址</text>
+      <rect y="24" width="400" height="52" rx="6" fill="#ffffff" stroke="#c9ceca" stroke-width="1.5"/>
+      <rect x="16" y="41" width="20" height="15" rx="2.5" fill="none" stroke="#8a928f" stroke-width="1.8"/>
+      <path d="M17 43L26 50L35 43" fill="none" stroke="#8a928f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="52" y="57" fill="#9aa09d" font-size="15">输入 QQ 或 Gmail 邮箱</text>
+      <text y="101" fill="#7c817f" font-size="12">仅支持 @qq.com 和 @gmail.com</text>
+
+      <text y="157" fill="#27313a" font-size="15" font-weight="700">邮箱验证码</text>
+      <rect y="181" width="252" height="52" rx="6" fill="#ffffff" stroke="#c9ceca" stroke-width="1.5"/>
+      <text x="16" y="214" fill="#9aa09d" font-size="15">输入 6 位验证码</text>
+      <rect x="264" y="181" width="136" height="52" rx="6" fill="#edf1f4" stroke="#d6dde2"/>
+      <text x="332" y="214" text-anchor="middle" fill="#3f607d" font-size="14" font-weight="700">发送验证码</text>
+      <text y="258" fill="#7c817f" font-size="12">验证码 10 分钟内有效</text>
+
+      <rect y="298" width="400" height="1" fill="#e7edf1"/>
+      <circle cx="11" cy="337" r="10" fill="#e6eaed"/>
+      <path d="M7 337L10 340L16 333" fill="none" stroke="#3f607d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="30" y="342" fill="#59615f" font-size="13">验证邮箱后才会创建账号</text>
+
+      <circle cx="11" cy="373" r="10" fill="#e6eaed"/>
+      <path d="M7 373L10 376L16 369" fill="none" stroke="#3f607d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="30" y="378" fill="#59615f" font-size="13">我已阅读并同意服务条款与隐私政策</text>
+
+      <rect y="420" width="400" height="52" rx="6" fill="#3f607d"/>
+      <text x="200" y="452" text-anchor="middle" fill="#ffffff" font-size="15" font-weight="700">继续</text>
+      <path d="M236 445H252M246 438L253 445L246 452" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+  </g>
+</svg>

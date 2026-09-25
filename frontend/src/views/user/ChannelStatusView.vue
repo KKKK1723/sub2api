@@ -4,7 +4,7 @@
       :items="items"
       :window="currentWindow"
       :countdown-seconds="countdown"
-      :interval-seconds="DEFAULT_INTERVAL_SECONDS"
+      :interval-seconds="STATUS_REFRESH_INTERVAL_SECONDS"
       :loading="loading"
       :detail-cache="detailCache"
       :is-admin="isAdmin"
@@ -47,8 +47,9 @@ import MonitorStatusBoard from '@/components/user/monitor/MonitorStatusBoard.vue
 import MonitorOrderDialog from '@/components/admin/monitor/MonitorOrderDialog.vue'
 import type { MonitorWindow } from '@/components/user/monitor/MonitorHero.vue'
 import MonitorDetailDialog from '@/components/user/MonitorDetailDialog.vue'
-import { DEFAULT_INTERVAL_SECONDS } from '@/constants/channelMonitor'
 import { useAutoRefresh } from '@/composables/useAutoRefresh'
+
+const STATUS_REFRESH_INTERVAL_SECONDS = 180
 
 const { t } = useI18n()
 const appStore = useAppStore()
@@ -69,8 +70,8 @@ let abortController: AbortController | null = null
 
 const autoRefresh = useAutoRefresh({
   storageKey: 'channel-status-auto-refresh',
-  intervals: [30, 60, 120] as const,
-  defaultInterval: DEFAULT_INTERVAL_SECONDS,
+  intervals: [STATUS_REFRESH_INTERVAL_SECONDS],
+  defaultInterval: STATUS_REFRESH_INTERVAL_SECONDS,
   onRefresh: () => reload(true),
   shouldPause: () => document.hidden || loading.value || showOrder.value,
 })
@@ -98,7 +99,6 @@ async function reload(silent = false) {
   } finally {
     if (abortController === ctrl) {
       if (!silent) loading.value = false
-      countdown.value = DEFAULT_INTERVAL_SECONDS
       abortController = null
     }
   }
