@@ -28,8 +28,9 @@ func TestBuildVerifyCodeEmailBody_EscapesSiteName(t *testing.T) {
 	t.Run("normal_site_name_unchanged", func(t *testing.T) {
 		body := svc.buildVerifyCodeEmailBody("654321", "My Site")
 
-		assert.Contains(t, body, "<h1>My Site</h1>")
+		assert.Contains(t, body, "My Site")
 		assert.Contains(t, body, "654321")
+		assert.Contains(t, body, "验证你的邮箱地址")
 	})
 }
 

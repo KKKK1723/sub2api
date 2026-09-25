@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>验证码邮件预览 | KeepCoding API</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #172033;
+      --muted: #738096;
+      --line: #e5e9f0;
+      --paper: #ffffff;
+      --canvas: #eef1f6;
+      --accent: #1f6feb;
+      --accent-soft: #eaf2ff;
+      --success: #1e8f62;
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 28px 16px;
+      color: var(--ink);
+      background: var(--canvas);
+    }
+
+    .browser-bar {
+      width: min(760px, 100%);
+      margin: 0 auto 12px;
+      padding: 11px 15px;
+      border: 1px solid #dce2eb;
+      border-radius: 9px;
+      color: #67748a;
+      background: #f8f9fb;
+      font-size: 12px;
+    }
+
+    .mail {
+      width: min(760px, 100%);
+      margin: 0 auto;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--paper);
+      box-shadow: 0 18px 50px rgba(23, 32, 51, .1);
+    }
+
+    .mail-meta {
+      padding: 20px 28px 18px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .sender-row { display: flex; align-items: center; gap: 12px; }
+    .avatar {
+      display: grid;
+      width: 38px;
+      height: 38px;
+      place-items: center;
+      flex: 0 0 38px;
+      border-radius: 11px;
+      color: #fff;
+      background: #162033;
+      font-size: 16px;
+      font-weight: 750;
+    }
+
+    .sender-name { font-size: 14px; font-weight: 700; }
+    .sender-address { margin-top: 3px; color: var(--muted); font-size: 12px; }
+    .subject { margin: 18px 0 0; font-size: 19px; letter-spacing: -.02em; }
+
+    .mail-body { padding: 42px 56px 50px; text-align: center; }
+    .brand {
+      margin: 0;
+      color: #5f6c81;
+      font-size: 12px;
+      font-weight: 750;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+
+    h1 { margin: 18px 0 0; font-size: 30px; letter-spacing: -.04em; }
+    .lead {
+      max-width: 490px;
+      margin: 15px auto 0;
+      color: #5d6b81;
+      font-size: 14px;
+      line-height: 1.8;
+    }
+
+    .code-card {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      width: min(330px, 100%);
+      margin: 30px auto 0;
+      padding: 19px 18px;
+      border: 1px solid #cfe0ff;
+      border-radius: 10px;
+      background: var(--accent-soft);
+    }
+
+    .code {
+      color: var(--accent);
+      font-size: 32px;
+      font-weight: 760;
+      letter-spacing: .18em;
+      line-height: 1;
+    }
+
+    .copy-button {
+      border: 0;
+      border-radius: 7px;
+      padding: 8px 10px;
+      color: var(--accent);
+      background: #fff;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    .copy-button:hover { background: #f7faff; }
+    .copy-button:focus-visible { outline: 3px solid rgba(31, 111, 235, .2); outline-offset: 2px; }
+    .expires { margin: 15px 0 0; color: var(--muted); font-size: 12px; }
+    .expires strong { color: var(--ink); font-weight: 650; }
+
+    .divider { height: 1px; margin: 34px auto 24px; background: var(--line); }
+    .notice {
+      max-width: 500px;
+      margin: 0 auto;
+      color: #6b778b;
+      font-size: 12px;
+      line-height: 1.8;
+      text-align: left;
+    }
+
+    .notice strong { color: #44516a; }
+    .mail-footer {
+      padding: 18px 28px 22px;
+      border-top: 1px solid var(--line);
+      color: #8a95a7;
+      background: #fafbfd;
+      font-size: 11px;
+      line-height: 1.7;
+      text-align: center;
+    }
+
+    .toast {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      display: none;
+      padding: 10px 13px;
+      border: 1px solid rgba(30, 143, 98, .2);
+      border-radius: 8px;
+      color: var(--success);
+      background: #f0faf6;
+      font-size: 12px;
+      box-shadow: 0 8px 28px rgba(23, 32, 51, .12);
+    }
+
+    .toast.visible { display: block; }
+
+    @media (max-width: 560px) {
+      body { padding: 14px 10px; }
+      .mail-meta { padding: 18px 18px 16px; }
+      .mail-body { padding: 34px 20px 38px; }
+      .subject { font-size: 17px; }
+      h1 { font-size: 26px; }
+      .code-card { gap: 11px; }
+      .code { font-size: 28px; }
+      .mail-footer { padding-right: 18px; padding-left: 18px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="browser-bar">收件箱预览 · demo.user@gmail.com</div>
+
+  <main class="mail" aria-labelledby="subject">
+    <header class="mail-meta">
+      <div class="sender-row">
+        <div class="avatar" aria-hidden="true">K</div>
+        <div>
+          <div class="sender-name">KeepCoding API</div>
+          <div class="sender-address">no-reply@taokc.xyz</div>
+        </div>
+      </div>
+      <h2 class="subject" id="subject">KeepCoding API 注册验证码</h2>
+    </header>
+
+    <article class="mail-body">
+      <p class="brand">KeepCoding API</p>
+      <h1>验证你的邮箱地址</h1>
+      <p class="lead">你正在创建 KeepCoding API 账号。请使用下面的验证码完成邮箱验证。</p>
+
+      <div class="code-card">
+        <span class="code" id="code">246810</span>
+        <button class="copy-button" id="copyCode" type="button">复制验证码</button>
+      </div>
+      <p class="expires">验证码将在 <strong id="countdown">09:59</strong> 后失效</p>
+
+      <div class="divider"></div>
+      <div class="notice">
+        <strong>安全提示</strong><br>
+        如果这不是你的操作，请忽略此邮件。请不要将验证码转发给任何人，KeepCoding API 不会通过电话或聊天向你索要验证码。
+      </div>
+    </article>
+
+    <footer class="mail-footer">
+      这是一封系统自动发送的演示邮件，请勿直接回复。<br>
+      © 2026 KeepCoding API
+    </footer>
+  </main>
+
+  <div class="toast" id="toast" role="status">验证码已复制</div>
+
+  <script>
+    (() => {
+      const code = document.querySelector('#code').textContent
+      const copyButton = document.querySelector('#copyCode')
+      const toast = document.querySelector('#toast')
+      const countdownNode = document.querySelector('#countdown')
+      let remaining = 599
+      let toastTimer = null
+
+      function showToast() {
+        toast.classList.add('visible')
+        window.clearTimeout(toastTimer)
+        toastTimer = window.setTimeout(() => toast.classList.remove('visible'), 1800)
+      }
+
+      copyButton.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(code)
+        } catch {
+          const helper = document.createElement('textarea')
+          helper.value = code
+          helper.style.position = 'fixed'
+          helper.style.opacity = '0'
+          document.body.appendChild(helper)
+          helper.select()
+          document.execCommand('copy')
+          helper.remove()
+        }
+        showToast()
+      })
+
+      window.setInterval(() => {
+        if (remaining > 0) remaining -= 1
+        const minutes = String(Math.floor(remaining / 60)).padStart(2, '0')
+        const seconds = String(remaining % 60).padStart(2, '0')
+        countdownNode.textContent = `${minutes}:${seconds}`
+      }, 1000)
+    })()
+  </script>
+</body>
+</html>
