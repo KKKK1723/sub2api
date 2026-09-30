@@ -871,6 +871,12 @@ export default {
       syncUpstreamModelsMetadataPartial:
         'Some model capabilities were updated; remaining models are still incomplete.',
       clearAllModels: 'Clear all models',
+      queryUpstreamModel: 'Query and sync one upstream model',
+      enterUpstreamModelName: 'Enter model name',
+      queryAndSyncUpstream: 'Query and sync upstream',
+      queryUpstreamModelLoading: 'Querying upstream...',
+      upstreamModelSynced: 'Synced model {model} from upstream',
+      upstreamModelNotFound: 'Model {model} does not exist upstream',
       customModelName: 'Custom model name',
       enterCustomModelName: 'Enter custom model name',
       addModel: 'Add',

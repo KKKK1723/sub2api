@@ -119,6 +119,31 @@
       </button>
     </div>
 
+    <!-- 按模型名称查询上游模型列表 -->
+    <div v-if="enableUpstreamLookup && accountId" class="mb-3">
+      <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+        {{ t('admin.accounts.queryUpstreamModel') }}
+      </label>
+      <div class="flex gap-2">
+        <input
+          v-model="upstreamModelQuery"
+          type="text"
+          class="input flex-1"
+          :placeholder="t('admin.accounts.enterUpstreamModelName')"
+          :disabled="isQueryingUpstream"
+          @keydown.enter.prevent="queryAndSyncUpstreamModel"
+        />
+        <button
+          type="button"
+          @click="queryAndSyncUpstreamModel"
+          :disabled="isQueryingUpstream"
+          class="rounded-lg border border-emerald-200 px-3 py-1.5 text-sm text-emerald-600 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-900/30"
+        >
+          {{ isQueryingUpstream ? t('admin.accounts.queryUpstreamModelLoading') : t('admin.accounts.queryAndSyncUpstream') }}
+        </button>
+      </div>
+    </div>
+
     <!-- Custom Model Input -->
     <div class="mb-3">
       <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('admin.accounts.customModelName') }}</label>
@@ -163,6 +188,7 @@ const props = defineProps<{
   platform?: string
   platforms?: string[]
   accountId?: number
+  enableUpstreamLookup?: boolean
   syncCredentials?: {
     platform: string
     type: string
@@ -182,8 +208,10 @@ const { copyToClipboard } = useClipboard()
 const showDropdown = ref(false)
 const searchQuery = ref('')
 const customModel = ref('')
+const upstreamModelQuery = ref('')
 const isComposing = ref(false)
 const isSyncingUpstream = ref(false)
+const isQueryingUpstream = ref(false)
 const normalizedPlatforms = computed(() => {
   const rawPlatforms =
     props.platforms && props.platforms.length > 0
@@ -359,6 +387,49 @@ const syncUpstreamModels = async () => {
     appStore.showError(t('admin.accounts.syncUpstreamModelsError', { message }))
   } finally {
     isSyncingUpstream.value = false
+  }
+}
+
+const queryAndSyncUpstreamModel = async () => {
+  if (isQueryingUpstream.value || !props.accountId) return
+
+  const requestedModel = upstreamModelQuery.value.trim()
+  if (!requestedModel) {
+    appStore.showInfo(t('admin.accounts.enterUpstreamModelName'))
+    return
+  }
+
+  isQueryingUpstream.value = true
+  try {
+    const result = await accountsAPI.syncUpstreamModels(props.accountId)
+    const upstreamModels = result.models.map(model => model.trim()).filter(Boolean)
+    const matchedModel = upstreamModels.find(model => model === requestedModel)
+
+    if (!matchedModel) {
+      appStore.showError(t('admin.accounts.upstreamModelNotFound', { model: requestedModel }))
+      return
+    }
+
+    if (props.modelValue.includes(matchedModel)) {
+      appStore.showInfo(t('admin.accounts.modelExists'))
+      upstreamModelQuery.value = ''
+      return
+    }
+    // 与手动添加保持一致：已被映射到其他模型的名称不再加入白名单
+    const conflict = props.modelMappings?.find(mapping => mapping.from.trim() === matchedModel && mapping.to.trim() && mapping.to.trim() !== matchedModel)
+    if (conflict) {
+      appStore.showInfo(t('admin.accounts.modelMappingConflict', { from: matchedModel, to: conflict.to.trim() }))
+      return
+    }
+
+    emit('update:modelValue', [...props.modelValue, matchedModel])
+    upstreamModelQuery.value = ''
+    appStore.showSuccess(t('admin.accounts.upstreamModelSynced', { model: matchedModel }))
+  } catch (error) {
+    const message = error instanceof Error ? error.message : t('admin.accounts.syncUpstreamModelsFailed')
+    appStore.showError(t('admin.accounts.syncUpstreamModelsError', { message }))
+  } finally {
+    isQueryingUpstream.value = false
   }
 }
 
