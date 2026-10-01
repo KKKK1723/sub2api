@@ -127,6 +127,11 @@ type LiteLLMModelPricing struct {
 	OutputCostPerImageToken             float64 `json:"output_cost_per_image_token"` // 图片输出 token 价格
 	InputCostPerImageToken              float64 `json:"input_cost_per_image_token"`  // 图片输入 token 价格（如 gpt-image-2 图片编辑）
 
+	// 以下为展示用元数据（模型价格页），不参与计费。
+	MaxInputTokens    int  `json:"max_input_tokens,omitempty"`
+	SupportsReasoning bool `json:"supports_reasoning,omitempty"`
+	SupportsVision    bool `json:"supports_vision,omitempty"`
+
 	// TokenPricingAbsent 表示源数据中 input/output token 价格均缺失（仅有图片价）。
 	// 此类条目只可用于图片计费，token 计费必须回退到 fallback 或 fail-closed，
 	// 否则 token 流量会被按 $0 计费。零值（false）表示条目具备 token 价格。
@@ -160,6 +165,9 @@ type LiteLLMRawEntry struct {
 	OutputCostPerImage                  *float64 `json:"output_cost_per_image"`
 	OutputCostPerImageToken             *float64 `json:"output_cost_per_image_token"`
 	InputCostPerImageToken              *float64 `json:"input_cost_per_image_token"`
+	MaxInputTokens                      *int     `json:"max_input_tokens"`
+	SupportsReasoning                   bool     `json:"supports_reasoning"`
+	SupportsVision                      bool     `json:"supports_vision"`
 }
 
 // PricingService 动态价格服务
@@ -451,7 +459,12 @@ func (s *PricingService) parsePricingData(body []byte) (map[string]*LiteLLMModel
 			Mode:                  entry.Mode,
 			SupportsPromptCaching: entry.SupportsPromptCaching,
 			SupportsServiceTier:   entry.SupportsServiceTier,
+			SupportsReasoning:     entry.SupportsReasoning,
+			SupportsVision:        entry.SupportsVision,
 			TokenPricingAbsent:    entry.InputCostPerToken == nil && entry.OutputCostPerToken == nil,
+		}
+		if entry.MaxInputTokens != nil {
+			pricing.MaxInputTokens = *entry.MaxInputTokens
 		}
 
 		if entry.InputCostPerToken != nil {

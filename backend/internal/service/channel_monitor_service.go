@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"hash/fnv"
 	"log/slog"
 	"strconv"
 	"strings"
@@ -511,7 +512,7 @@ func (s *ChannelMonitorService) RunCheck(ctx context.Context, id int64) ([]*Chec
 		slog.Error("channel_monitor: update probe statuses failed", "monitor_id", m.ID, "error", err)
 	}
 	results := aggregateMonitorProbeResults(all, m)
-	s.persistCheckResults(ctx, m, results)
+	s.persistProbeCheckResults(ctx, m, all)
 	return results, nil
 }
 
@@ -571,6 +572,11 @@ func (s *ChannelMonitorService) runProbeChecksDetailed(ctx context.Context, m *C
 			copy.PrimaryModel = probeModel(probe, m.PrimaryModel)
 			copy.ExtraModels = nil
 			all[index] = s.runChecksConcurrent(ctx, &copy)
+			for _, result := range all[index] {
+				if result != nil {
+					result.ProbeIndex = index
+				}
+			}
 			return nil
 		})
 	}
@@ -677,17 +683,39 @@ func aggregateProbeResults(all [][]*CheckResult, primary string, extras []string
 
 // persistCheckResults 写入本次检测的历史记录并更新 last_checked_at。
 // 任一写库失败都只记日志，不影响调用方拿到 results（与 MVP 期望一致：宁可漏记历史也要先返回结果）。
-func (s *ChannelMonitorService) persistCheckResults(ctx context.Context, m *ChannelMonitor, results []*CheckResult) {
-	rows := make([]*ChannelMonitorHistoryRow, 0, len(results))
-	for _, r := range results {
+func (s *ChannelMonitorService) persistProbeCheckResults(ctx context.Context, m *ChannelMonitor, all [][]*CheckResult) {
+	rows := make([]*ChannelMonitorHistoryRow, 0)
+	for probeIndex, results := range all {
+		for _, r := range results {
+			if r == nil {
+				continue
+			}
+			historyProbeIndex := probeIndex
+			if probeIndex < len(m.Probes) {
+				historyProbeIndex = stableProbeHistoryIndex(m.Probes[probeIndex])
+			}
+			rows = append(rows, &ChannelMonitorHistoryRow{
+				MonitorID:     m.ID,
+				ProbeIndex:    historyProbeIndex,
+				Model:         r.Model,
+				Status:        r.Status,
+				LatencyMs:     r.LatencyMs,
+				PingLatencyMs: r.PingLatencyMs,
+				Message:       r.Message,
+				CheckedAt:     r.CheckedAt,
+			})
+		}
+	}
+	if aggregate := aggregateAllProbeResults(all); aggregate != nil {
 		rows = append(rows, &ChannelMonitorHistoryRow{
 			MonitorID:     m.ID,
-			Model:         r.Model,
-			Status:        r.Status,
-			LatencyMs:     r.LatencyMs,
-			PingLatencyMs: r.PingLatencyMs,
-			Message:       r.Message,
-			CheckedAt:     r.CheckedAt,
+			ProbeIndex:    -1,
+			Model:         MonitorAggregateModel,
+			Status:        aggregate.Status,
+			LatencyMs:     aggregate.LatencyMs,
+			PingLatencyMs: aggregate.PingLatencyMs,
+			Message:       aggregate.Message,
+			CheckedAt:     aggregate.CheckedAt,
 		})
 	}
 	if err := s.repo.InsertHistoryBatch(ctx, rows); err != nil {
@@ -698,6 +726,53 @@ func (s *ChannelMonitorService) persistCheckResults(ctx context.Context, m *Chan
 		slog.Error("channel_monitor: mark checked failed",
 			"monitor_id", m.ID, "error", err)
 	}
+}
+
+// stableProbeHistoryIndex 为探针配置生成稳定的历史维度，避免探针重排后串用旧记录。
+// -1 保留给分组聚合记录；极少数哈希结果为 -1 时改用最小正值。
+func stableProbeHistoryIndex(probe MonitorProbe) int {
+	h := fnv.New32a()
+	_, _ = h.Write([]byte(strings.TrimSpace(probe.Name)))
+	_, _ = h.Write([]byte{0})
+	_, _ = h.Write([]byte(strings.TrimSpace(probe.Endpoint)))
+	_, _ = h.Write([]byte{0})
+	_, _ = h.Write([]byte(strings.TrimSpace(probe.Model)))
+	value := int(h.Sum32() & 0x7fffffff)
+	if value == 0 {
+		return 1
+	}
+	return value
+}
+
+func aggregateAllProbeResults(all [][]*CheckResult) *CheckResult {
+	var best *CheckResult
+	rank := func(status string) int {
+		switch status {
+		case MonitorStatusOperational:
+			return 3
+		case MonitorStatusDegraded:
+			return 2
+		case MonitorStatusFailed, MonitorStatusError:
+			return 1
+		default:
+			return 0
+		}
+	}
+	for _, results := range all {
+		for _, result := range results {
+			if result == nil {
+				continue
+			}
+			if best == nil || rank(result.Status) > rank(best.Status) ||
+				(rank(result.Status) == rank(best.Status) && result.LatencyMs != nil && (best.LatencyMs == nil || *result.LatencyMs < *best.LatencyMs)) {
+				copy := *result
+				copy.Model = MonitorAggregateModel
+				copy.ProbeIndex = -1
+				best = &copy
+			}
+		}
+	}
+	return best
 }
 
 // runChecksConcurrent 对 primary + extra 模型并发执行检测。

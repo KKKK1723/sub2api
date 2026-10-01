@@ -578,11 +578,22 @@ func (s *BillingService) initFallbackPricing() {
 		SupportsCacheBreakdown:  false,
 	}
 
-	// xAI Grok 4.5 (official docs: $2 input / $0.50 cached input / $6 output per MTok)
+	// xAI Grok 4.7：短上下文输入 $2、缓存输入 $0.50、输出 $6；达到 200K 上下文后全部按 2 倍计费。
+	s.fallbackPrices["grok-4.7"] = &ModelPricing{
+		InputPricePerToken:          2e-6,
+		OutputPricePerToken:         6e-6,
+		CacheReadPricePerToken:      0.5e-6,
+		SupportsCacheBreakdown:      false,
+		LongContextInputThreshold:   200000,
+		LongContextInputMultiplier:  2,
+		LongContextOutputMultiplier: 2,
+	}
+
+	// xAI Grok 4.5（兼容旧模型，短上下文输入 $2 / 缓存输入 $0.30 / 输出 $6）
 	s.fallbackPrices["grok-4.5"] = &ModelPricing{
 		InputPricePerToken:     2e-6,
 		OutputPricePerToken:    6e-6,
-		CacheReadPricePerToken: 0.5e-6,
+		CacheReadPricePerToken: 0.3e-6,
 		SupportsCacheBreakdown: false,
 	}
 
@@ -794,6 +805,8 @@ func (s *BillingService) getFallbackPricing(model string) *ModelPricing {
 	switch modelLower {
 	case "grok", "grok-latest", "grok-4.5", "grok-4.5-latest", "grok-build-latest":
 		return s.fallbackPrices["grok-4.5"]
+	case "grok-4.7", "grok-4.7-latest":
+		return s.fallbackPrices["grok-4.7"]
 	case "grok-4.3",
 		"grok-4.20-0309-reasoning",
 		"grok-4.20-0309-non-reasoning",
@@ -805,7 +818,57 @@ func (s *BillingService) getFallbackPricing(model string) *ModelPricing {
 		return s.fallbackPrices["grok-build-0.1"]
 	}
 
+	// Grok 文本模型会持续增加版本号或日期快照；未知文本 ID 沿用当前默认文本价，
+	// 避免上游请求成功后因定价未登记而被静默记为零成本。
+	if pricing := s.grokUnknownTextFamilyFallback(modelLower); pricing != nil {
+		return pricing
+	}
+
 	return nil
+}
+
+func (s *BillingService) grokUnknownTextFamilyFallback(model string) *ModelPricing {
+	if s == nil || !isGrokUnknownTextFamilyModel(model) {
+		return nil
+	}
+	return s.fallbackPrices["grok-4.7"]
+}
+
+func isGrokUnknownTextFamilyModel(model string) bool {
+	native := strings.ToLower(strings.TrimSpace(stripGrokProviderPrefix(model)))
+	if native == "" {
+		return false
+	}
+	// 媒体、语音和搜索模型有独立的按次/按媒体计费路径，不能套用 token 价卡。
+	for _, marker := range []string{"imagine", "image", "video", "audio", "speech", "tts", "transcribe", "realtime", "search"} {
+		if strings.Contains(native, marker) {
+			return false
+		}
+	}
+	switch {
+	case native == "grok", native == "grok-latest":
+		return true
+	case strings.HasPrefix(native, "grok-build"),
+		strings.HasPrefix(native, "grok-composer"),
+		strings.HasPrefix(native, "composer-"):
+		return true
+	case strings.HasPrefix(native, "grok-") && len(native) > len("grok-"):
+		rest := native[len("grok-"):]
+		return rest[0] >= '0' && rest[0] <= '9'
+	default:
+		return false
+	}
+}
+
+func stripGrokProviderPrefix(model string) string {
+	trimmed := strings.TrimSpace(model)
+	lower := strings.ToLower(trimmed)
+	for _, prefix := range []string{"xai/", "x-ai/", "grok/"} {
+		if strings.HasPrefix(lower, prefix) {
+			return strings.TrimSpace(trimmed[len(prefix):])
+		}
+	}
+	return trimmed
 }
 
 // GetModelPricing 获取模型价格配置

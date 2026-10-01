@@ -17946,6 +17946,8 @@ type ChannelMonitorHistoryMutation struct {
 	op                 Op
 	typ                string
 	id                 *int64
+	probe_index        *int
+	addprobe_index     *int
 	model              *string
 	status             *channelmonitorhistory.Status
 	latency_ms         *int
@@ -18094,6 +18096,62 @@ func (m *ChannelMonitorHistoryMutation) OldMonitorID(ctx context.Context) (v int
 // ResetMonitorID resets all changes to the "monitor_id" field.
 func (m *ChannelMonitorHistoryMutation) ResetMonitorID() {
 	m.monitor = nil
+}
+
+// SetProbeIndex sets the "probe_index" field.
+func (m *ChannelMonitorHistoryMutation) SetProbeIndex(i int) {
+	m.probe_index = &i
+	m.addprobe_index = nil
+}
+
+// ProbeIndex returns the value of the "probe_index" field in the mutation.
+func (m *ChannelMonitorHistoryMutation) ProbeIndex() (r int, exists bool) {
+	v := m.probe_index
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldProbeIndex returns the old "probe_index" field's value of the ChannelMonitorHistory entity.
+// If the ChannelMonitorHistory object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChannelMonitorHistoryMutation) OldProbeIndex(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldProbeIndex is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldProbeIndex requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldProbeIndex: %w", err)
+	}
+	return oldValue.ProbeIndex, nil
+}
+
+// AddProbeIndex adds i to the "probe_index" field.
+func (m *ChannelMonitorHistoryMutation) AddProbeIndex(i int) {
+	if m.addprobe_index != nil {
+		*m.addprobe_index += i
+	} else {
+		m.addprobe_index = &i
+	}
+}
+
+// AddedProbeIndex returns the value that was added to the "probe_index" field in this mutation.
+func (m *ChannelMonitorHistoryMutation) AddedProbeIndex() (r int, exists bool) {
+	v := m.addprobe_index
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetProbeIndex resets all changes to the "probe_index" field.
+func (m *ChannelMonitorHistoryMutation) ResetProbeIndex() {
+	m.probe_index = nil
+	m.addprobe_index = nil
 }
 
 // SetModel sets the "model" field.
@@ -18454,9 +18512,12 @@ func (m *ChannelMonitorHistoryMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChannelMonitorHistoryMutation) Fields() []string {
-	fields := make([]string, 0, 7)
+	fields := make([]string, 0, 8)
 	if m.monitor != nil {
 		fields = append(fields, channelmonitorhistory.FieldMonitorID)
+	}
+	if m.probe_index != nil {
+		fields = append(fields, channelmonitorhistory.FieldProbeIndex)
 	}
 	if m.model != nil {
 		fields = append(fields, channelmonitorhistory.FieldModel)
@@ -18486,6 +18547,8 @@ func (m *ChannelMonitorHistoryMutation) Field(name string) (ent.Value, bool) {
 	switch name {
 	case channelmonitorhistory.FieldMonitorID:
 		return m.MonitorID()
+	case channelmonitorhistory.FieldProbeIndex:
+		return m.ProbeIndex()
 	case channelmonitorhistory.FieldModel:
 		return m.Model()
 	case channelmonitorhistory.FieldStatus:
@@ -18509,6 +18572,8 @@ func (m *ChannelMonitorHistoryMutation) OldField(ctx context.Context, name strin
 	switch name {
 	case channelmonitorhistory.FieldMonitorID:
 		return m.OldMonitorID(ctx)
+	case channelmonitorhistory.FieldProbeIndex:
+		return m.OldProbeIndex(ctx)
 	case channelmonitorhistory.FieldModel:
 		return m.OldModel(ctx)
 	case channelmonitorhistory.FieldStatus:
@@ -18536,6 +18601,13 @@ func (m *ChannelMonitorHistoryMutation) SetField(name string, value ent.Value) e
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetMonitorID(v)
+		return nil
+	case channelmonitorhistory.FieldProbeIndex:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetProbeIndex(v)
 		return nil
 	case channelmonitorhistory.FieldModel:
 		v, ok := value.(string)
@@ -18587,6 +18659,9 @@ func (m *ChannelMonitorHistoryMutation) SetField(name string, value ent.Value) e
 // this mutation.
 func (m *ChannelMonitorHistoryMutation) AddedFields() []string {
 	var fields []string
+	if m.addprobe_index != nil {
+		fields = append(fields, channelmonitorhistory.FieldProbeIndex)
+	}
 	if m.addlatency_ms != nil {
 		fields = append(fields, channelmonitorhistory.FieldLatencyMs)
 	}
@@ -18601,6 +18676,8 @@ func (m *ChannelMonitorHistoryMutation) AddedFields() []string {
 // was not set, or was not defined in the schema.
 func (m *ChannelMonitorHistoryMutation) AddedField(name string) (ent.Value, bool) {
 	switch name {
+	case channelmonitorhistory.FieldProbeIndex:
+		return m.AddedProbeIndex()
 	case channelmonitorhistory.FieldLatencyMs:
 		return m.AddedLatencyMs()
 	case channelmonitorhistory.FieldPingLatencyMs:
@@ -18614,6 +18691,13 @@ func (m *ChannelMonitorHistoryMutation) AddedField(name string) (ent.Value, bool
 // type.
 func (m *ChannelMonitorHistoryMutation) AddField(name string, value ent.Value) error {
 	switch name {
+	case channelmonitorhistory.FieldProbeIndex:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddProbeIndex(v)
+		return nil
 	case channelmonitorhistory.FieldLatencyMs:
 		v, ok := value.(int)
 		if !ok {
@@ -18678,6 +18762,9 @@ func (m *ChannelMonitorHistoryMutation) ResetField(name string) error {
 	switch name {
 	case channelmonitorhistory.FieldMonitorID:
 		m.ResetMonitorID()
+		return nil
+	case channelmonitorhistory.FieldProbeIndex:
+		m.ResetProbeIndex()
 		return nil
 	case channelmonitorhistory.FieldModel:
 		m.ResetModel()

@@ -1084,14 +1084,22 @@ func (h *GatewayHandler) Models(c *gin.Context) {
 }
 
 func (h *GatewayHandler) compositeAvailableModels(ctx context.Context, groupID *int64) []string {
-	if h == nil || h.gatewayService == nil {
+	if h == nil {
+		return nil
+	}
+	return compositeAvailableModelsFrom(ctx, h.gatewayService, groupID)
+}
+
+// compositeAvailableModelsFrom 汇总 composite 分组下各平台的可用模型（/v1/models 与模型价格页共用）。
+func compositeAvailableModelsFrom(ctx context.Context, gatewayService *service.GatewayService, groupID *int64) []string {
+	if gatewayService == nil {
 		return nil
 	}
 	seen := make(map[string]struct{})
 	models := make([]string, 0)
-	schedulablePlatforms := h.gatewayService.GetSchedulablePlatforms(ctx, groupID)
+	schedulablePlatforms := gatewayService.GetSchedulablePlatforms(ctx, groupID)
 	for _, platform := range []string{service.PlatformAnthropic, service.PlatformGemini, service.PlatformOpenAI, service.PlatformAntigravity, service.PlatformGrok, service.PlatformKimi, service.PlatformZhipu, service.PlatformDeepseek, service.PlatformMiniMax, service.PlatformOpenCodeGo} {
-		platformModels := h.gatewayService.GetAvailableModels(ctx, groupID, platform)
+		platformModels := gatewayService.GetAvailableModels(ctx, groupID, platform)
 		if len(platformModels) == 0 {
 			// CN 供应商没有静态默认模型列表（defaultModelIDsForPlatform 的
 			// default 分支是 Claude 列表），composite 下只暴露账号映射键。

@@ -60,6 +60,11 @@ func MonitorID(v int64) predicate.ChannelMonitorHistory {
 	return predicate.ChannelMonitorHistory(sql.FieldEQ(FieldMonitorID, v))
 }
 
+// ProbeIndex applies equality check predicate on the "probe_index" field. It's identical to ProbeIndexEQ.
+func ProbeIndex(v int) predicate.ChannelMonitorHistory {
+	return predicate.ChannelMonitorHistory(sql.FieldEQ(FieldProbeIndex, v))
+}
+
 // Model applies equality check predicate on the "model" field. It's identical to ModelEQ.
 func Model(v string) predicate.ChannelMonitorHistory {
 	return predicate.ChannelMonitorHistory(sql.FieldEQ(FieldModel, v))
@@ -103,6 +108,46 @@ func MonitorIDIn(vs ...int64) predicate.ChannelMonitorHistory {
 // MonitorIDNotIn applies the NotIn predicate on the "monitor_id" field.
 func MonitorIDNotIn(vs ...int64) predicate.ChannelMonitorHistory {
 	return predicate.ChannelMonitorHistory(sql.FieldNotIn(FieldMonitorID, vs...))
+}
+
+// ProbeIndexEQ applies the EQ predicate on the "probe_index" field.
+func ProbeIndexEQ(v int) predicate.ChannelMonitorHistory {
+	return predicate.ChannelMonitorHistory(sql.FieldEQ(FieldProbeIndex, v))
+}
+
+// ProbeIndexNEQ applies the NEQ predicate on the "probe_index" field.
+func ProbeIndexNEQ(v int) predicate.ChannelMonitorHistory {
+	return predicate.ChannelMonitorHistory(sql.FieldNEQ(FieldProbeIndex, v))
+}
+
+// ProbeIndexIn applies the In predicate on the "probe_index" field.
+func ProbeIndexIn(vs ...int) predicate.ChannelMonitorHistory {
+	return predicate.ChannelMonitorHistory(sql.FieldIn(FieldProbeIndex, vs...))
+}
+
+// ProbeIndexNotIn applies the NotIn predicate on the "probe_index" field.
+func ProbeIndexNotIn(vs ...int) predicate.ChannelMonitorHistory {
+	return predicate.ChannelMonitorHistory(sql.FieldNotIn(FieldProbeIndex, vs...))
+}
+
+// ProbeIndexGT applies the GT predicate on the "probe_index" field.
+func ProbeIndexGT(v int) predicate.ChannelMonitorHistory {
+	return predicate.ChannelMonitorHistory(sql.FieldGT(FieldProbeIndex, v))
+}
+
+// ProbeIndexGTE applies the GTE predicate on the "probe_index" field.
+func ProbeIndexGTE(v int) predicate.ChannelMonitorHistory {
+	return predicate.ChannelMonitorHistory(sql.FieldGTE(FieldProbeIndex, v))
+}
+
+// ProbeIndexLT applies the LT predicate on the "probe_index" field.
+func ProbeIndexLT(v int) predicate.ChannelMonitorHistory {
+	return predicate.ChannelMonitorHistory(sql.FieldLT(FieldProbeIndex, v))
+}
+
+// ProbeIndexLTE applies the LTE predicate on the "probe_index" field.
+func ProbeIndexLTE(v int) predicate.ChannelMonitorHistory {
+	return predicate.ChannelMonitorHistory(sql.FieldLTE(FieldProbeIndex, v))
 }
 
 // ModelEQ applies the EQ predicate on the "model" field.

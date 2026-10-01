@@ -43,6 +43,27 @@ func (_u *ChannelMonitorHistoryUpdate) SetNillableMonitorID(v *int64) *ChannelMo
 	return _u
 }
 
+// SetProbeIndex sets the "probe_index" field.
+func (_u *ChannelMonitorHistoryUpdate) SetProbeIndex(v int) *ChannelMonitorHistoryUpdate {
+	_u.mutation.ResetProbeIndex()
+	_u.mutation.SetProbeIndex(v)
+	return _u
+}
+
+// SetNillableProbeIndex sets the "probe_index" field if the given value is not nil.
+func (_u *ChannelMonitorHistoryUpdate) SetNillableProbeIndex(v *int) *ChannelMonitorHistoryUpdate {
+	if v != nil {
+		_u.SetProbeIndex(*v)
+	}
+	return _u
+}
+
+// AddProbeIndex adds value to the "probe_index" field.
+func (_u *ChannelMonitorHistoryUpdate) AddProbeIndex(v int) *ChannelMonitorHistoryUpdate {
+	_u.mutation.AddProbeIndex(v)
+	return _u
+}
+
 // SetModel sets the "model" field.
 func (_u *ChannelMonitorHistoryUpdate) SetModel(v string) *ChannelMonitorHistoryUpdate {
 	_u.mutation.SetModel(v)
@@ -237,6 +258,12 @@ func (_u *ChannelMonitorHistoryUpdate) sqlSave(ctx context.Context) (_node int, 
 			}
 		}
 	}
+	if value, ok := _u.mutation.ProbeIndex(); ok {
+		_spec.SetField(channelmonitorhistory.FieldProbeIndex, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedProbeIndex(); ok {
+		_spec.AddField(channelmonitorhistory.FieldProbeIndex, field.TypeInt, value)
+	}
 	if value, ok := _u.mutation.Model(); ok {
 		_spec.SetField(channelmonitorhistory.FieldModel, field.TypeString, value)
 	}
@@ -330,6 +357,27 @@ func (_u *ChannelMonitorHistoryUpdateOne) SetNillableMonitorID(v *int64) *Channe
 	if v != nil {
 		_u.SetMonitorID(*v)
 	}
+	return _u
+}
+
+// SetProbeIndex sets the "probe_index" field.
+func (_u *ChannelMonitorHistoryUpdateOne) SetProbeIndex(v int) *ChannelMonitorHistoryUpdateOne {
+	_u.mutation.ResetProbeIndex()
+	_u.mutation.SetProbeIndex(v)
+	return _u
+}
+
+// SetNillableProbeIndex sets the "probe_index" field if the given value is not nil.
+func (_u *ChannelMonitorHistoryUpdateOne) SetNillableProbeIndex(v *int) *ChannelMonitorHistoryUpdateOne {
+	if v != nil {
+		_u.SetProbeIndex(*v)
+	}
+	return _u
+}
+
+// AddProbeIndex adds value to the "probe_index" field.
+func (_u *ChannelMonitorHistoryUpdateOne) AddProbeIndex(v int) *ChannelMonitorHistoryUpdateOne {
+	_u.mutation.AddProbeIndex(v)
 	return _u
 }
 
@@ -556,6 +604,12 @@ func (_u *ChannelMonitorHistoryUpdateOne) sqlSave(ctx context.Context) (_node *C
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := _u.mutation.ProbeIndex(); ok {
+		_spec.SetField(channelmonitorhistory.FieldProbeIndex, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedProbeIndex(); ok {
+		_spec.AddField(channelmonitorhistory.FieldProbeIndex, field.TypeInt, value)
 	}
 	if value, ok := _u.mutation.Model(); ok {
 		_spec.SetField(channelmonitorhistory.FieldModel, field.TypeString, value)

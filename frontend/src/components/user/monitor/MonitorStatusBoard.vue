@@ -140,7 +140,7 @@
         <span><i class="green"></i>正常</span>
         <span><i class="yellow"></i>降级</span>
         <span><i class="red"></i>失败</span>
-        <span class="status-board__legend-range">← 过去 5 小时　现在 →</span>
+        <span class="status-board__legend-range">← 过去 5 小时&emsp;现在 →</span>
       </div>
     </div>
 
@@ -299,10 +299,10 @@ function probeStatusClass(status: MonitorStatus | ''): string {
 
 function probeOverallStatus(id: number): MonitorStatus | '' {
   const statuses = probesFor(id).filter(probe => probe.enabled).map(probe => probe.status || '')
+  if (statuses.includes('operational')) return 'operational'
+  if (statuses.includes('degraded')) return 'degraded'
   if (statuses.includes('failed')) return 'failed'
   if (statuses.includes('error')) return 'error'
-  if (statuses.includes('degraded')) return 'degraded'
-  if (statuses.includes('operational')) return 'operational'
   return ''
 }
 

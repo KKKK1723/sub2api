@@ -202,7 +202,66 @@ func (h *AccountHandler) setAvailableModelSyncing(id int64, value bool) bool {
 	return true
 }
 
-// SyncAvailableModels probes the single account bound to an approved group and persists only non-empty results.
+// collectGroupAvailableModels 汇总分组内启用账户的模型，白名单和映射使用客户端请求名称。
+func (h *AccountHandler) collectGroupAvailableModels(ctx context.Context, group *service.Group) ([]string, error) {
+	const pageSize = 100
+	seen := make(map[string]struct{})
+	for page := 1; ; page++ {
+		accounts, total, err := h.adminService.ListAccounts(ctx, page, pageSize, group.Platform, "", service.StatusActive, "", group.ID, "", "id", "asc")
+		if err != nil {
+			return nil, err
+		}
+		for i := range accounts {
+			account := &accounts[i]
+			// 展示目录不随临时限流波动，但停用、暂停调度和已自动过期的账户不贡献模型。
+			if !account.IsActive() || !account.Schedulable ||
+				(account.AutoPauseOnExpired && account.ExpiresAt != nil && !time.Now().Before(*account.ExpiresAt)) {
+				continue
+			}
+			mapping := account.GetModelMapping()
+			if account.IsOpenAIPassthroughEnabled() {
+				// 透传模式下残留的旧映射不参与限制，与请求调度保持一致。
+				mapping = nil
+			}
+			needsUpstream := len(mapping) == 0
+			for model := range mapping {
+				if strings.Contains(model, "*") {
+					needsUpstream = true
+					continue
+				}
+				if model = strings.TrimSpace(model); model != "" && account.IsModelSupported(model) {
+					seen[model] = struct{}{}
+				}
+			}
+			if !needsUpstream {
+				continue
+			}
+			if h.accountTestService == nil {
+				return nil, errors.New("account test service is not configured")
+			}
+			models, err := h.accountTestService.FetchUpstreamSupportedModels(ctx, account)
+			if err != nil {
+				return nil, err
+			}
+			for _, model := range models {
+				if model = strings.TrimSpace(model); model != "" && account.IsModelSupported(model) {
+					seen[model] = struct{}{}
+				}
+			}
+		}
+		if len(accounts) == 0 || int64(page*pageSize) >= total {
+			break
+		}
+	}
+	models := make([]string, 0, len(seen))
+	for model := range seen {
+		models = append(models, model)
+	}
+	sort.Strings(models)
+	return models, nil
+}
+
+// SyncAvailableModels 按账户限制同步整个分组，失败或结果为空时保留原配置。
 func (h *AccountHandler) SyncAvailableModels(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("group_id"), 10, 64)
 	if err != nil {
@@ -219,47 +278,17 @@ func (h *AccountHandler) SyncAvailableModels(c *gin.Context) {
 		response.ErrorFrom(c, err)
 		return
 	}
-	accounts, _, err := h.adminService.ListAccounts(c.Request.Context(), 1, 2, group.Platform, "", "", "", id, "", "id", "asc")
-	if err != nil {
-		h.recordAvailableModelSyncError(c.Request.Context(), group, "failed to load target group account")
-		response.ErrorFrom(c, err)
-		return
-	}
-	if len(accounts) == 0 {
-		h.recordAvailableModelSyncError(c.Request.Context(), group, "target group has no bound account")
-		response.Error(c, http.StatusBadGateway, "target group has no bound account")
-		return
-	}
-	if h.accountTestService == nil {
-		h.recordAvailableModelSyncError(c.Request.Context(), group, "account test service is not configured")
-		response.InternalError(c, "account test service is not configured")
-		return
-	}
-	models, err := h.accountTestService.FetchUpstreamSupportedModels(c.Request.Context(), &accounts[0])
+	normalized, err := h.collectGroupAvailableModels(c.Request.Context(), group)
 	if err != nil {
 		h.recordAvailableModelSyncError(c.Request.Context(), group, "failed to sync upstream models; existing configuration was preserved")
 		response.Error(c, http.StatusBadGateway, "failed to sync upstream models; existing configuration was preserved")
 		return
 	}
-	seen := make(map[string]struct{}, len(models))
-	normalized := make([]string, 0, len(models))
-	for _, model := range models {
-		model = strings.TrimSpace(model)
-		if model == "" {
-			continue
-		}
-		if _, ok := seen[model]; ok {
-			continue
-		}
-		seen[model] = struct{}{}
-		normalized = append(normalized, model)
-	}
 	if len(normalized) == 0 {
-		h.recordAvailableModelSyncError(c.Request.Context(), group, "upstream returned an empty model list; existing configuration was preserved")
-		response.Error(c, http.StatusBadGateway, "upstream returned an empty model list; existing configuration was preserved")
+		h.recordAvailableModelSyncError(c.Request.Context(), group, "no available models after applying account restrictions; existing configuration was preserved")
+		response.Error(c, http.StatusBadGateway, "no available models after applying account restrictions; existing configuration was preserved")
 		return
 	}
-	sort.Strings(normalized)
 	now := time.Now().UTC()
 	updated := group.ModelsListConfig
 	updated.Enabled = true

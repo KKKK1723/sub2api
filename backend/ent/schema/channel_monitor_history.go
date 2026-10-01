@@ -28,6 +28,7 @@ func (ChannelMonitorHistory) Annotations() []schema.Annotation {
 func (ChannelMonitorHistory) Fields() []ent.Field {
 	return []ent.Field{
 		field.Int64("monitor_id"),
+		field.Int("probe_index").Default(-1),
 		field.String("model").
 			NotEmpty().
 			MaxLen(200),
@@ -60,6 +61,7 @@ func (ChannelMonitorHistory) Edges() []ent.Edge {
 
 func (ChannelMonitorHistory) Indexes() []ent.Index {
 	return []ent.Index{
+		index.Fields("monitor_id", "probe_index", "checked_at"),
 		index.Fields("monitor_id", "model", "checked_at"),
 		index.Fields("checked_at"),
 	}

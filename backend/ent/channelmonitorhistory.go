@@ -20,6 +20,8 @@ type ChannelMonitorHistory struct {
 	ID int64 `json:"id,omitempty"`
 	// MonitorID holds the value of the "monitor_id" field.
 	MonitorID int64 `json:"monitor_id,omitempty"`
+	// ProbeIndex holds the value of the "probe_index" field.
+	ProbeIndex int `json:"probe_index,omitempty"`
 	// Model holds the value of the "model" field.
 	Model string `json:"model,omitempty"`
 	// Status holds the value of the "status" field.
@@ -63,7 +65,7 @@ func (*ChannelMonitorHistory) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case channelmonitorhistory.FieldID, channelmonitorhistory.FieldMonitorID, channelmonitorhistory.FieldLatencyMs, channelmonitorhistory.FieldPingLatencyMs:
+		case channelmonitorhistory.FieldID, channelmonitorhistory.FieldMonitorID, channelmonitorhistory.FieldProbeIndex, channelmonitorhistory.FieldLatencyMs, channelmonitorhistory.FieldPingLatencyMs:
 			values[i] = new(sql.NullInt64)
 		case channelmonitorhistory.FieldModel, channelmonitorhistory.FieldStatus, channelmonitorhistory.FieldMessage:
 			values[i] = new(sql.NullString)
@@ -95,6 +97,12 @@ func (_m *ChannelMonitorHistory) assignValues(columns []string, values []any) er
 				return fmt.Errorf("unexpected type %T for field monitor_id", values[i])
 			} else if value.Valid {
 				_m.MonitorID = value.Int64
+			}
+		case channelmonitorhistory.FieldProbeIndex:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field probe_index", values[i])
+			} else if value.Valid {
+				_m.ProbeIndex = int(value.Int64)
 			}
 		case channelmonitorhistory.FieldModel:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -177,6 +185,9 @@ func (_m *ChannelMonitorHistory) String() string {
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("monitor_id=")
 	builder.WriteString(fmt.Sprintf("%v", _m.MonitorID))
+	builder.WriteString(", ")
+	builder.WriteString("probe_index=")
+	builder.WriteString(fmt.Sprintf("%v", _m.ProbeIndex))
 	builder.WriteString(", ")
 	builder.WriteString("model=")
 	builder.WriteString(_m.Model)

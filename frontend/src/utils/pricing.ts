@@ -9,5 +9,6 @@
  */
 export function formatScaled(value: number | null, scale: number): string {
   if (value == null) return '-'
-  return `$${(value * scale).toPrecision(10).replace(/\.?0+$/, '')}`
+  // 转回数字去除尾零，避免正则误删科学计数法指数中的零。
+  return `$${Number((value * scale).toPrecision(10))}`
 }

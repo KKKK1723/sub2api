@@ -1144,7 +1144,7 @@ func TestGetModelPricing_Grok45OfficialFallback(t *testing.T) {
 			require.NoError(t, err)
 			require.InDelta(t, 2e-6, pricing.InputPricePerToken, 1e-12)
 			require.InDelta(t, 6e-6, pricing.OutputPricePerToken, 1e-12)
-			require.InDelta(t, 0.5e-6, pricing.CacheReadPricePerToken, 1e-12)
+			require.InDelta(t, 0.3e-6, pricing.CacheReadPricePerToken, 1e-12)
 			require.False(t, pricing.SupportsCacheBreakdown)
 		})
 	}
@@ -1199,6 +1199,40 @@ func TestGetModelPricing_GrokCatalogFallbacks(t *testing.T) {
 				require.InDelta(t, tt.output, pricing.OutputPricePerToken, 1e-12, "model %s output", model)
 			}
 		})
+	}
+}
+
+func TestGetModelPricing_UnknownGrokTextFallsBackToDefault(t *testing.T) {
+	svc := newTestBillingService()
+	baseline, err := svc.GetModelPricing("grok-4.7")
+	require.NoError(t, err)
+
+	for _, model := range []string{"grok-4.6", "grok-5-latest", "grok-4.6-20260927", "xai/grok-7", "x-ai/grok-8"} {
+		pricing, err := svc.GetModelPricing(model)
+		require.NoError(t, err, "model %s", model)
+		require.InDelta(t, baseline.InputPricePerToken, pricing.InputPricePerToken, 1e-12, model)
+		require.InDelta(t, baseline.OutputPricePerToken, pricing.OutputPricePerToken, 1e-12, model)
+		require.InDelta(t, baseline.CacheReadPricePerToken, pricing.CacheReadPricePerToken, 1e-12, model)
+	}
+
+	for _, model := range []string{"grok-imagine-image-3.0", "grok-imagine-video-2", "grok-voice-latest", "grok-web-search"} {
+		_, err := svc.GetModelPricing(model)
+		require.ErrorIs(t, err, ErrModelPricingUnavailable, "非 token 模型 %s 不应套用 Grok 文本价卡", model)
+	}
+}
+
+func TestGetModelPricing_Grok47OfficialFallback(t *testing.T) {
+	svc := newTestBillingService()
+
+	for _, model := range []string{"grok-4.7", "grok-4.7-latest"} {
+		pricing, err := svc.GetModelPricing(model)
+		require.NoError(t, err)
+		require.InDelta(t, 2e-6, pricing.InputPricePerToken, 1e-12)
+		require.InDelta(t, 0.5e-6, pricing.CacheReadPricePerToken, 1e-12)
+		require.InDelta(t, 6e-6, pricing.OutputPricePerToken, 1e-12)
+		require.Equal(t, 200000, pricing.LongContextInputThreshold)
+		require.InDelta(t, 2.0, pricing.LongContextInputMultiplier, 1e-12)
+		require.InDelta(t, 2.0, pricing.LongContextOutputMultiplier, 1e-12)
 	}
 }
 

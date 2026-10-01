@@ -230,6 +230,7 @@ func (r *channelMonitorRepository) InsertHistoryBatch(ctx context.Context, rows 
 	for _, row := range rows {
 		c := client.ChannelMonitorHistory.Create().
 			SetMonitorID(row.MonitorID).
+			SetProbeIndex(row.ProbeIndex).
 			SetModel(row.Model).
 			SetStatus(channelmonitorhistory.Status(row.Status)).
 			SetMessage(row.Message).
@@ -294,6 +295,8 @@ func (r *channelMonitorRepository) ListHistory(ctx context.Context, monitorID in
 		Where(channelmonitorhistory.MonitorIDEQ(monitorID))
 	if strings.TrimSpace(model) != "" {
 		q = q.Where(channelmonitorhistory.ModelEQ(model))
+	} else {
+		q = q.Where(channelmonitorhistory.ModelNEQ(service.MonitorAggregateModel))
 	}
 	rows, err := q.
 		Order(dbent.Desc(channelmonitorhistory.FieldCheckedAt)).
@@ -306,6 +309,7 @@ func (r *channelMonitorRepository) ListHistory(ctx context.Context, monitorID in
 	for _, row := range rows {
 		entry := &service.ChannelMonitorHistoryEntry{
 			ID:            row.ID,
+			ProbeIndex:    row.ProbeIndex,
 			Model:         row.Model,
 			Status:        string(row.Status),
 			LatencyMs:     row.LatencyMs,
@@ -324,11 +328,11 @@ func (r *channelMonitorRepository) ListHistory(ctx context.Context, monitorID in
 // 借助 (monitor_id, model, checked_at DESC) 索引可走 Index Scan。
 func (r *channelMonitorRepository) ListLatestPerModel(ctx context.Context, monitorID int64) ([]*service.ChannelMonitorLatest, error) {
 	const q = `
-		SELECT DISTINCT ON (model)
-		    model, status, latency_ms, ping_latency_ms, checked_at
+		SELECT DISTINCT ON (probe_index, model)
+		    probe_index, model, status, latency_ms, ping_latency_ms, checked_at
 		FROM channel_monitor_histories
 		WHERE monitor_id = $1
-		ORDER BY model, checked_at DESC
+		ORDER BY probe_index, model, checked_at DESC
 	`
 	rows, err := r.db.QueryContext(ctx, q, monitorID)
 	if err != nil {
@@ -340,7 +344,7 @@ func (r *channelMonitorRepository) ListLatestPerModel(ctx context.Context, monit
 	for rows.Next() {
 		l := &service.ChannelMonitorLatest{}
 		var latency, ping sql.NullInt64
-		if err := rows.Scan(&l.Model, &l.Status, &latency, &ping, &l.CheckedAt); err != nil {
+		if err := rows.Scan(&l.ProbeIndex, &l.Model, &l.Status, &latency, &ping, &l.CheckedAt); err != nil {
 			return nil, fmt.Errorf("scan latest row: %w", err)
 		}
 		assignNullInt(&l.LatencyMs, latency)
@@ -371,18 +375,17 @@ func (r *channelMonitorRepository) ComputeAvailability(ctx context.Context, moni
 		windowDays = 7
 	}
 	const q = `
-		SELECT model,
-		       COUNT(*)                                                             AS total,
+		SELECT COUNT(*)                                                             AS total,
 		       COUNT(*) FILTER (WHERE status IN ('operational','degraded'))         AS ok,
 		       CASE WHEN COUNT(latency_ms) > 0
 		            THEN SUM(latency_ms) FILTER (WHERE latency_ms IS NOT NULL)::float8 / COUNT(latency_ms)
 		            ELSE NULL END                                                   AS avg_latency_ms
 		FROM channel_monitor_histories
 		WHERE monitor_id = $1
+		  AND model <> $3
 		  AND checked_at >= NOW() - ($2::int || ' days')::interval
-		GROUP BY model
 	`
-	rows, err := r.db.QueryContext(ctx, q, monitorID, windowDays)
+	rows, err := r.db.QueryContext(ctx, q, monitorID, windowDays, service.MonitorAggregateModel)
 	if err != nil {
 		return nil, fmt.Errorf("query availability: %w", err)
 	}
@@ -390,10 +393,12 @@ func (r *channelMonitorRepository) ComputeAvailability(ctx context.Context, moni
 
 	out := make([]*service.ChannelMonitorAvailability, 0)
 	for rows.Next() {
-		row, err := scanAvailabilityRow(rows, windowDays)
-		if err != nil {
-			return nil, err
+		row := &service.ChannelMonitorAvailability{WindowDays: windowDays}
+		var avgLatency sql.NullFloat64
+		if err := rows.Scan(&row.TotalChecks, &row.OperationalChecks, &avgLatency); err != nil {
+			return nil, fmt.Errorf("scan availability row: %w", err)
 		}
+		finalizeAvailabilityRow(row, avgLatency)
 		out = append(out, row)
 	}
 	return out, rows.Err()
@@ -431,11 +436,11 @@ func (r *channelMonitorRepository) ListLatestForMonitorIDs(ctx context.Context, 
 		return out, nil
 	}
 	const q = `
-		SELECT DISTINCT ON (monitor_id, model)
-		    monitor_id, model, status, latency_ms, ping_latency_ms, checked_at
+		SELECT DISTINCT ON (monitor_id, probe_index, model)
+		    monitor_id, probe_index, model, status, latency_ms, ping_latency_ms, checked_at
 		FROM channel_monitor_histories
 		WHERE monitor_id = ANY($1)
-		ORDER BY monitor_id, model, checked_at DESC
+		ORDER BY monitor_id, probe_index, model, checked_at DESC
 	`
 	rows, err := r.db.QueryContext(ctx, q, pq.Array(ids))
 	if err != nil {
@@ -447,7 +452,7 @@ func (r *channelMonitorRepository) ListLatestForMonitorIDs(ctx context.Context, 
 		var monitorID int64
 		l := &service.ChannelMonitorLatest{}
 		var latency, ping sql.NullInt64
-		if err := rows.Scan(&monitorID, &l.Model, &l.Status, &latency, &ping, &l.CheckedAt); err != nil {
+		if err := rows.Scan(&monitorID, &l.ProbeIndex, &l.Model, &l.Status, &latency, &ping, &l.CheckedAt); err != nil {
 			return nil, fmt.Errorf("scan latest batch row: %w", err)
 		}
 		assignNullInt(&l.LatencyMs, latency)
@@ -487,16 +492,17 @@ func (r *channelMonitorRepository) ListRecentHistoryForMonitors(
 		),
 		ranked AS (
 		    SELECT h.monitor_id,
+		           h.model,
 		           h.status,
 		           h.latency_ms,
 		           h.ping_latency_ms,
 		           h.checked_at,
-		           ROW_NUMBER() OVER (PARTITION BY h.monitor_id ORDER BY h.checked_at DESC) AS rn
+		           ROW_NUMBER() OVER (PARTITION BY h.monitor_id, h.model ORDER BY h.checked_at DESC) AS rn
 		    FROM channel_monitor_histories h
 		    JOIN targets t
 		      ON t.monitor_id = h.monitor_id AND t.model = h.model
 		)
-		SELECT monitor_id, status, latency_ms, ping_latency_ms, checked_at
+		SELECT monitor_id, model, status, latency_ms, ping_latency_ms, checked_at
 		FROM ranked
 		WHERE rn <= $3
 		ORDER BY monitor_id, checked_at DESC
@@ -511,7 +517,7 @@ func (r *channelMonitorRepository) ListRecentHistoryForMonitors(
 		var monitorID int64
 		entry := &service.ChannelMonitorHistoryEntry{}
 		var latency, ping sql.NullInt64
-		if err := rows.Scan(&monitorID, &entry.Status, &latency, &ping, &entry.CheckedAt); err != nil {
+		if err := rows.Scan(&monitorID, &entry.Model, &entry.Status, &latency, &ping, &entry.CheckedAt); err != nil {
 			return nil, fmt.Errorf("scan recent history row: %w", err)
 		}
 		assignNullInt(&entry.LatencyMs, latency)
@@ -530,8 +536,8 @@ func buildMonitorModelPairs(ids []int64, primaryModels map[int64]string) ([]int6
 	if len(ids) == 0 || len(primaryModels) == 0 {
 		return nil, nil
 	}
-	pairIDs := make([]int64, 0, len(ids))
-	pairModels := make([]string, 0, len(ids))
+	pairIDs := make([]int64, 0, len(ids)*2)
+	pairModels := make([]string, 0, len(ids)*2)
 	for _, id := range ids {
 		model, ok := primaryModels[id]
 		if !ok || strings.TrimSpace(model) == "" {
@@ -539,6 +545,8 @@ func buildMonitorModelPairs(ids []int64, primaryModels map[int64]string) ([]int6
 		}
 		pairIDs = append(pairIDs, id)
 		pairModels = append(pairModels, model)
+		pairIDs = append(pairIDs, id)
+		pairModels = append(pairModels, service.MonitorAggregateModel)
 	}
 	return pairIDs, pairModels
 }
@@ -573,7 +581,6 @@ func (r *channelMonitorRepository) ComputeAvailabilityForMonitors(ctx context.Co
 	}
 	const q = `
 		SELECT monitor_id,
-		       model,
 		       COUNT(*)                                                             AS total,
 		       COUNT(*) FILTER (WHERE status IN ('operational','degraded'))         AS ok,
 		       CASE WHEN COUNT(latency_ms) > 0
@@ -581,10 +588,11 @@ func (r *channelMonitorRepository) ComputeAvailabilityForMonitors(ctx context.Co
 		            ELSE NULL END                                                   AS avg_latency_ms
 		FROM channel_monitor_histories
 		WHERE monitor_id = ANY($1)
+		  AND model <> $3
 		  AND checked_at >= NOW() - ($2::int || ' days')::interval
-		GROUP BY monitor_id, model
+		GROUP BY monitor_id
 	`
-	rows, err := r.db.QueryContext(ctx, q, pq.Array(ids), windowDays)
+	rows, err := r.db.QueryContext(ctx, q, pq.Array(ids), windowDays, service.MonitorAggregateModel)
 	if err != nil {
 		return nil, fmt.Errorf("query availability batch: %w", err)
 	}
@@ -594,9 +602,10 @@ func (r *channelMonitorRepository) ComputeAvailabilityForMonitors(ctx context.Co
 		var monitorID int64
 		row := &service.ChannelMonitorAvailability{WindowDays: windowDays}
 		var avgLatency sql.NullFloat64
-		if err := rows.Scan(&monitorID, &row.Model, &row.TotalChecks, &row.OperationalChecks, &avgLatency); err != nil {
+		if err := rows.Scan(&monitorID, &row.TotalChecks, &row.OperationalChecks, &avgLatency); err != nil {
 			return nil, fmt.Errorf("scan availability batch row: %w", err)
 		}
+		row.Model = ""
 		// 批量查询多了首列 monitor_id；其余字段的可用率/平均延迟换算与单 monitor 版本一致，
 		// 抽出 finalizeAvailabilityRow 复用，避免两处分别维护除法与 NullFloat 解包。
 		finalizeAvailabilityRow(row, avgLatency)
@@ -643,6 +652,7 @@ func (r *channelMonitorRepository) UpsertDailyRollupsFor(ctx context.Context, ta
 		FROM channel_monitor_histories
 		WHERE checked_at >= $1::date
 		  AND checked_at <  ($1::date + INTERVAL '1 day')
+		  AND model <> $2
 		GROUP BY monitor_id, model
 		ON CONFLICT (monitor_id, model, bucket_date) DO UPDATE SET
 		    total_checks        = EXCLUDED.total_checks,
@@ -657,7 +667,7 @@ func (r *channelMonitorRepository) UpsertDailyRollupsFor(ctx context.Context, ta
 		    count_ping_latency  = EXCLUDED.count_ping_latency,
 		    computed_at         = NOW()
 	`
-	res, err := r.db.ExecContext(ctx, q, targetDate)
+	res, err := r.db.ExecContext(ctx, q, targetDate, service.MonitorAggregateModel)
 	if err != nil {
 		return 0, fmt.Errorf("upsert daily rollups for %s: %w", targetDate.Format("2006-01-02"), err)
 	}
