@@ -20,9 +20,11 @@
         <router-link
           :to="homePath"
           class="sidebar-brand-title text-lg font-bold text-gray-900 transition-colors hover:text-primary-600 dark:text-white dark:hover:text-primary-400"
+          title="KeepCoding的 token商店"
           @click="handleMenuItemClick(homePath)"
         >
-          KeepCoding的token店
+          <span>KeepCoding的</span>
+          <span>token商店</span>
         </router-link>
         <!-- Version Badge -->
         <span v-if="siteVersion" class="text-xs text-gray-500 dark:text-dark-400">
@@ -992,9 +994,12 @@ onBeforeUnmount(() => {
 
 .sidebar-brand-title {
   display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.1;
+  white-space: normal;
+}
+
+.sidebar-brand-title span {
+  display: block;
 }
 
 .sidebar-link-collapsed {
