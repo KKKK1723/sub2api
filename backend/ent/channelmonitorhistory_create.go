@@ -30,6 +30,20 @@ func (_c *ChannelMonitorHistoryCreate) SetMonitorID(v int64) *ChannelMonitorHist
 	return _c
 }
 
+// SetProbeIndex sets the "probe_index" field.
+func (_c *ChannelMonitorHistoryCreate) SetProbeIndex(v int) *ChannelMonitorHistoryCreate {
+	_c.mutation.SetProbeIndex(v)
+	return _c
+}
+
+// SetNillableProbeIndex sets the "probe_index" field if the given value is not nil.
+func (_c *ChannelMonitorHistoryCreate) SetNillableProbeIndex(v *int) *ChannelMonitorHistoryCreate {
+	if v != nil {
+		_c.SetProbeIndex(*v)
+	}
+	return _c
+}
+
 // SetModel sets the "model" field.
 func (_c *ChannelMonitorHistoryCreate) SetModel(v string) *ChannelMonitorHistoryCreate {
 	_c.mutation.SetModel(v)
@@ -144,6 +158,10 @@ func (_c *ChannelMonitorHistoryCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (_c *ChannelMonitorHistoryCreate) defaults() {
+	if _, ok := _c.mutation.ProbeIndex(); !ok {
+		v := channelmonitorhistory.DefaultProbeIndex
+		_c.mutation.SetProbeIndex(v)
+	}
 	if _, ok := _c.mutation.Message(); !ok {
 		v := channelmonitorhistory.DefaultMessage
 		_c.mutation.SetMessage(v)
@@ -158,6 +176,9 @@ func (_c *ChannelMonitorHistoryCreate) defaults() {
 func (_c *ChannelMonitorHistoryCreate) check() error {
 	if _, ok := _c.mutation.MonitorID(); !ok {
 		return &ValidationError{Name: "monitor_id", err: errors.New(`ent: missing required field "ChannelMonitorHistory.monitor_id"`)}
+	}
+	if _, ok := _c.mutation.ProbeIndex(); !ok {
+		return &ValidationError{Name: "probe_index", err: errors.New(`ent: missing required field "ChannelMonitorHistory.probe_index"`)}
 	}
 	if _, ok := _c.mutation.Model(); !ok {
 		return &ValidationError{Name: "model", err: errors.New(`ent: missing required field "ChannelMonitorHistory.model"`)}
@@ -213,6 +234,10 @@ func (_c *ChannelMonitorHistoryCreate) createSpec() (*ChannelMonitorHistory, *sq
 		_spec = sqlgraph.NewCreateSpec(channelmonitorhistory.Table, sqlgraph.NewFieldSpec(channelmonitorhistory.FieldID, field.TypeInt64))
 	)
 	_spec.OnConflict = _c.conflict
+	if value, ok := _c.mutation.ProbeIndex(); ok {
+		_spec.SetField(channelmonitorhistory.FieldProbeIndex, field.TypeInt, value)
+		_node.ProbeIndex = value
+	}
 	if value, ok := _c.mutation.Model(); ok {
 		_spec.SetField(channelmonitorhistory.FieldModel, field.TypeString, value)
 		_node.Model = value
@@ -319,6 +344,24 @@ func (u *ChannelMonitorHistoryUpsert) SetMonitorID(v int64) *ChannelMonitorHisto
 // UpdateMonitorID sets the "monitor_id" field to the value that was provided on create.
 func (u *ChannelMonitorHistoryUpsert) UpdateMonitorID() *ChannelMonitorHistoryUpsert {
 	u.SetExcluded(channelmonitorhistory.FieldMonitorID)
+	return u
+}
+
+// SetProbeIndex sets the "probe_index" field.
+func (u *ChannelMonitorHistoryUpsert) SetProbeIndex(v int) *ChannelMonitorHistoryUpsert {
+	u.Set(channelmonitorhistory.FieldProbeIndex, v)
+	return u
+}
+
+// UpdateProbeIndex sets the "probe_index" field to the value that was provided on create.
+func (u *ChannelMonitorHistoryUpsert) UpdateProbeIndex() *ChannelMonitorHistoryUpsert {
+	u.SetExcluded(channelmonitorhistory.FieldProbeIndex)
+	return u
+}
+
+// AddProbeIndex adds v to the "probe_index" field.
+func (u *ChannelMonitorHistoryUpsert) AddProbeIndex(v int) *ChannelMonitorHistoryUpsert {
+	u.Add(channelmonitorhistory.FieldProbeIndex, v)
 	return u
 }
 
@@ -493,6 +536,27 @@ func (u *ChannelMonitorHistoryUpsertOne) SetMonitorID(v int64) *ChannelMonitorHi
 func (u *ChannelMonitorHistoryUpsertOne) UpdateMonitorID() *ChannelMonitorHistoryUpsertOne {
 	return u.Update(func(s *ChannelMonitorHistoryUpsert) {
 		s.UpdateMonitorID()
+	})
+}
+
+// SetProbeIndex sets the "probe_index" field.
+func (u *ChannelMonitorHistoryUpsertOne) SetProbeIndex(v int) *ChannelMonitorHistoryUpsertOne {
+	return u.Update(func(s *ChannelMonitorHistoryUpsert) {
+		s.SetProbeIndex(v)
+	})
+}
+
+// AddProbeIndex adds v to the "probe_index" field.
+func (u *ChannelMonitorHistoryUpsertOne) AddProbeIndex(v int) *ChannelMonitorHistoryUpsertOne {
+	return u.Update(func(s *ChannelMonitorHistoryUpsert) {
+		s.AddProbeIndex(v)
+	})
+}
+
+// UpdateProbeIndex sets the "probe_index" field to the value that was provided on create.
+func (u *ChannelMonitorHistoryUpsertOne) UpdateProbeIndex() *ChannelMonitorHistoryUpsertOne {
+	return u.Update(func(s *ChannelMonitorHistoryUpsert) {
+		s.UpdateProbeIndex()
 	})
 }
 
@@ -851,6 +915,27 @@ func (u *ChannelMonitorHistoryUpsertBulk) SetMonitorID(v int64) *ChannelMonitorH
 func (u *ChannelMonitorHistoryUpsertBulk) UpdateMonitorID() *ChannelMonitorHistoryUpsertBulk {
 	return u.Update(func(s *ChannelMonitorHistoryUpsert) {
 		s.UpdateMonitorID()
+	})
+}
+
+// SetProbeIndex sets the "probe_index" field.
+func (u *ChannelMonitorHistoryUpsertBulk) SetProbeIndex(v int) *ChannelMonitorHistoryUpsertBulk {
+	return u.Update(func(s *ChannelMonitorHistoryUpsert) {
+		s.SetProbeIndex(v)
+	})
+}
+
+// AddProbeIndex adds v to the "probe_index" field.
+func (u *ChannelMonitorHistoryUpsertBulk) AddProbeIndex(v int) *ChannelMonitorHistoryUpsertBulk {
+	return u.Update(func(s *ChannelMonitorHistoryUpsert) {
+		s.AddProbeIndex(v)
+	})
+}
+
+// UpdateProbeIndex sets the "probe_index" field to the value that was provided on create.
+func (u *ChannelMonitorHistoryUpsertBulk) UpdateProbeIndex() *ChannelMonitorHistoryUpsertBulk {
+	return u.Update(func(s *ChannelMonitorHistoryUpsert) {
+		s.UpdateProbeIndex()
 	})
 }
 

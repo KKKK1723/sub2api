@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"hash/fnv"
 	"log/slog"
 	"strconv"
 	"strings"
@@ -695,13 +696,18 @@ func (s *ChannelMonitorService) RunCheck(ctx context.Context, id int64) ([]*Chec
 	switch checkMode {
 	case MonitorCheckModeQuota:
 		results = s.runQuotaOnlyCheck(ctx, m)
+		s.persistCheckResults(ctx, m, results)
 	case MonitorCheckModeQuotaProbe:
-		results = s.runProbeChecksAndPersistStatuses(ctx, m)
-		attachQuotaSnapshot(results, s.fetchQuotaSnapshot(ctx, m))
+		all := s.runProbeChecksAndPersistStatuses(ctx, m)
+		results = aggregateMonitorProbeResults(all, m)
+		snapshot := s.fetchQuotaSnapshot(ctx, m)
+		attachQuotaSnapshot(results, snapshot)
+		s.persistProbeCheckResults(ctx, m, all, snapshot)
 	default:
-		results = s.runProbeChecksAndPersistStatuses(ctx, m)
+		all := s.runProbeChecksAndPersistStatuses(ctx, m)
+		results = aggregateMonitorProbeResults(all, m)
+		s.persistProbeCheckResults(ctx, m, all, nil)
 	}
-	s.persistCheckResults(ctx, m, results)
 	return results, nil
 }
 
@@ -774,18 +780,14 @@ func (s *ChannelMonitorService) encryptAndNormalizeProbes(m *ChannelMonitor) err
 	return nil
 }
 
-func (s *ChannelMonitorService) runProbeChecks(ctx context.Context, m *ChannelMonitor) []*CheckResult {
-	all, _ := s.runProbeChecksDetailed(ctx, m)
-	return aggregateMonitorProbeResults(all, m)
-}
-
 // runProbeChecksAndPersistStatuses 执行多探针检测，并把各探针主模型的最新状态写回监控配置。
-func (s *ChannelMonitorService) runProbeChecksAndPersistStatuses(ctx context.Context, m *ChannelMonitor) []*CheckResult {
+// 返回按探针分组的原始结果，供调用方聚合展示并逐探针写入历史。
+func (s *ChannelMonitorService) runProbeChecksAndPersistStatuses(ctx context.Context, m *ChannelMonitor) [][]*CheckResult {
 	all, statuses := s.runProbeChecksDetailed(ctx, m)
 	if err := s.repo.UpdateProbeStatuses(ctx, m.ID, statuses); err != nil {
 		slog.Error("channel_monitor: update probe statuses failed", "monitor_id", m.ID, "error", err)
 	}
-	return aggregateMonitorProbeResults(all, m)
+	return all
 }
 
 func (s *ChannelMonitorService) runProbeChecksDetailed(ctx context.Context, m *ChannelMonitor) ([][]*CheckResult, []MonitorProbeStatus) {
@@ -809,6 +811,11 @@ func (s *ChannelMonitorService) runProbeChecksDetailed(ctx context.Context, m *C
 			copy.PrimaryModel = probeModel(probe, m.PrimaryModel)
 			copy.ExtraModels = nil
 			all[index] = s.runChecksConcurrent(ctx, &copy)
+			for _, result := range all[index] {
+				if result != nil {
+					result.ProbeIndex = index
+				}
+			}
 			return nil
 		})
 	}
@@ -913,13 +920,14 @@ func aggregateProbeResults(all [][]*CheckResult, primary string, extras []string
 	return out
 }
 
-// persistCheckResults 写入本次检测的历史记录并更新 last_checked_at。
+// persistCheckResults 写入本次检测的历史记录并更新 last_checked_at（quota 模式：无探针维度）。
 // 任一写库失败都只记日志，不影响调用方拿到 results（与 MVP 期望一致：宁可漏记历史也要先返回结果）。
 func (s *ChannelMonitorService) persistCheckResults(ctx context.Context, m *ChannelMonitor, results []*CheckResult) {
 	rows := make([]*ChannelMonitorHistoryRow, 0, len(results))
 	for _, r := range results {
 		rows = append(rows, &ChannelMonitorHistoryRow{
 			MonitorID:     m.ID,
+			ProbeIndex:    -1,
 			Model:         r.Model,
 			Status:        r.Status,
 			LatencyMs:     r.LatencyMs,
@@ -929,6 +937,61 @@ func (s *ChannelMonitorService) persistCheckResults(ctx context.Context, m *Chan
 			Quota:         r.Quota,
 		})
 	}
+	// 配额模式同样写聚合记录：状态卡片、时间线与详情统一按聚合记录取值，
+	// 监控在探活/配额模式之间切换后不会继续读到切换前的旧聚合记录。
+	if aggregate := aggregateAllProbeResults([][]*CheckResult{results}); aggregate != nil {
+		rows = append(rows, aggregateHistoryRow(m.ID, aggregate, aggregate.Quota))
+	}
+	s.insertHistoryAndMarkChecked(ctx, m, rows)
+}
+
+// persistProbeCheckResults 按探针写入本次检测历史，并追加一条分组聚合记录（model = MonitorAggregateModel）。
+// quota_probe 模式的配额快照挂在聚合记录上，与状态卡片取值来源保持一致。
+func (s *ChannelMonitorService) persistProbeCheckResults(ctx context.Context, m *ChannelMonitor, all [][]*CheckResult, quota *domain.MonitorQuotaSnapshot) {
+	rows := make([]*ChannelMonitorHistoryRow, 0)
+	for probeIndex, results := range all {
+		for _, r := range results {
+			if r == nil {
+				continue
+			}
+			historyProbeIndex := probeIndex
+			if probeIndex < len(m.Probes) {
+				historyProbeIndex = stableProbeHistoryIndex(m.Probes[probeIndex])
+			}
+			rows = append(rows, &ChannelMonitorHistoryRow{
+				MonitorID:     m.ID,
+				ProbeIndex:    historyProbeIndex,
+				Model:         r.Model,
+				Status:        r.Status,
+				LatencyMs:     r.LatencyMs,
+				PingLatencyMs: r.PingLatencyMs,
+				Message:       r.Message,
+				CheckedAt:     r.CheckedAt,
+			})
+		}
+	}
+	if aggregate := aggregateAllProbeResults(all); aggregate != nil {
+		rows = append(rows, aggregateHistoryRow(m.ID, aggregate, quota))
+	}
+	s.insertHistoryAndMarkChecked(ctx, m, rows)
+}
+
+// aggregateHistoryRow 构造分组聚合历史行（probe_index = -1，model = MonitorAggregateModel）。
+func aggregateHistoryRow(monitorID int64, aggregate *CheckResult, quota *domain.MonitorQuotaSnapshot) *ChannelMonitorHistoryRow {
+	return &ChannelMonitorHistoryRow{
+		MonitorID:     monitorID,
+		ProbeIndex:    -1,
+		Model:         MonitorAggregateModel,
+		Status:        aggregate.Status,
+		LatencyMs:     aggregate.LatencyMs,
+		PingLatencyMs: aggregate.PingLatencyMs,
+		Message:       aggregate.Message,
+		CheckedAt:     aggregate.CheckedAt,
+		Quota:         quota,
+	}
+}
+
+func (s *ChannelMonitorService) insertHistoryAndMarkChecked(ctx context.Context, m *ChannelMonitor, rows []*ChannelMonitorHistoryRow) {
 	if err := s.repo.InsertHistoryBatch(ctx, rows); err != nil {
 		slog.Error("channel_monitor: insert history failed",
 			"monitor_id", m.ID, "name", m.Name, "error", err)
@@ -937,6 +1000,53 @@ func (s *ChannelMonitorService) persistCheckResults(ctx context.Context, m *Chan
 		slog.Error("channel_monitor: mark checked failed",
 			"monitor_id", m.ID, "error", err)
 	}
+}
+
+// stableProbeHistoryIndex 为探针配置生成稳定的历史维度，避免探针重排后串用旧记录。
+// -1 保留给分组聚合记录；极少数哈希结果为 -1 时改用最小正值。
+func stableProbeHistoryIndex(probe MonitorProbe) int {
+	h := fnv.New32a()
+	_, _ = h.Write([]byte(strings.TrimSpace(probe.Name)))
+	_, _ = h.Write([]byte{0})
+	_, _ = h.Write([]byte(strings.TrimSpace(probe.Endpoint)))
+	_, _ = h.Write([]byte{0})
+	_, _ = h.Write([]byte(strings.TrimSpace(probe.Model)))
+	value := int(h.Sum32() & 0x7fffffff)
+	if value == 0 {
+		return 1
+	}
+	return value
+}
+
+func aggregateAllProbeResults(all [][]*CheckResult) *CheckResult {
+	var best *CheckResult
+	rank := func(status string) int {
+		switch status {
+		case MonitorStatusOperational:
+			return 3
+		case MonitorStatusDegraded:
+			return 2
+		case MonitorStatusFailed, MonitorStatusError:
+			return 1
+		default:
+			return 0
+		}
+	}
+	for _, results := range all {
+		for _, result := range results {
+			if result == nil {
+				continue
+			}
+			if best == nil || rank(result.Status) > rank(best.Status) ||
+				(rank(result.Status) == rank(best.Status) && result.LatencyMs != nil && (best.LatencyMs == nil || *result.LatencyMs < *best.LatencyMs)) {
+				copy := *result
+				copy.Model = MonitorAggregateModel
+				copy.ProbeIndex = -1
+				best = &copy
+			}
+		}
+	}
+	return best
 }
 
 // runChecksConcurrent 对 primary + extra 模型并发执行检测。

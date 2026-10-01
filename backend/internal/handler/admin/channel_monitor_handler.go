@@ -338,12 +338,59 @@ func (h *ChannelMonitorHandler) batchSummaryFor(c *gin.Context, items []*service
 	ids := make([]int64, 0, len(items))
 	primaryByID := make(map[int64]string, len(items))
 	extrasByID := make(map[int64][]string, len(items))
+	probeModelsByID := make(map[int64][]string, len(items))
 	for _, m := range items {
 		ids = append(ids, m.ID)
 		primaryByID[m.ID] = m.PrimaryModel
 		extrasByID[m.ID] = m.ExtraModels
+		probeModelsByID[m.ID] = serviceMonitorProbeModels(m)
 	}
-	return h.monitorService.BatchMonitorStatusSummary(c.Request.Context(), ids, primaryByID, extrasByID)
+	summaries := h.monitorService.BatchMonitorStatusSummary(c.Request.Context(), ids, primaryByID, extrasByID, probeModelsByID)
+	for _, m := range items {
+		if probeStatus := service.MonitorConfiguredProbeStatus(m); probeStatus != nil {
+			summary := summaries[m.ID]
+			summary.PrimaryStatus = probeStatus.Status
+			summary.PrimaryLatencyMs = probeStatus.LatencyMs
+			summaries[m.ID] = summary
+		}
+	}
+	return summaries
+}
+
+func serviceMonitorProbeModels(m *service.ChannelMonitor) []string {
+	if m == nil {
+		return nil
+	}
+	// quota 模式不做探活，保留的探针只用于切回探活模式，状态聚合只看主模型。
+	if m.CheckMode == service.MonitorCheckModeQuota {
+		if strings.TrimSpace(m.PrimaryModel) == "" {
+			return nil
+		}
+		return []string{strings.TrimSpace(m.PrimaryModel)}
+	}
+	models := make([]string, 0, len(m.Probes))
+	seen := make(map[string]struct{}, len(m.Probes))
+	for _, probe := range m.Probes {
+		if !probe.Enabled {
+			continue
+		}
+		model := strings.TrimSpace(probe.Model)
+		if model == "" {
+			model = strings.TrimSpace(m.PrimaryModel)
+		}
+		if model == "" {
+			continue
+		}
+		if _, ok := seen[model]; ok {
+			continue
+		}
+		seen[model] = struct{}{}
+		models = append(models, model)
+	}
+	if len(models) == 0 && strings.TrimSpace(m.PrimaryModel) != "" {
+		return []string{strings.TrimSpace(m.PrimaryModel)}
+	}
+	return models
 }
 
 // buildListItemResponse 把 monitor + summary 装成 admin list 的响应行。

@@ -775,8 +775,12 @@ func init() {
 	channelmonitordailyrollup.UpdateDefaultComputedAt = channelmonitordailyrollupDescComputedAt.UpdateDefault.(func() time.Time)
 	channelmonitorhistoryFields := schema.ChannelMonitorHistory{}.Fields()
 	_ = channelmonitorhistoryFields
+	// channelmonitorhistoryDescProbeIndex is the schema descriptor for probe_index field.
+	channelmonitorhistoryDescProbeIndex := channelmonitorhistoryFields[1].Descriptor()
+	// channelmonitorhistory.DefaultProbeIndex holds the default value on creation for the probe_index field.
+	channelmonitorhistory.DefaultProbeIndex = channelmonitorhistoryDescProbeIndex.Default.(int)
 	// channelmonitorhistoryDescModel is the schema descriptor for model field.
-	channelmonitorhistoryDescModel := channelmonitorhistoryFields[1].Descriptor()
+	channelmonitorhistoryDescModel := channelmonitorhistoryFields[2].Descriptor()
 	// channelmonitorhistory.ModelValidator is a validator for the "model" field. It is called by the builders before save.
 	channelmonitorhistory.ModelValidator = func() func(string) error {
 		validators := channelmonitorhistoryDescModel.Validators
@@ -794,13 +798,13 @@ func init() {
 		}
 	}()
 	// channelmonitorhistoryDescMessage is the schema descriptor for message field.
-	channelmonitorhistoryDescMessage := channelmonitorhistoryFields[5].Descriptor()
+	channelmonitorhistoryDescMessage := channelmonitorhistoryFields[6].Descriptor()
 	// channelmonitorhistory.DefaultMessage holds the default value on creation for the message field.
 	channelmonitorhistory.DefaultMessage = channelmonitorhistoryDescMessage.Default.(string)
 	// channelmonitorhistory.MessageValidator is a validator for the "message" field. It is called by the builders before save.
 	channelmonitorhistory.MessageValidator = channelmonitorhistoryDescMessage.Validators[0].(func(string) error)
 	// channelmonitorhistoryDescCheckedAt is the schema descriptor for checked_at field.
-	channelmonitorhistoryDescCheckedAt := channelmonitorhistoryFields[7].Descriptor()
+	channelmonitorhistoryDescCheckedAt := channelmonitorhistoryFields[8].Descriptor()
 	// channelmonitorhistory.DefaultCheckedAt holds the default value on creation for the checked_at field.
 	channelmonitorhistory.DefaultCheckedAt = channelmonitorhistoryDescCheckedAt.Default.(func() time.Time)
 	channelmonitorrequesttemplateMixin := schema.ChannelMonitorRequestTemplate{}.Mixin()

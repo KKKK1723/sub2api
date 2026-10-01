@@ -17,6 +17,8 @@ const (
 	FieldID = "id"
 	// FieldMonitorID holds the string denoting the monitor_id field in the database.
 	FieldMonitorID = "monitor_id"
+	// FieldProbeIndex holds the string denoting the probe_index field in the database.
+	FieldProbeIndex = "probe_index"
 	// FieldModel holds the string denoting the model field in the database.
 	FieldModel = "model"
 	// FieldStatus holds the string denoting the status field in the database.
@@ -48,6 +50,7 @@ const (
 var Columns = []string{
 	FieldID,
 	FieldMonitorID,
+	FieldProbeIndex,
 	FieldModel,
 	FieldStatus,
 	FieldLatencyMs,
@@ -68,6 +71,8 @@ func ValidColumn(column string) bool {
 }
 
 var (
+	// DefaultProbeIndex holds the default value on creation for the "probe_index" field.
+	DefaultProbeIndex int
 	// ModelValidator is a validator for the "model" field. It is called by the builders before save.
 	ModelValidator func(string) error
 	// DefaultMessage holds the default value on creation for the "message" field.
@@ -114,6 +119,11 @@ func ByID(opts ...sql.OrderTermOption) OrderOption {
 // ByMonitorID orders the results by the monitor_id field.
 func ByMonitorID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldMonitorID, opts...).ToFunc()
+}
+
+// ByProbeIndex orders the results by the probe_index field.
+func ByProbeIndex(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldProbeIndex, opts...).ToFunc()
 }
 
 // ByModel orders the results by the model field.

@@ -113,10 +113,13 @@ func TestRunCheck_QuotaModeProducesSingleQuotaResult(t *testing.T) {
 	require.True(t, res.Quota.Success)
 	require.Equal(t, "cn_quota", res.Quota.Source)
 
-	// 历史行携带配额快照，并推进 last_checked_at。
-	require.Len(t, repo.history, 1)
+	// 历史行携带配额快照，并推进 last_checked_at；同时写一条分组聚合行供状态卡片取值。
+	require.Len(t, repo.history, 2)
 	require.Equal(t, "quota", repo.history[0].Model)
+	require.Equal(t, -1, repo.history[0].ProbeIndex)
 	require.NotNil(t, repo.history[0].Quota)
+	require.Equal(t, MonitorAggregateModel, repo.history[1].Model)
+	require.NotNil(t, repo.history[1].Quota)
 	require.Equal(t, []int64{1}, repo.markedIDs)
 }
 
@@ -198,11 +201,12 @@ func TestRunCheck_QuotaProbeAttachesSnapshotToPrimaryRowOnly(t *testing.T) {
 	require.Equal(t, "usage", results[0].Quota.Source)
 	require.Nil(t, results[1].Quota, "extra model rows must not carry quota")
 
-	// 历史落库时同样只有主模型行带快照。
+	// 历史按探针落库，探针行不带快照；配额快照挂在分组聚合行上（状态卡片按聚合行取值）。
 	require.Len(t, repo.history, 2)
-	require.NotNil(t, repo.history[0].Quota)
 	require.Equal(t, "gpt-test", repo.history[0].Model)
-	require.Nil(t, repo.history[1].Quota)
+	require.Nil(t, repo.history[0].Quota)
+	require.Equal(t, MonitorAggregateModel, repo.history[1].Model)
+	require.NotNil(t, repo.history[1].Quota)
 }
 
 func TestRunCheck_QuotaProbeQuotaFailureKeepsProbeStatus(t *testing.T) {

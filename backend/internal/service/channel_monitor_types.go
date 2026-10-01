@@ -6,6 +6,8 @@ import (
 	"github.com/Wei-Shaw/sub2api/internal/domain"
 )
 
+const MonitorAggregateModel = "__all_probes__"
+
 // MonitorBodyOverrideMode 自定义请求体处理模式。
 //
 //   - off     使用 adapter 默认 body（忽略 BodyOverride）
@@ -164,6 +166,7 @@ type ChannelMonitorUpdateParams struct {
 // CheckResult 单个模型一次检测的结果。
 type CheckResult struct {
 	Model         string
+	ProbeIndex    int
 	Status        string // operational / degraded / failed / error
 	LatencyMs     *int
 	PingLatencyMs *int
@@ -229,6 +232,7 @@ type ModelDetail struct {
 // ChannelMonitorHistoryRow 历史记录入库行（service 层向 repository 提交的数据）。
 type ChannelMonitorHistoryRow struct {
 	MonitorID     int64
+	ProbeIndex    int
 	Model         string
 	Status        string
 	LatencyMs     *int
@@ -242,6 +246,7 @@ type ChannelMonitorHistoryRow struct {
 type ChannelMonitorHistoryEntry struct {
 	ID            int64
 	Model         string
+	ProbeIndex    int
 	Status        string
 	LatencyMs     *int
 	PingLatencyMs *int
@@ -252,6 +257,7 @@ type ChannelMonitorHistoryEntry struct {
 
 // ChannelMonitorLatest 最近一次检测的简明信息（用于 UserMonitorView 聚合）。
 type ChannelMonitorLatest struct {
+	ProbeIndex    int
 	Model         string
 	Status        string
 	LatencyMs     *int

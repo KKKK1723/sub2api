@@ -1295,17 +1295,25 @@ func (h *GatewayHandler) codexModelIDsForGroup(ctx context.Context, group *servi
 // includeSystemOne adds TypeSafe models, which only work through /v1/systemone;
 // LLM client catalogs (Codex) must exclude them.
 func (h *GatewayHandler) compositeAvailableModels(ctx context.Context, groupID *int64, endpoint string, includeSystemOne bool) []string {
-	if h == nil || h.gatewayService == nil {
+	if h == nil {
+		return nil
+	}
+	return compositeAvailableModelsFrom(ctx, h.gatewayService, groupID, endpoint, includeSystemOne)
+}
+
+// compositeAvailableModelsFrom 汇总 composite 分组下各平台的可用模型（/v1/models 与模型价格页共用）。
+func compositeAvailableModelsFrom(ctx context.Context, gatewayService *service.GatewayService, groupID *int64, endpoint string, includeSystemOne bool) []string {
+	if gatewayService == nil {
 		return nil
 	}
 	seen := make(map[string]struct{})
 	models := make([]string, 0)
-	schedulablePlatforms := h.gatewayService.GetSchedulablePlatforms(ctx, groupID)
+	schedulablePlatforms := gatewayService.GetSchedulablePlatforms(ctx, groupID)
 	for _, platform := range []string{service.PlatformAnthropic, service.PlatformGemini, service.PlatformOpenAI, service.PlatformAntigravity, service.PlatformGrok, service.PlatformKimi, service.PlatformZhipu, service.PlatformDeepseek, service.PlatformMiniMax, service.PlatformOpenCodeGo, service.PlatformTypeSafe} {
 		if platform == service.PlatformTypeSafe && !includeSystemOne {
 			continue
 		}
-		platformModels := h.gatewayService.GetAvailableModels(ctx, groupID, platform)
+		platformModels := gatewayService.GetAvailableModels(ctx, groupID, platform)
 		if len(platformModels) == 0 {
 			// CN 供应商没有静态默认模型列表（defaultModelIDsForPlatform 的
 			// default 分支是 Claude 列表），composite 下只暴露账号映射键。
@@ -1327,7 +1335,7 @@ func (h *GatewayHandler) compositeAvailableModels(ctx context.Context, groupID *
 	}
 	// A route can expose a public ID that no account model mapping contains.
 	// On lookup failure, retain the existing account-derived catalog only.
-	if routeModels, err := h.gatewayService.GetCompositeRouteModels(ctx, groupID, endpoint, includeSystemOne); err == nil {
+	if routeModels, err := gatewayService.GetCompositeRouteModels(ctx, groupID, endpoint, includeSystemOne); err == nil {
 		for _, model := range routeModels {
 			if _, ok := seen[model]; !ok {
 				seen[model] = struct{}{}

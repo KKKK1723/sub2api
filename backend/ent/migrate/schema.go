@@ -737,6 +737,7 @@ var (
 	// ChannelMonitorHistoriesColumns holds the columns for the "channel_monitor_histories" table.
 	ChannelMonitorHistoriesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "probe_index", Type: field.TypeInt, Default: -1},
 		{Name: "model", Type: field.TypeString, Size: 200},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"operational", "degraded", "failed", "error"}},
 		{Name: "latency_ms", Type: field.TypeInt, Nullable: true},
@@ -754,21 +755,26 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "channel_monitor_histories_channel_monitors_history",
-				Columns:    []*schema.Column{ChannelMonitorHistoriesColumns[8]},
+				Columns:    []*schema.Column{ChannelMonitorHistoriesColumns[9]},
 				RefColumns: []*schema.Column{ChannelMonitorsColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 		},
 		Indexes: []*schema.Index{
 			{
+				Name:    "channelmonitorhistory_monitor_id_probe_index_checked_at",
+				Unique:  false,
+				Columns: []*schema.Column{ChannelMonitorHistoriesColumns[9], ChannelMonitorHistoriesColumns[1], ChannelMonitorHistoriesColumns[8]},
+			},
+			{
 				Name:    "channelmonitorhistory_monitor_id_model_checked_at",
 				Unique:  false,
-				Columns: []*schema.Column{ChannelMonitorHistoriesColumns[8], ChannelMonitorHistoriesColumns[1], ChannelMonitorHistoriesColumns[7]},
+				Columns: []*schema.Column{ChannelMonitorHistoriesColumns[9], ChannelMonitorHistoriesColumns[2], ChannelMonitorHistoriesColumns[8]},
 			},
 			{
 				Name:    "channelmonitorhistory_checked_at",
 				Unique:  false,
-				Columns: []*schema.Column{ChannelMonitorHistoriesColumns[7]},
+				Columns: []*schema.Column{ChannelMonitorHistoriesColumns[8]},
 			},
 		},
 	}
