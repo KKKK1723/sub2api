@@ -317,6 +317,7 @@ export interface Announcement {
   content: string
   status: AnnouncementStatus
   notify_mode: AnnouncementNotifyMode
+  pinned: boolean
   targeting: AnnouncementTargeting
   starts_at?: string
   ends_at?: string
@@ -331,6 +332,7 @@ export interface UserAnnouncement {
   title: string
   content: string
   notify_mode: AnnouncementNotifyMode
+  pinned: boolean
   starts_at?: string
   ends_at?: string
   read_at?: string
@@ -343,6 +345,7 @@ export interface CreateAnnouncementRequest {
   content: string
   status?: AnnouncementStatus
   notify_mode?: AnnouncementNotifyMode
+  pinned?: boolean
   targeting: AnnouncementTargeting
   starts_at?: number
   ends_at?: number
@@ -353,6 +356,7 @@ export interface UpdateAnnouncementRequest {
   content?: string
   status?: AnnouncementStatus
   notify_mode?: AnnouncementNotifyMode
+  pinned?: boolean
   targeting?: AnnouncementTargeting
   starts_at?: number
   ends_at?: number

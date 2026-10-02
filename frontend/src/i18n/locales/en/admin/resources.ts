@@ -373,6 +373,7 @@ export default {
 
     // Announcements
     announcements: {
+      pinned: 'Pinned',
       title: 'Announcements',
       description: 'Create announcements and target by conditions',
       createAnnouncement: 'Create Announcement',
@@ -382,6 +383,7 @@ export default {
       status: 'Status',
       allStatus: 'All Status',
       columns: {
+        pinned: 'Pinned',
         title: 'Title',
         status: 'Status',
         notifyMode: 'Notify Mode',
@@ -400,6 +402,8 @@ export default {
         popup: 'Popup'
       },
       form: {
+        pinned: 'Pin announcement',
+        pinnedHint: 'Show this announcement at the top of the user dashboard while active',
         title: 'Title',
         content: 'Content (Markdown supported)',
         status: 'Status',

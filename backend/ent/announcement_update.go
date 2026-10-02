@@ -86,6 +86,20 @@ func (_u *AnnouncementUpdate) SetNillableNotifyMode(v *string) *AnnouncementUpda
 	return _u
 }
 
+// SetPinned sets the "pinned" field.
+func (_u *AnnouncementUpdate) SetPinned(v bool) *AnnouncementUpdate {
+	_u.mutation.SetPinned(v)
+	return _u
+}
+
+// SetNillablePinned sets the "pinned" field if the given value is not nil.
+func (_u *AnnouncementUpdate) SetNillablePinned(v *bool) *AnnouncementUpdate {
+	if v != nil {
+		_u.SetPinned(*v)
+	}
+	return _u
+}
+
 // SetTargeting sets the "targeting" field.
 func (_u *AnnouncementUpdate) SetTargeting(v domain.AnnouncementTargeting) *AnnouncementUpdate {
 	_u.mutation.SetTargeting(v)
@@ -332,6 +346,9 @@ func (_u *AnnouncementUpdate) sqlSave(ctx context.Context) (_node int, err error
 	if value, ok := _u.mutation.NotifyMode(); ok {
 		_spec.SetField(announcement.FieldNotifyMode, field.TypeString, value)
 	}
+	if value, ok := _u.mutation.Pinned(); ok {
+		_spec.SetField(announcement.FieldPinned, field.TypeBool, value)
+	}
 	if value, ok := _u.mutation.Targeting(); ok {
 		_spec.SetField(announcement.FieldTargeting, field.TypeJSON, value)
 	}
@@ -488,6 +505,20 @@ func (_u *AnnouncementUpdateOne) SetNotifyMode(v string) *AnnouncementUpdateOne 
 func (_u *AnnouncementUpdateOne) SetNillableNotifyMode(v *string) *AnnouncementUpdateOne {
 	if v != nil {
 		_u.SetNotifyMode(*v)
+	}
+	return _u
+}
+
+// SetPinned sets the "pinned" field.
+func (_u *AnnouncementUpdateOne) SetPinned(v bool) *AnnouncementUpdateOne {
+	_u.mutation.SetPinned(v)
+	return _u
+}
+
+// SetNillablePinned sets the "pinned" field if the given value is not nil.
+func (_u *AnnouncementUpdateOne) SetNillablePinned(v *bool) *AnnouncementUpdateOne {
+	if v != nil {
+		_u.SetPinned(*v)
 	}
 	return _u
 }
@@ -767,6 +798,9 @@ func (_u *AnnouncementUpdateOne) sqlSave(ctx context.Context) (_node *Announceme
 	}
 	if value, ok := _u.mutation.NotifyMode(); ok {
 		_spec.SetField(announcement.FieldNotifyMode, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Pinned(); ok {
+		_spec.SetField(announcement.FieldPinned, field.TypeBool, value)
 	}
 	if value, ok := _u.mutation.Targeting(); ok {
 		_spec.SetField(announcement.FieldTargeting, field.TypeJSON, value)

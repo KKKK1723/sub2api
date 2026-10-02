@@ -1,6 +1,20 @@
 <template>
   <AppLayout>
     <div class="space-y-6">
+      <section v-if="pinnedAnnouncements.length" class="overflow-hidden rounded-2xl border border-amber-200 bg-amber-50/80 shadow-sm dark:border-amber-900/50 dark:bg-amber-950/20">
+        <div class="flex items-center gap-3 border-b border-amber-200/80 px-5 py-4 dark:border-amber-900/40">
+          <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500 text-white">
+            <Icon name="bell" size="sm" />
+          </div>
+          <h2 class="text-base font-semibold text-amber-900 dark:text-amber-100">{{ t('announcements.pinnedTitle') }}</h2>
+        </div>
+        <div class="divide-y divide-amber-200/70 dark:divide-amber-900/30">
+          <article v-for="announcement in pinnedAnnouncements" :key="announcement.id" class="px-5 py-4">
+            <h3 class="text-sm font-semibold text-gray-900 dark:text-white">{{ announcement.title }}</h3>
+            <div class="markdown-body mt-2 text-sm" v-html="renderAnnouncement(announcement.content)"></div>
+          </article>
+        </div>
+      </section>
       <div v-if="loading" class="flex items-center justify-center py-12"><LoadingSpinner /></div>
       <template v-else-if="stats">
         <UserDashboardStats :stats="stats" :balance="user?.balance || 0" :is-simple="authStore.isSimpleMode" :platform-quotas="platformQuotas" />
@@ -15,15 +29,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'; import { useAuthStore } from '@/stores/auth'; import { usageAPI, type UserDashboardStats as UserStatsType } from '@/api/usage'
+import { ref, computed, onMounted } from 'vue'; import { useI18n } from 'vue-i18n'; import { marked } from 'marked'; import DOMPurify from 'dompurify'; import { useAuthStore } from '@/stores/auth'; import { useAnnouncementStore } from '@/stores/announcements'; import { usageAPI, type UserDashboardStats as UserStatsType } from '@/api/usage'
 import AppLayout from '@/components/layout/AppLayout.vue'; import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
+import Icon from '@/components/icons/Icon.vue'
 import UserDashboardStats from '@/components/user/dashboard/UserDashboardStats.vue'; import UserDashboardCharts from '@/components/user/dashboard/UserDashboardCharts.vue'
 import UserDashboardRecentUsage from '@/components/user/dashboard/UserDashboardRecentUsage.vue'; import UserDashboardQuickActions from '@/components/user/dashboard/UserDashboardQuickActions.vue'
 import type { UsageLog, TrendDataPoint, ModelStat, PlatformQuotaItem } from '@/types'
 import { getMyPlatformQuotas } from '@/api/user'
 import { formatDateLocalInput } from '@/utils/format'
+import '@/styles/announcement-markdown.css'
 
 const authStore = useAuthStore(); const user = computed(() => authStore.user)
+const announcementStore = useAnnouncementStore(); const { t } = useI18n()
+const pinnedAnnouncements = computed(() => announcementStore.announcements.filter((announcement) => announcement.pinned))
 const stats = ref<UserStatsType | null>(null); const loading = ref(false); const loadingUsage = ref(false); const loadingCharts = ref(false)
 const trendData = ref<TrendDataPoint[]>([]); const modelStats = ref<ModelStat[]>([]); const recentUsage = ref<UsageLog[]>([])
 const platformQuotas = ref<PlatformQuotaItem[] | null>(null)
@@ -35,6 +53,7 @@ const loadCharts = async () => { loadingCharts.value = true; try { const res = a
 const loadRecent = async () => { loadingUsage.value = true; try { const res = await usageAPI.getByDateRange(startDate.value, endDate.value); recentUsage.value = res.items.slice(0, 5) } catch (error) { console.error('Failed to load recent usage:', error) } finally { loadingUsage.value = false } }
 const loadPlatformQuotas = async () => { try { const data = await getMyPlatformQuotas(); platformQuotas.value = data.platform_quotas ?? [] } catch (error) { console.warn('Failed to load platform quotas:', error); platformQuotas.value = [] } }
 const refreshAll = () => { loadStats(); loadCharts(); loadRecent(); loadPlatformQuotas() }
+const renderAnnouncement = (content: string) => DOMPurify.sanitize(marked.parse(content) as string)
 
-onMounted(() => { refreshAll() })
+onMounted(() => { announcementStore.fetchAnnouncements(); refreshAll() })
 </script>

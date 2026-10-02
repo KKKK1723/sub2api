@@ -64,6 +64,20 @@ func (_c *AnnouncementCreate) SetNillableNotifyMode(v *string) *AnnouncementCrea
 	return _c
 }
 
+// SetPinned sets the "pinned" field.
+func (_c *AnnouncementCreate) SetPinned(v bool) *AnnouncementCreate {
+	_c.mutation.SetPinned(v)
+	return _c
+}
+
+// SetNillablePinned sets the "pinned" field if the given value is not nil.
+func (_c *AnnouncementCreate) SetNillablePinned(v *bool) *AnnouncementCreate {
+	if v != nil {
+		_c.SetPinned(*v)
+	}
+	return _c
+}
+
 // SetTargeting sets the "targeting" field.
 func (_c *AnnouncementCreate) SetTargeting(v domain.AnnouncementTargeting) *AnnouncementCreate {
 	_c.mutation.SetTargeting(v)
@@ -220,6 +234,10 @@ func (_c *AnnouncementCreate) defaults() {
 		v := announcement.DefaultNotifyMode
 		_c.mutation.SetNotifyMode(v)
 	}
+	if _, ok := _c.mutation.Pinned(); !ok {
+		v := announcement.DefaultPinned
+		_c.mutation.SetPinned(v)
+	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := announcement.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
@@ -263,6 +281,9 @@ func (_c *AnnouncementCreate) check() error {
 		if err := announcement.NotifyModeValidator(v); err != nil {
 			return &ValidationError{Name: "notify_mode", err: fmt.Errorf(`ent: validator failed for field "Announcement.notify_mode": %w`, err)}
 		}
+	}
+	if _, ok := _c.mutation.Pinned(); !ok {
+		return &ValidationError{Name: "pinned", err: errors.New(`ent: missing required field "Announcement.pinned"`)}
 	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "Announcement.created_at"`)}
@@ -312,6 +333,10 @@ func (_c *AnnouncementCreate) createSpec() (*Announcement, *sqlgraph.CreateSpec)
 	if value, ok := _c.mutation.NotifyMode(); ok {
 		_spec.SetField(announcement.FieldNotifyMode, field.TypeString, value)
 		_node.NotifyMode = value
+	}
+	if value, ok := _c.mutation.Pinned(); ok {
+		_spec.SetField(announcement.FieldPinned, field.TypeBool, value)
+		_node.Pinned = value
 	}
 	if value, ok := _c.mutation.Targeting(); ok {
 		_spec.SetField(announcement.FieldTargeting, field.TypeJSON, value)
@@ -454,6 +479,18 @@ func (u *AnnouncementUpsert) SetNotifyMode(v string) *AnnouncementUpsert {
 // UpdateNotifyMode sets the "notify_mode" field to the value that was provided on create.
 func (u *AnnouncementUpsert) UpdateNotifyMode() *AnnouncementUpsert {
 	u.SetExcluded(announcement.FieldNotifyMode)
+	return u
+}
+
+// SetPinned sets the "pinned" field.
+func (u *AnnouncementUpsert) SetPinned(v bool) *AnnouncementUpsert {
+	u.Set(announcement.FieldPinned, v)
+	return u
+}
+
+// UpdatePinned sets the "pinned" field to the value that was provided on create.
+func (u *AnnouncementUpsert) UpdatePinned() *AnnouncementUpsert {
+	u.SetExcluded(announcement.FieldPinned)
 	return u
 }
 
@@ -669,6 +706,20 @@ func (u *AnnouncementUpsertOne) SetNotifyMode(v string) *AnnouncementUpsertOne {
 func (u *AnnouncementUpsertOne) UpdateNotifyMode() *AnnouncementUpsertOne {
 	return u.Update(func(s *AnnouncementUpsert) {
 		s.UpdateNotifyMode()
+	})
+}
+
+// SetPinned sets the "pinned" field.
+func (u *AnnouncementUpsertOne) SetPinned(v bool) *AnnouncementUpsertOne {
+	return u.Update(func(s *AnnouncementUpsert) {
+		s.SetPinned(v)
+	})
+}
+
+// UpdatePinned sets the "pinned" field to the value that was provided on create.
+func (u *AnnouncementUpsertOne) UpdatePinned() *AnnouncementUpsertOne {
+	return u.Update(func(s *AnnouncementUpsert) {
+		s.UpdatePinned()
 	})
 }
 
@@ -1069,6 +1120,20 @@ func (u *AnnouncementUpsertBulk) SetNotifyMode(v string) *AnnouncementUpsertBulk
 func (u *AnnouncementUpsertBulk) UpdateNotifyMode() *AnnouncementUpsertBulk {
 	return u.Update(func(s *AnnouncementUpsert) {
 		s.UpdateNotifyMode()
+	})
+}
+
+// SetPinned sets the "pinned" field.
+func (u *AnnouncementUpsertBulk) SetPinned(v bool) *AnnouncementUpsertBulk {
+	return u.Update(func(s *AnnouncementUpsert) {
+		s.SetPinned(v)
+	})
+}
+
+// UpdatePinned sets the "pinned" field to the value that was provided on create.
+func (u *AnnouncementUpsertBulk) UpdatePinned() *AnnouncementUpsertBulk {
+	return u.Update(func(s *AnnouncementUpsert) {
+		s.UpdatePinned()
 	})
 }
 
