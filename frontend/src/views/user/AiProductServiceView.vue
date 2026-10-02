@@ -3,17 +3,28 @@
     <div class="ai-products-page">
       <div class="content-head">
         <div>
-          <h1>AI 商品服务</h1>
-          <p class="intro">精选主流 AI 订阅服务，透明展示套餐与价格。</p>
+          <h1>AI官方订阅</h1>
+          <p class="intro">精选主流 AI 官方订阅服务，透明展示套餐与价格。</p>
         </div>
         <div class="contact-chip"><span class="contact-dot"></span>需要购买？联系站长</div>
       </div>
+
+      <section class="value-note" aria-label="订阅服务说明">
+        <article>
+          <h2>为什么选择官方订阅？</h2>
+          <p>官方订阅通常拥有更多使用额度和更完整的功能，适合长期、高频使用。相比按调用量计费的 API 中转服务，持续使用时可能更划算。</p>
+        </article>
+        <article class="warning">
+          <h2>购买前请先确认使用环境</h2>
+          <p>请确认网络、设备和账号环境符合平台要求。环境不稳定可能导致掉订、限制甚至封号，届时订阅的实际性价比可能低于 API 中转服务。</p>
+        </article>
+      </section>
 
       <section class="hero" aria-label="AI 服务宣传">
         <div class="hero-copy">
           <p class="hero-kicker">AI SUBSCRIPTION SERVICE</p>
           <h2>把更多时间，留给真正重要的创造。</h2>
-          <p>GPT、Claude 等专业 AI 服务持续上新。页面仅作商品介绍，如有需要，请联系站长购买。</p>
+          <p>GPT、Claude 等 AI 官方订阅持续上新。页面用于服务介绍，如有需要，请联系站长购买。</p>
         </div>
         <div class="hero-orbit" aria-hidden="true"></div>
       </section>
@@ -112,7 +123,7 @@ const products: Record<CategoryKey, Product[]> = {
     {
       name: 'Claude Pro',
       description: '适用于 Claude Pro，支持更长上下文与更高使用额度。含质保订阅，掉订按剩余天数补差价，不质保封号。',
-      price: '¥ 138',
+      price: '¥ 148',
       tags: ['Claude Pro', '月度订阅', '含质保'],
       logo: 'C',
       logoClass: 'claude',
@@ -151,6 +162,12 @@ h1 { margin: 0 0 7px; font-size: clamp(26px, 3vw, 36px); line-height: 1.15; lett
 .intro { max-width: 580px; margin: 0; color: var(--muted); }
 .contact-chip { display: inline-flex; align-items: center; gap: 9px; padding: 10px 14px; border: 1px solid #cfe6e3; border-radius: 9px; background: var(--cyan-soft); color: #087b7e; font-size: 13px; font-weight: 700; }
 .contact-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 0 4px rgba(28,166,168,.12); }
+.value-note { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 24px; }
+.value-note article { padding: 17px 18px; border: 1px solid var(--line); border-radius: 10px; background: rgba(255,255,255,.78); }
+.value-note h2 { margin: 0 0 6px; color: var(--navy); font-size: 15px; }
+.value-note p { margin: 0; color: var(--muted); font-size: 13px; }
+.value-note .warning { border-color: #f0dfbd; background: #fffaf1; }
+.value-note .warning h2 { color: #76562d; }
 
 .hero { position: relative; overflow: hidden; min-height: 208px; margin-bottom: 30px; padding: 28px 32px; border-radius: 16px; background: linear-gradient(115deg, #142842 0%, #1b4760 52%, #168f92 100%); color: #fff; box-shadow: 0 20px 42px rgba(18, 58, 81, .2); }
 .hero::before, .hero::after { content: ""; position: absolute; border: 1px solid rgba(255,255,255,.15); border-radius: 50%; pointer-events: none; }
@@ -199,6 +216,7 @@ h1 { margin: 0 0 7px; font-size: clamp(26px, 3vw, 36px); line-height: 1.15; lett
   .ai-products-page { margin: -16px; padding: 30px 18px 48px; }
   .content-head { align-items: flex-start; flex-direction: column; margin-bottom: 23px; }
   .contact-chip { align-self: stretch; justify-content: center; }
+  .value-note { grid-template-columns: 1fr; }
   .hero { min-height: 220px; padding: 24px; }
   .hero-orbit { right: -24px; top: auto; bottom: -43px; transform: none; }
   .category-tabs { overflow-x: auto; }

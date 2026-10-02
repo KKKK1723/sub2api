@@ -32,7 +32,7 @@ export const products = [
     id: 'claude-pro',
     provider: 'Anthropic',
     name: 'Claude Pro',
-    price: 138,
+    price: 148,
     logo: '/brands/claude.svg',
     tone: 'apricot',
     tag: { zh: '代码与长文', en: 'Code & long context' },

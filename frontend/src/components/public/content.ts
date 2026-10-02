@@ -31,7 +31,7 @@ export const products = [
     id: 'claude-pro',
     provider: 'Anthropic',
     name: 'Claude Pro',
-    price: 138,
+    price: 148,
     logo: '/brands/claude.svg',
     tone: 'apricot',
     tag: { zh: '代码与长文', en: 'Code & long context' },
@@ -80,7 +80,7 @@ export const providers = [
 
 export const copy = {
   zh: {
-    subscriptions: 'AI 订阅',
+    subscriptions: 'AI官方订阅',
     api: '模型 API',
     sms: '接码服务',
     help: '常见问题',
@@ -90,15 +90,15 @@ export const copy = {
     headlineAccent: '还有接码服务。',
     heroDescription:
       '开发接入、日常创作、手机验证。按你的需求选择，剩下的交给我们。',
-    browse: '挑选 AI 订阅',
+    browse: '挑选 AI官方订阅',
     getKey: '获取 API Key',
     serviceApi: '接入你的应用与工具',
     serviceSub: '开通你常用的 AI',
     serviceSms: '购买短信验证码，完成手机验证',
     ecosystem: '连接你熟悉的 AI',
-    catalogLabel: '01 / AI 订阅',
-    catalogTitle: 'AI 订阅与套餐',
-    catalogDescription: '常用的 AI 订阅，套餐与价格一目了然。',
+    catalogLabel: '01 / AI官方订阅',
+    catalogTitle: 'AI官方订阅与套餐',
+    catalogDescription: 'GPT、Claude 等官方订阅，套餐与价格一目了然。',
     all: '全部',
     monthly: '月度订阅',
     perMonth: '/ 月',

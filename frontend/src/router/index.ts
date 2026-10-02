@@ -299,7 +299,7 @@ const routes: RouteRecordRaw[] = [
     meta: {
       requiresAuth: true,
       requiresAdmin: false,
-      title: 'AI 商品服务',
+      title: 'AI官方订阅',
       titleKey: 'nav.aiProducts'
     }
   },
