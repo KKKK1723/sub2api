@@ -37,6 +37,7 @@ type CreateAnnouncementInput struct {
 	Content    string
 	Status     string
 	NotifyMode string
+	Pinned     bool
 	Targeting  AnnouncementTargeting
 	StartsAt   *time.Time
 	EndsAt     *time.Time
@@ -48,6 +49,7 @@ type UpdateAnnouncementInput struct {
 	Content    *string
 	Status     *string
 	NotifyMode *string
+	Pinned     *bool
 	Targeting  *AnnouncementTargeting
 	StartsAt   **time.Time
 	EndsAt     **time.Time
@@ -118,6 +120,7 @@ func (s *AnnouncementService) Create(ctx context.Context, input *CreateAnnouncem
 		Content:    content,
 		Status:     status,
 		NotifyMode: notifyMode,
+		Pinned:     input.Pinned,
 		Targeting:  targeting,
 		StartsAt:   input.StartsAt,
 		EndsAt:     input.EndsAt,
@@ -176,6 +179,9 @@ func (s *AnnouncementService) Update(ctx context.Context, id int64, input *Updat
 			return nil, ErrAnnouncementInvalidNotifyMode
 		}
 		a.NotifyMode = notifyMode
+	}
+	if input.Pinned != nil {
+		a.Pinned = *input.Pinned
 	}
 
 	if input.Targeting != nil {

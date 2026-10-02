@@ -372,6 +372,7 @@ export default {
 
     // Announcements
     announcements: {
+      pinned: '置顶',
       title: '公告管理',
       description: '创建公告并按条件投放',
       createFirstAnnouncement: '还没有公告，创建您的第一条公告。',
@@ -382,6 +383,7 @@ export default {
       status: '状态',
       allStatus: '全部状态',
       columns: {
+        pinned: '置顶',
         title: '标题',
         status: '状态',
         notifyMode: '通知方式',
@@ -400,6 +402,8 @@ export default {
         popup: '弹窗'
       },
       form: {
+        pinned: '置顶公告',
+        pinnedHint: '生效期间显示在用户仪表盘顶部',
         title: '标题',
         content: '内容（支持 Markdown）',
         status: '状态',

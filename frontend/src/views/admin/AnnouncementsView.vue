@@ -89,6 +89,13 @@
             </span>
           </template>
 
+          <template #cell-pinned="{ row }">
+            <span v-if="row.pinned" class="badge badge-warning">
+              {{ t('admin.announcements.pinned') }}
+            </span>
+            <span v-else class="text-sm text-gray-400 dark:text-dark-500">-</span>
+          </template>
+
           <template #cell-targeting="{ row }">
             <span class="text-sm text-gray-600 dark:text-gray-300">
               {{ targetingSummary(row.targeting) }}
@@ -196,6 +203,13 @@
             <Select v-model="form.notify_mode" :options="notifyModeOptions" />
             <p class="input-hint">{{ t('admin.announcements.form.notifyModeHint') }}</p>
           </div>
+          <label class="flex cursor-pointer items-start gap-3 pt-7">
+            <input v-model="form.pinned" type="checkbox" class="mt-1 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
+            <span>
+              <span class="block text-sm font-medium text-gray-700 dark:text-gray-200">{{ t('admin.announcements.form.pinned') }}</span>
+              <span class="input-hint">{{ t('admin.announcements.form.pinnedHint') }}</span>
+            </span>
+          </label>
         </div>
 
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -325,6 +339,7 @@ const columns = computed<Column[]>(() => [
   { key: 'title', label: t('admin.announcements.columns.title'), sortable: true },
   { key: 'status', label: t('admin.announcements.columns.status'), sortable: true },
   { key: 'notify_mode', label: t('admin.announcements.columns.notifyMode'), sortable: true },
+  { key: 'pinned', label: t('admin.announcements.columns.pinned') },
   { key: 'targeting', label: t('admin.announcements.columns.targeting') },
   { key: 'timeRange', label: t('admin.announcements.columns.timeRange') },
   { key: 'created_at', label: t('admin.announcements.columns.createdAt'), sortable: true },
@@ -432,6 +447,7 @@ const form = reactive({
   content: '',
   status: 'draft',
   notify_mode: 'silent',
+  pinned: false,
   starts_at_str: '',
   ends_at_str: '',
   targeting: { any_of: [] } as AnnouncementTargeting
@@ -454,6 +470,7 @@ function resetForm() {
   form.content = ''
   form.status = 'draft'
   form.notify_mode = 'silent'
+  form.pinned = false
   form.starts_at_str = ''
   form.ends_at_str = ''
   form.targeting = { any_of: [] }
@@ -464,6 +481,7 @@ function fillFormFromAnnouncement(a: Announcement) {
   form.content = a.content
   form.status = a.status
   form.notify_mode = a.notify_mode || 'silent'
+  form.pinned = a.pinned === true
 
   // Backend returns RFC3339 strings
   form.starts_at_str = a.starts_at ? formatDateTimeLocalInput(Math.floor(new Date(a.starts_at).getTime() / 1000)) : ''
@@ -498,6 +516,7 @@ function buildCreatePayload() {
     content: form.content,
     status: form.status as any,
     notify_mode: form.notify_mode as any,
+    pinned: form.pinned,
     targeting: form.targeting,
     starts_at: startsAt ?? undefined,
     ends_at: endsAt ?? undefined
@@ -511,6 +530,7 @@ function buildUpdatePayload(original: Announcement) {
   if (form.content !== original.content) payload.content = form.content
   if (form.status !== original.status) payload.status = form.status
   if (form.notify_mode !== (original.notify_mode || 'silent')) payload.notify_mode = form.notify_mode
+  if (form.pinned !== original.pinned) payload.pinned = form.pinned
 
   // starts_at / ends_at: distinguish unchanged vs clear(0) vs set
   const originalStarts = original.starts_at ? Math.floor(new Date(original.starts_at).getTime() / 1000) : null

@@ -89,6 +89,7 @@ export default {
 
   // Announcements Page
   announcements: {
+    pinnedTitle: 'Pinned Announcements',
     title: 'Announcements',
     description: 'View system announcements',
     unreadOnly: 'Show unread only',
