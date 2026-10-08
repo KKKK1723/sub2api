@@ -614,6 +614,14 @@ func TestGetFallbackPricing_FamilyMatching(t *testing.T) {
 			expectedOutput:    floatPtr(4e-6),
 			expectedCacheRead: floatPtr(0.24e-6),
 		},
+		// 关键：glm-5v-turbo 必须先于 glm-5 匹配
+		{
+			name:              "glm 5v turbo",
+			model:             "glm-5v-turbo",
+			expectedInput:     1.2e-6,
+			expectedOutput:    floatPtr(4e-6),
+			expectedCacheRead: floatPtr(0.24e-6),
+		},
 		{
 			name:              "glm 4.7",
 			model:             "glm-4.7",
@@ -784,6 +792,20 @@ func TestGetFallbackPricing_FamilyMatching(t *testing.T) {
 			expectedOutput:    floatPtr(2.24e-6),
 			expectedCacheRead: floatPtr(0.14e-6),
 		},
+		{
+			name:              "kimi k2.7 relay alias",
+			model:             "kimi-k2.7",
+			expectedInput:     0.95e-6,
+			expectedOutput:    floatPtr(4e-6),
+			expectedCacheRead: floatPtr(0.19e-6),
+		},
+		{
+			name:              "kimi k2.7 code highspeed",
+			model:             "kimi-k2.7-code-highspeed",
+			expectedInput:     1.9e-6,
+			expectedOutput:    floatPtr(8e-6),
+			expectedCacheRead: floatPtr(0.38e-6),
+		},
 		// 关键：k2.6 / k2.5 / k2-thinking 必须先于 k2 匹配
 		{
 			name:              "kimi k2.6 vs k2 ordering",
@@ -843,6 +865,31 @@ func TestGetFallbackPricing_FamilyMatching(t *testing.T) {
 			expectedOutput:    floatPtr(1.20e-6),
 			expectedCacheRead: floatPtr(0.03e-6),
 		},
+
+		// ---- 腾讯混元 Hy 系列 ----
+		{
+			name:              "hunyuan hy3",
+			model:             "hy3",
+			expectedInput:     0.132e-6,
+			expectedOutput:    floatPtr(0.528e-6),
+			expectedCacheRead: floatPtr(0.033e-6),
+		},
+		{
+			name:              "hunyuan hy4 preview",
+			model:             "hy4-preview",
+			expectedInput:     0.834e-6,
+			expectedOutput:    floatPtr(2.501e-6),
+			expectedCacheRead: floatPtr(0.042e-6),
+		},
+		{
+			name:          "hunyuan hy4 preview path suffix",
+			model:         "opencode-go/hy4-preview",
+			expectedInput: 0.834e-6,
+		},
+		// 官方价目未列出的变体不回退
+		{name: "hunyuan unknown no fallback", model: "hy30", expectNilPricing: true},
+		{name: "hunyuan hy3-x no official price", model: "hy3-x", expectNilPricing: true},
+		{name: "hunyuan hy4-preview-f no official price", model: "hy4-preview-f", expectNilPricing: true},
 
 		// ---- 火山方舟 豆包 Embedding（多模态向量化）----
 		{

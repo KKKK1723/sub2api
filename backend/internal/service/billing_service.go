@@ -666,7 +666,7 @@ func (s *BillingService) initFallbackPricing() {
 
 	// ============================================================
 	// 国产 LLM 兜底定价（数据源：各家官方定价页/USD 口径）
-	// 顺序：DeepSeek → 智谱 GLM → 月之暗面 Kimi → MiniMax
+	// 顺序：DeepSeek → 智谱 GLM → 月之暗面 Kimi → MiniMax → 腾讯混元
 	// 覆盖逻辑见同文件 getFallbackPricing()
 	// ============================================================
 
@@ -746,6 +746,9 @@ func (s *BillingService) initFallbackPricing() {
 		CacheReadPricePerToken: 0.24e-6,
 		SupportsCacheBreakdown: false,
 	}
+	// GLM-5V-Turbo（多模态 Agent 模型）官方价 $1.20/$4.00、缓存 $0.24，与 GLM-5-Turbo 同档；
+	// 未收录前会被 glm-5 宽匹配按 $1.00/$3.20 少计。
+	s.fallbackPrices["glm-5v-turbo"] = s.fallbackPrices["glm-5-turbo"]
 	s.fallbackPrices["glm-4.7"] = &ModelPricing{
 		InputPricePerToken:     0.6e-6, // $0.60 per MTok
 		OutputPricePerToken:    2.2e-6,
@@ -819,6 +822,19 @@ func (s *BillingService) initFallbackPricing() {
 		CacheReadPricePerToken: 0.30e-6, // $0.30 per MTok (cache hit)
 		SupportsCacheBreakdown: false,
 	}
+	// Kimi K2.7：国际站价目 ID 为 kimi-k2.7-code，中转渠道常以 kimi-k2.7 暴露；未收录前会被 kimi-k2 宽匹配少计。
+	s.fallbackPrices["kimi-k2.7"] = &ModelPricing{
+		InputPricePerToken:     0.95e-6, // $0.95 per MTok (cache miss)
+		OutputPricePerToken:    4e-6,    // $4.00 per MTok
+		CacheReadPricePerToken: 0.19e-6, // $0.19 per MTok (cache hit)
+		SupportsCacheBreakdown: false,
+	}
+	s.fallbackPrices["kimi-k2.7-highspeed"] = &ModelPricing{
+		InputPricePerToken:     1.9e-6,  // $1.90 per MTok (cache miss)
+		OutputPricePerToken:    8e-6,    // $8.00 per MTok
+		CacheReadPricePerToken: 0.38e-6, // $0.38 per MTok (cache hit)
+		SupportsCacheBreakdown: false,
+	}
 	s.fallbackPrices["kimi-k2.6"] = &ModelPricing{
 		InputPricePerToken:     0.95e-6, // $0.95 per MTok (cache miss)
 		OutputPricePerToken:    4e-6,    // $4.00 per MTok
@@ -889,6 +905,23 @@ func (s *BillingService) initFallbackPricing() {
 		InputPricePerToken:     0.30e-6,
 		OutputPricePerToken:    1.20e-6,
 		CacheReadPricePerToken: 0.03e-6,
+		SupportsCacheBreakdown: false,
+	}
+
+	// ---- 腾讯混元 Hy 系列 ----
+	// Source: https://intl.cloud.tencent.com/zh/document/product/1300/78937 (TokenHub 国际站 USD 口径)
+	// 国内站同价 Hy3 ¥1/¥4/缓存 ¥0.25、Hy4 preview ¥6/¥18/缓存 ¥0.3（元/百万 tokens）。
+	// 官方价目未列出的变体 ID（如 hy3-x / hy4-preview-f）不进入 fallback，避免误计价。
+	s.fallbackPrices["hy3"] = &ModelPricing{
+		InputPricePerToken:     0.132e-6, // $0.132 per MTok
+		OutputPricePerToken:    0.528e-6, // $0.528 per MTok
+		CacheReadPricePerToken: 0.033e-6, // $0.033 per MTok (cache hit)
+		SupportsCacheBreakdown: false,
+	}
+	s.fallbackPrices["hy4-preview"] = &ModelPricing{
+		InputPricePerToken:     0.834e-6, // $0.834 per MTok
+		OutputPricePerToken:    2.501e-6, // $2.501 per MTok
+		CacheReadPricePerToken: 0.042e-6, // $0.042 per MTok (cache hit)
 		SupportsCacheBreakdown: false,
 	}
 
@@ -1103,6 +1136,10 @@ func (s *BillingService) getFallbackPricing(model string) *ModelPricing {
 	if strings.Contains(modelLower, "glm-5.1") {
 		return s.fallbackPrices["glm-5.1"]
 	}
+	// glm-5v-turbo 不含 glm-5-turbo 子串，须先于裸 glm-5 宽匹配。
+	if strings.Contains(modelLower, "glm-5v-turbo") {
+		return s.fallbackPrices["glm-5v-turbo"]
+	}
 	if strings.Contains(modelLower, "glm-5-turbo") || strings.Contains(modelLower, "glm-5turbo") {
 		return s.fallbackPrices["glm-5-turbo"]
 	}
@@ -1153,6 +1190,13 @@ func (s *BillingService) getFallbackPricing(model string) *ModelPricing {
 		strings.HasSuffix(modelLower, "/k3") || strings.HasSuffix(modelLower, "/k3-256k") {
 		return s.fallbackPrices["kimi-k3"]
 	}
+	// K2.7 置于 K2.6 前，highspeed 变体先于基础档。
+	if (strings.Contains(modelLower, "kimi-k2.7") || strings.Contains(modelLower, "kimi-k2-7")) && strings.Contains(modelLower, "highspeed") {
+		return s.fallbackPrices["kimi-k2.7-highspeed"]
+	}
+	if strings.Contains(modelLower, "kimi-k2.7") || strings.Contains(modelLower, "kimi-k2-7") {
+		return s.fallbackPrices["kimi-k2.7"]
+	}
 	if strings.Contains(modelLower, "kimi-k2.6") || strings.Contains(modelLower, "kimi-k2-6") {
 		return s.fallbackPrices["kimi-k2.6"]
 	}
@@ -1184,6 +1228,14 @@ func (s *BillingService) getFallbackPricing(model string) *ModelPricing {
 	}
 	if strings.Contains(modelLower, "minimax-m2") || strings.Contains(modelLower, "minimax-m-2") {
 		return s.fallbackPrices["minimax-m2"]
+	}
+
+	// 腾讯混元 Hy 系列：ID 很短，只做精确匹配（含 / 路径后缀），避免 hy30 等未知型号误命中。
+	switch lastSegment(modelLower) {
+	case "hy3":
+		return s.fallbackPrices["hy3"]
+	case "hy4-preview":
+		return s.fallbackPrices["hy4-preview"]
 	}
 
 	// 火山方舟 豆包 Embedding（多模态向量化）。
