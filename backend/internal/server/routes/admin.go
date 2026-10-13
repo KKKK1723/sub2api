@@ -565,6 +565,10 @@ func registerSettingsRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		adminSettings.GET("/email-templates/:event/:locale", h.Admin.Setting.GetEmailTemplate)
 		adminSettings.PUT("/email-templates/:event/:locale", h.Admin.Setting.UpdateEmailTemplate)
 		adminSettings.POST("/email-templates/:event/:locale/restore-official", h.Admin.Setting.RestoreOfficialEmailTemplate)
+		// 账号与上游监控通知
+		adminSettings.GET("/account-alert-notify", h.Admin.Setting.GetAccountAlertNotifySettings)
+		adminSettings.PUT("/account-alert-notify", h.Admin.Setting.UpdateAccountAlertNotifySettings)
+		adminSettings.POST("/account-alert-notify/test", h.Admin.Setting.SendAccountAlertNotifyTest)
 		// Admin API Key 管理
 		adminSettings.GET("/admin-api-key", h.Admin.Setting.GetAdminAPIKey)
 		adminSettings.POST("/admin-api-key/regenerate", h.Admin.Setting.RegenerateAdminAPIKey)

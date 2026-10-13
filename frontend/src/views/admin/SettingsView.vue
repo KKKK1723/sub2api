@@ -7915,6 +7915,9 @@
               </div>
             </div>
           </div>
+
+          <!-- 账号与上游监控通知 -->
+          <AccountAlertNotifySettings />
         </div>
         <!-- /Tab: Email -->
 
@@ -8043,6 +8046,7 @@ import ProxySelector from "@/components/common/ProxySelector.vue";
 import ImageUpload from "@/components/common/ImageUpload.vue";
 import BackupSettings from "@/views/admin/BackupView.vue";
 import EmailTemplateEditor from "@/views/admin/settings/EmailTemplateEditor.vue";
+import AccountAlertNotifySettings from "@/views/admin/settings/AccountAlertNotifySettings.vue";
 import OpenAIFastPolicyUserSelector from "@/views/admin/settings/OpenAIFastPolicyUserSelector.vue";
 import { useClipboard } from "@/composables/useClipboard";
 import {

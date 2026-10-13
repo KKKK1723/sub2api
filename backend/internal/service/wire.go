@@ -330,6 +330,14 @@ func ProvideSubscriptionExpiryService(userSubRepo UserSubscriptionRepository, se
 	return svc
 }
 
+// ProvideAccountAlertNotifyService creates and starts AccountAlertNotifyService.
+func ProvideAccountAlertNotifyService(accountRepo AccountRepository, settingRepo SettingRepository, emailService *EmailService, lockCache LeaderLockCache, db *sql.DB) *AccountAlertNotifyService {
+	svc := NewAccountAlertNotifyService(accountRepo, settingRepo, emailService, time.Minute)
+	svc.SetLeaderLock(lockCache, db)
+	svc.Start()
+	return svc
+}
+
 // ProvideTimingWheelService creates and starts TimingWheelService
 func ProvideTimingWheelService() (*TimingWheelService, error) {
 	svc, err := NewTimingWheelService()
@@ -800,6 +808,7 @@ var ProviderSet = wire.NewSet(
 	ProvideAccountExpiryService,
 	ProvideProxyExpiryService,
 	ProvideSubscriptionExpiryService,
+	ProvideAccountAlertNotifyService,
 	ProvideTimingWheelService,
 	ProvideDashboardAggregationService,
 	ProvideUsageCleanupService,

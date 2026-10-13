@@ -1187,6 +1187,51 @@ export async function updateOverloadCooldownSettings(
   return data;
 }
 
+// ==================== Account Alert Notify Settings ====================
+
+/**
+ * 账号与上游监控通知配置：账号出错、分组无可用账号、上游余额不足时邮件通知管理员
+ */
+export interface AccountAlertNotifySettings {
+  emails: NotifyEmailEntry[];
+  account_error_enabled: boolean;
+  group_unavailable_enabled: boolean;
+  group_unavailable_delay_minutes: number;
+  group_recovered_enabled: boolean;
+  upstream_balance_low_enabled: boolean;
+  upstream_balance_low_threshold: number;
+}
+
+export async function getAccountAlertNotifySettings(): Promise<AccountAlertNotifySettings> {
+  const { data } = await apiClient.get<AccountAlertNotifySettings>(
+    "/admin/settings/account-alert-notify",
+  );
+  return data;
+}
+
+export async function updateAccountAlertNotifySettings(
+  settings: AccountAlertNotifySettings,
+): Promise<AccountAlertNotifySettings> {
+  const { data } = await apiClient.put<AccountAlertNotifySettings>(
+    "/admin/settings/account-alert-notify",
+    settings,
+  );
+  return data;
+}
+
+/**
+ * 发送监控通知测试邮件；emails 为空时使用已保存的收件邮箱
+ */
+export async function sendAccountAlertNotifyTest(
+  emails: string[],
+): Promise<{ sent: number; total: number }> {
+  const { data } = await apiClient.post<{ sent: number; total: number }>(
+    "/admin/settings/account-alert-notify/test",
+    { emails },
+  );
+  return data;
+}
+
 // ==================== 429 Rate Limit Cooldown Settings ====================
 
 export interface RateLimit429CooldownSettings {
@@ -1468,6 +1513,9 @@ export const settingsAPI = {
   deleteAdminApiKey,
   getOverloadCooldownSettings,
   updateOverloadCooldownSettings,
+  getAccountAlertNotifySettings,
+  updateAccountAlertNotifySettings,
+  sendAccountAlertNotifyTest,
   getRateLimit429CooldownSettings,
   updateRateLimit429CooldownSettings,
   getPanelRateLimitSettings,
