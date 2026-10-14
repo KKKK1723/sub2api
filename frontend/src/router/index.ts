@@ -299,7 +299,18 @@ const routes: RouteRecordRaw[] = [
     meta: {
       requiresAuth: true,
       requiresAdmin: false,
-      title: 'AI官方订阅',
+      title: 'AI商品中心',
+      titleKey: 'nav.aiProducts'
+    }
+  },
+  {
+    path: '/ai-products/sms',
+    name: 'AiProductSms',
+    component: () => import('@/views/user/AiProductServiceView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: false,
+      title: 'AI商品中心',
       titleKey: 'nav.aiProducts'
     }
   },

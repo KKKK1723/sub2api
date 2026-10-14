@@ -643,4 +643,94 @@ export default {
     },
   },
 
+  // AI 商品中心
+  aiProducts: {
+    eyebrow: 'AI 商品中心 · 新上架 Codex 接码',
+    title: 'AI 商品中心',
+    description: '官方订阅与接码服务，价格透明。选好套餐，联系站长确认后即可办理。',
+    contact: '联系站长',
+    wechat: '微信',
+    all: '全部',
+    new: '新上架',
+    consult: '咨询购买',
+    itemCount: '{count} 款',
+    categories: {
+      subscription: {
+        title: '官方订阅',
+        description: 'GPT · Claude 月度订阅，含掉订质保'
+      },
+      sms: {
+        title: '接码服务',
+        description: 'Codex 手机号验证，{price} 起'
+      }
+    },
+    chip: {
+      subscription: '订阅',
+      sms: '接码'
+    },
+    units: {
+      month: '/ 月',
+      once: '/ 次',
+      days25: '/ 25 天'
+    },
+    terms: {
+      subscription: '含质保订阅：如账号订阅掉订，按剩余天数补差价；账号封号风险不在质保范围内。页面仅用于服务介绍，不提供在线下单。',
+      sms: '购买前请与站长确认验证平台、地区和可用号码，号码可用情况以下单时为准。页面仅用于服务介绍，不提供在线下单。'
+    },
+    products: {
+      gptPlus: {
+        subtitle: 'ChatGPT · 日常创作',
+        feature1: 'ChatGPT Plus 月度订阅',
+        feature2: '语音与图像能力',
+        feature3: '含掉订质保'
+      },
+      gptPro5x: {
+        subtitle: 'ChatGPT · 高频使用',
+        feature1: 'GPT Pro 5x 月度订阅',
+        feature2: '更高使用额度',
+        feature3: '含掉订质保'
+      },
+      gptPro20x: {
+        subtitle: 'ChatGPT · 重度使用',
+        feature1: 'GPT Pro 20x 月度订阅',
+        feature2: '最高使用额度',
+        feature3: '含掉订质保'
+      },
+      claudePro: {
+        subtitle: 'Anthropic · 代码与长文',
+        feature1: 'Claude Pro 月度订阅',
+        feature2: '长上下文与更高额度',
+        feature3: '含掉订质保'
+      },
+      codexUsSimOnce: {
+        name: 'Codex 美区实体卡单次接码',
+        subtitle: 'Codex · 手机号验证',
+        feature1: '美国实体卡号码',
+        feature2: '接收一次验证码',
+        feature3: '适合一次性验证'
+      },
+      codexUs25d: {
+        name: 'Codex 美区 25 天长效接码',
+        subtitle: 'Codex · 手机号验证',
+        feature1: '美区号码 25 天有效',
+        feature2: '同一号码多次接收',
+        feature3: '适合需要反复验证'
+      }
+    },
+    dialog: {
+      title: '联系站长',
+      product: '商品',
+      price: '价格',
+      method: '办理方式',
+      methodValue: '微信联系站长确认',
+      scan: '微信扫码添加站长',
+      copyWechat: '复制微信号',
+      copyInquiry: '复制咨询内容，发给站长',
+      wechatCopied: '微信号已复制',
+      inquiryCopied: '咨询内容已复制',
+      inquiry: '你好，我想购买 {name}，页面价格 ¥{price} {unit}，请确认办理方式。',
+      generalInquiry: '你好，我想咨询 AI 商品中心的商品。'
+    }
+  },
+
 }

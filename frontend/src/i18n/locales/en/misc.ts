@@ -619,4 +619,94 @@ export default {
     },
   },
 
+  // AI Product Center
+  aiProducts: {
+    eyebrow: 'AI Product Center · New: Codex SMS codes',
+    title: 'AI Product Center',
+    description: 'Official subscriptions and SMS verification codes with transparent pricing. Pick a plan and contact us to get it activated.',
+    contact: 'Contact us',
+    wechat: 'WeChat',
+    all: 'All',
+    new: 'New',
+    consult: 'Ask to buy',
+    itemCount: '{count} items',
+    categories: {
+      subscription: {
+        title: 'Subscriptions',
+        description: 'Monthly GPT and Claude plans with lapse coverage'
+      },
+      sms: {
+        title: 'SMS codes',
+        description: 'Codex phone verification, from {price}'
+      }
+    },
+    chip: {
+      subscription: 'Plan',
+      sms: 'SMS'
+    },
+    units: {
+      month: '/ month',
+      once: '/ code',
+      days25: '/ 25 days'
+    },
+    terms: {
+      subscription: 'Plans include lapse coverage: if a subscription lapses, the remaining days are refunded as a price difference. Account bans are not covered. This page is for information only; online ordering is not available.',
+      sms: 'Before buying, confirm the platform, region, and number availability with us. Availability is subject to the time of order. This page is for information only; online ordering is not available.'
+    },
+    products: {
+      gptPlus: {
+        subtitle: 'ChatGPT · Everyday work',
+        feature1: 'Monthly ChatGPT Plus subscription',
+        feature2: 'Voice and image capabilities',
+        feature3: 'Lapse coverage included'
+      },
+      gptPro5x: {
+        subtitle: 'ChatGPT · Frequent use',
+        feature1: 'Monthly GPT Pro 5x subscription',
+        feature2: 'Higher usage allowance',
+        feature3: 'Lapse coverage included'
+      },
+      gptPro20x: {
+        subtitle: 'ChatGPT · Heavy use',
+        feature1: 'Monthly GPT Pro 20x subscription',
+        feature2: 'Highest usage allowance',
+        feature3: 'Lapse coverage included'
+      },
+      claudePro: {
+        subtitle: 'Anthropic · Code & long context',
+        feature1: 'Monthly Claude Pro subscription',
+        feature2: 'Long context and higher limits',
+        feature3: 'Lapse coverage included'
+      },
+      codexUsSimOnce: {
+        name: 'Codex US physical SIM, single code',
+        subtitle: 'Codex · Phone verification',
+        feature1: 'US physical SIM number',
+        feature2: 'Receives one verification code',
+        feature3: 'For one-time verification'
+      },
+      codexUs25d: {
+        name: 'Codex US 25-day long-term number',
+        subtitle: 'Codex · Phone verification',
+        feature1: 'US number valid for 25 days',
+        feature2: 'Receive codes on the same number',
+        feature3: 'For repeated verification'
+      }
+    },
+    dialog: {
+      title: 'Contact us',
+      product: 'Product',
+      price: 'Price',
+      method: 'How to buy',
+      methodValue: 'Confirm with us on WeChat',
+      scan: 'Scan to add us on WeChat',
+      copyWechat: 'Copy WeChat ID',
+      copyInquiry: 'Copy inquiry message',
+      wechatCopied: 'WeChat ID copied',
+      inquiryCopied: 'Inquiry message copied',
+      inquiry: 'Hi, I would like to buy {name} at CNY {price} {unit}. Please confirm how to proceed.',
+      generalInquiry: 'Hi, I would like to ask about products in the AI Product Center.'
+    }
+  },
+
 }

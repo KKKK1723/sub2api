@@ -28,27 +28,6 @@ export const products = [
     },
   },
   {
-    id: 'claude-pro',
-    provider: 'Anthropic',
-    name: 'Claude Pro',
-    price: 168,
-    logo: '/brands/claude.svg',
-    tone: 'apricot',
-    tag: { zh: '代码与长文', en: 'Code & long context' },
-    description: {
-      zh: '从一段代码，到一份完整的方案。',
-      en: 'From a piece of code to a complete proposal.',
-    },
-    features: {
-      zh: ['Claude Pro 月度订阅', '长上下文与更高使用额度', '含掉订质保'],
-      en: [
-        'Monthly Claude Pro subscription',
-        'Long context and higher usage limits',
-        'Subscription lapse coverage',
-      ],
-    },
-  },
-  {
     id: 'gpt-pro',
     provider: 'OpenAI',
     name: 'GPT Pro 5x',
@@ -67,6 +46,76 @@ export const products = [
         'Higher usage allowance',
         'Subscription lapse coverage',
       ],
+    },
+  },
+  {
+    id: 'gpt-pro-20x',
+    provider: 'OpenAI',
+    name: 'GPT Pro 20x',
+    price: 1099,
+    logo: '/brands/openai.svg',
+    tone: 'blue',
+    tag: { zh: '重度使用', en: 'Heavy use' },
+    description: {
+      zh: '为全天候、高强度的专业 AI 工作准备。',
+      en: 'For all-day, high-intensity professional AI work.',
+    },
+    features: {
+      zh: ['GPT Pro 20x 月度订阅', '最高使用额度', '含掉订质保'],
+      en: [
+        'Monthly GPT Pro 20x subscription',
+        'Highest usage allowance',
+        'Subscription lapse coverage',
+      ],
+    },
+  },
+  {
+    id: 'claude-pro',
+    provider: 'Anthropic',
+    name: 'Claude Pro',
+    price: 178,
+    logo: '/brands/claude.svg',
+    tone: 'apricot',
+    tag: { zh: '代码与长文', en: 'Code & long context' },
+    description: {
+      zh: '从一段代码，到一份完整的方案。',
+      en: 'From a piece of code to a complete proposal.',
+    },
+    features: {
+      zh: ['Claude Pro 月度订阅', '长上下文与更高使用额度', '含掉订质保'],
+      en: [
+        'Monthly Claude Pro subscription',
+        'Long context and higher usage limits',
+        'Subscription lapse coverage',
+      ],
+    },
+  },
+]
+
+// 接码按次或按租期计价，不是月度订阅，单独维护，不进入订阅商品列表。
+export const smsPlans = [
+  {
+    id: 'codex-us-sim-once',
+    platform: 'Codex',
+    logo: '/brands/openai.svg',
+    price: 5.2,
+    unit: { zh: '/ 次', en: '/ code' },
+    name: { zh: '美区实体卡单次接码', en: 'US physical SIM, single code' },
+    note: {
+      zh: '美国实体卡号码，接收一次验证码',
+      en: 'A US physical SIM number for one verification code',
+    },
+  },
+  {
+    id: 'codex-us-25d',
+    platform: 'Codex',
+    logo: '/brands/openai.svg',
+    price: 28.8,
+    unit: { zh: '/ 25 天', en: '/ 25 days' },
+    name: { zh: '美区 25 天长效接码', en: 'US 25-day long-term number' },
+    note: {
+      zh: '25 天内使用同一号码接收验证码',
+      en: 'Receive codes on the same number for 25 days',
     },
   },
 ]
@@ -147,6 +196,8 @@ export const copy = {
     },
     smsContactSubtitle: '添加站长微信，确认价格后购买对应平台的短信验证码。',
     copySmsRequest: '复制购买需求',
+    smsPlansTitle: '接码套餐',
+    smsConsult: '咨询购买',
     faqLabel: '了解更多',
     faqTitle: '开始之前，你可能还想知道。',
     faqs: [
@@ -259,6 +310,8 @@ export const copy = {
     smsContactSubtitle:
       'Contact us on WeChat to confirm the price and purchase an SMS code for your platform.',
     copySmsRequest: 'Copy purchase request',
+    smsPlansTitle: 'SMS plans',
+    smsConsult: 'Ask to buy',
     faqLabel: 'GOOD TO KNOW',
     faqTitle: 'A few things before you start.',
     faqs: [
