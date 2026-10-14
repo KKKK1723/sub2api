@@ -113,7 +113,7 @@ const products: Record<CategoryKey, Product[]> = {
     {
       name: 'GPT Pro 5x',
       description: '适用于高频专业用户，提供更高额度与更稳定的使用体验。含质保订阅，掉订按剩余天数补差价，不质保封号。',
-      price: '¥ 688',
+      price: '¥ 650',
       tags: ['Pro 5x', '高额度', '含质保'],
       logo: '5x',
       logoClass: 'pro',
@@ -123,7 +123,7 @@ const products: Record<CategoryKey, Product[]> = {
     {
       name: 'Claude Pro',
       description: '适用于 Claude Pro，支持更长上下文与更高使用额度。含质保订阅，掉订按剩余天数补差价，不质保封号。',
-      price: '¥ 148',
+      price: '¥ 168',
       tags: ['Claude Pro', '月度订阅', '含质保'],
       logo: 'C',
       logoClass: 'claude',
