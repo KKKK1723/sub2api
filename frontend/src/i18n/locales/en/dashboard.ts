@@ -545,6 +545,56 @@ export default {
     detailLoadError: 'Failed to load channel detail',
     detailTitle: 'Channel Detail',
     closeDetail: 'Close',
+    // Status board (MonitorStatusBoard)
+    board: {
+      subtitle: 'Live probes of availability and latency for each group, refreshed every {minutes} min',
+      views: {
+        groups: 'Groups',
+        probes: 'Probes'
+      },
+      sortOrder: 'Reorder groups',
+      overallLabel: 'Overall status',
+      overall: {
+        operational: 'All systems operational',
+        degraded: 'Partial performance degradation',
+        outage: 'Partial outage',
+        empty: 'No monitoring data'
+      },
+      healthyGroups: 'Healthy groups',
+      avgAvailability: 'Avg availability · {window}',
+      avgLatency: 'Avg latency',
+      nextRefresh: 'Next refresh',
+      allPlatforms: 'All platforms',
+      groupCount: '{count} groups',
+      availability: '{window} availability',
+      latency: 'Latency',
+      ping: 'Ping {value} ms',
+      timelineLabel: 'Status over the last 5 hours',
+      hoursAgo: '5h ago',
+      now: 'Now',
+      loading: 'Loading monitor status…',
+      empty: 'No groups to display',
+      tooltip: {
+        status: 'Status: {value}',
+        latency: 'Latency: {value} ms',
+        ping: 'Ping: {value} ms'
+      },
+      probes: {
+        title: 'Probes',
+        description: 'Admins can inspect the probes, endpoints and latest results of each group',
+        healthy: '{healthy} / {total} healthy',
+        count: '{count} probes',
+        loading: 'Loading probes…',
+        empty: 'No probe data',
+        unnamed: 'Probe {index}',
+        noEndpoint: 'No endpoint configured',
+        apiKey: 'API Key: {value}',
+        noKey: 'Not returned',
+        enabled: 'Enabled',
+        disabled: 'Disabled',
+        overall: 'Overall probe status'
+      }
+    },
     windowTab: {
       '7d': '7 days',
       '15d': '15 days',

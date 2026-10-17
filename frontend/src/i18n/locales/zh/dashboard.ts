@@ -550,6 +550,56 @@ export default {
     detailLoadError: '加载渠道详情失败',
     detailTitle: '渠道详情',
     closeDetail: '关闭',
+    // 状态面板（MonitorStatusBoard）
+    board: {
+      subtitle: '实时探测各分组的可用性与延迟，每 {minutes} 分钟自动刷新',
+      views: {
+        groups: '分组状态',
+        probes: '探针状态'
+      },
+      sortOrder: '调整分组顺序',
+      overallLabel: '整体状态',
+      overall: {
+        operational: '所有服务运行正常',
+        degraded: '部分服务性能下降',
+        outage: '部分服务中断',
+        empty: '暂无监控数据'
+      },
+      healthyGroups: '正常分组',
+      avgAvailability: '平均可用性 · {window}',
+      avgLatency: '平均延迟',
+      nextRefresh: '下次刷新',
+      allPlatforms: '全部平台',
+      groupCount: '{count} 个分组',
+      availability: '{window}可用性',
+      latency: '延迟',
+      ping: 'Ping {value} ms',
+      timelineLabel: '最近 5 小时状态',
+      hoursAgo: '5 小时前',
+      now: '现在',
+      loading: '正在加载监控状态…',
+      empty: '暂无可展示的分组',
+      tooltip: {
+        status: '状态：{value}',
+        latency: '延迟：{value} ms',
+        ping: 'Ping：{value} ms'
+      },
+      probes: {
+        title: '探针状态',
+        description: '管理员可查看每个分组的独立探针、接口和最近一次探测结果',
+        healthy: '{healthy} / {total} 正常',
+        count: '{count} 个探针',
+        loading: '正在加载探针状态…',
+        empty: '暂无探针数据',
+        unnamed: '探针 {index}',
+        noEndpoint: '未配置接口',
+        apiKey: 'API Key：{value}',
+        noKey: '未返回',
+        enabled: '已启用',
+        disabled: '已停用',
+        overall: '探针总体状态'
+      }
+    },
     windowTab: {
       '7d': '7 天',
       '15d': '15 天',
