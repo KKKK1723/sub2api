@@ -631,6 +631,7 @@ export default {
     consult: 'Ask to buy',
     detail: 'Details',
     itemCount: '{count} items',
+    priceNotice: 'Prices may vary; please confirm the final price with us',
     categories: {
       subscription: {
         title: 'Subscriptions',
@@ -731,8 +732,9 @@ export default {
       copyInquiry: 'Copy inquiry message',
       wechatCopied: 'WeChat ID copied',
       inquiryCopied: 'Inquiry message copied',
+      priceNotice: 'Prices may change; the final price is the one we confirm with you',
       readDetail: 'Please read the product details and confirm your account is eligible before ordering',
-      inquiry: 'Hi, I would like to buy {name} at CNY {price} {unit}. Please confirm how to proceed.',
+      inquiry: 'Hi, I would like to buy {name} at CNY {price} {unit}. Please confirm the final price and how to proceed.',
       generalInquiry: 'Hi, I would like to ask about products in the AI Product Center.'
     }
   },

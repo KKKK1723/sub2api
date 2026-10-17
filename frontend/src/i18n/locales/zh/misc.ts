@@ -655,6 +655,7 @@ export default {
     consult: '咨询购买',
     detail: '详情',
     itemCount: '{count} 款',
+    priceNotice: '价格可能有波动，最终价格请联系站长确认',
     categories: {
       subscription: {
         title: '官方订阅',
@@ -755,8 +756,9 @@ export default {
       copyInquiry: '复制咨询内容，发给站长',
       wechatCopied: '微信号已复制',
       inquiryCopied: '咨询内容已复制',
+      priceNotice: '价格可能有波动，以站长确认的最终价格为准',
       readDetail: '下单前请先查看商品详情，确认账号符合购买条件',
-      inquiry: '你好，我想购买 {name}，页面价格 ¥{price} {unit}，请确认办理方式。',
+      inquiry: '你好，我想购买 {name}，页面价格 ¥{price} {unit}，请确认最终价格和办理方式。',
       generalInquiry: '你好，我想咨询 AI 商品中心的商品。'
     }
   },
