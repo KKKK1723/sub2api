@@ -645,7 +645,7 @@ export default {
 
   // AI 商品中心
   aiProducts: {
-    eyebrow: 'AI 商品中心 · 新上架 Codex 接码',
+    eyebrow: 'AI 商品中心 · 新上架 Gemini Pro 18 个月',
     title: 'AI 商品中心',
     description: '官方订阅与接码服务，价格透明。选好套餐，联系站长确认后即可办理。',
     contact: '联系站长',
@@ -653,11 +653,12 @@ export default {
     all: '全部',
     new: '新上架',
     consult: '咨询购买',
+    detail: '详情',
     itemCount: '{count} 款',
     categories: {
       subscription: {
         title: '官方订阅',
-        description: 'GPT · Claude 月度订阅，含掉订质保'
+        description: 'GPT · Claude · Gemini 官方订阅'
       },
       sms: {
         title: '接码服务',
@@ -671,10 +672,11 @@ export default {
     units: {
       month: '/ 月',
       once: '/ 次',
-      days25: '/ 25 天'
+      days25: '/ 25 天',
+      months18: '/ 18 个月'
     },
     terms: {
-      subscription: '含质保订阅：如账号订阅掉订，按剩余天数补差价；账号封号风险不在质保范围内。页面仅用于服务介绍，不提供在线下单。',
+      subscription: 'GPT、Claude 为含质保订阅：如账号订阅掉订，按剩余天数补差价；账号封号风险不在质保范围内。Gemini 激活链接仅在发货后 24 小时内受理退换，详见商品咨询弹窗中的购买须知。页面仅用于服务介绍，不提供在线下单。',
       sms: '购买前请与站长确认验证平台、地区和可用号码，号码可用情况以下单时为准。页面仅用于服务介绍，不提供在线下单。'
     },
     products: {
@@ -702,6 +704,31 @@ export default {
         feature2: '长上下文与更高额度',
         feature3: '含掉订质保'
       },
+      geminiPro18m: {
+        name: 'Gemini 4 Argon 18 个月 Pro 激活链接',
+        subtitle: 'Google · 激活链接',
+        feature1: 'Gemini Pro 全部权益，含 Antigravity',
+        feature2: '仅限无任何订阅的干净账号',
+        feature3: '发货后 24 小时内激活',
+        detail: {
+          notice: {
+            title: '购买须知（不满足请勿下单）',
+            body: '1. 请确认您的 Google 账号可以正常登录，且必须完全没有任何订阅：Gemini 各版本、Google One / AI 方案、家庭组共享、免费试用，只要有一个就用不了。本商品不能与任何已有订阅叠加，请换一个干净的账号再下单。\n2. 本商品只卖激活链接，不含谷歌账号注册，也不提供使用教学，新手请谨慎下单。\n3. 发货后 24 小时是唯一有效窗口：链接要在 24 小时内用掉，退款或更换也只在这 24 小时内受理。'
+          },
+          warranty: {
+            title: '售后与质保范围',
+            body: '只保证一件事：发货后链接有效可用（质保链接在 24 小时内不被使用）。\n链接本身不会出问题，账号符合条件就一定能激活；激活之后能不能用、用多久，取决于你自己的 Google 账号，这部分不在质保范围：\n· 不保账号本身的问题：地区不支持、无权限、被风控或封禁等，都由你的 Google 账号决定。\n· 订阅本身覆盖 Gemini Pro 的全部权益，Antigravity（反重力）也在其中。个别账号用不了，是账号自身的限制，不是订阅少给了权益。\n· 不保使用时长：激活成功后，无论你用了 1 个小时还是满 18 个月，都不在质保范围，也不作为退款或补发的理由。\n介意以上范围请勿下单，看清楚再拍。'
+          },
+          steps: {
+            title: '激活步骤（3 步搞定）',
+            body: '点链接前，建议先把网络切换到 US 或 JP 线路，尽量与账号地区保持一致，激活成功率最高。\n1. 先用符合条件的 Google 账号登录，确认浏览器当前就是这个账号\n2. 打开发货给你的激活链接\n3. 在页面上点领取 / 激活，完成'
+          },
+          faq: {
+            title: '常见问题排查（账号问题的参考建议，不保证一定能解决）',
+            body: '问题一：提示“不面向您所在的地点提供”\n页面提示：非常抱歉，Google One 存储空间方案目前不面向您所在的地点提供。\n原因：你的 Google 账号所属国家/地区不支持，中国大陆、香港、俄罗斯等地区常见此问题。\n解决方法：打开地区管理页面 https://policies.google.com/country-association-form ，查看当前账号所属国家，按提示将地区改为 US 或 JP（推荐，功能最完整），修改后重新登录账号再试一次。\n注意：地区修改不是立即生效，通常需要等一段时间再重试；具体怎么修改请自行问 AI 或搜索教程；Google 对地区变更有频率限制，短期内反复改可能失败；部分情况需要账号内绑定对应地区的付款方式才能完成变更。\n\n问题二：Gemini 页面打不开 / 提示无权限\n原因：该 Google 账号还没开通 Gemini 服务入口。\n解决方法：先访问 https://gemini.google.com/gems/create 触发服务开通，等页面加载完成后，再重新进入 Gemini 官网，此时应该可以正常使用了。\n\n问题三：页面一直转圈、加载失败\n原因：网络线路问题。\n解决方法：确认你的网络能正常访问 Google 服务；更换线路，优先选 US 或 JP，尽量和账号地区保持一致。\n\n问题四：订阅掉了账号会被封吗？\n答：一般不会。订阅和账号没有直接关系，账号封禁更多和谷歌风控、IP 等因素有关。\n\n问题五：Antigravity（反重力）登录不了 / 用不了？\n答：订阅正常情况下覆盖 Gemini Pro 的全部权益，Antigravity 也在其中，不存在“这个订阅不带 Antigravity”这回事。如果你的账号登录不了或用不了，原因在账号自身——账号权限、所属地区、Google 的灰度放量范围等，都会影响 Antigravity 的可用性。这属于账号问题，不是订阅问题，与本商品无关，也不作为退款或更换的理由。'
+          }
+        }
+      },
       codexUsSimOnce: {
         name: 'Codex 美区实体卡单次接码',
         subtitle: 'Codex · 手机号验证',
@@ -728,6 +755,7 @@ export default {
       copyInquiry: '复制咨询内容，发给站长',
       wechatCopied: '微信号已复制',
       inquiryCopied: '咨询内容已复制',
+      readDetail: '下单前请先查看商品详情，确认账号符合购买条件',
       inquiry: '你好，我想购买 {name}，页面价格 ¥{price} {unit}，请确认办理方式。',
       generalInquiry: '你好，我想咨询 AI 商品中心的商品。'
     }

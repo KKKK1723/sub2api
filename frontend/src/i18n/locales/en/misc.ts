@@ -621,7 +621,7 @@ export default {
 
   // AI Product Center
   aiProducts: {
-    eyebrow: 'AI Product Center · New: Codex SMS codes',
+    eyebrow: 'AI Product Center · New: Gemini Pro 18 months',
     title: 'AI Product Center',
     description: 'Official subscriptions and SMS verification codes with transparent pricing. Pick a plan and contact us to get it activated.',
     contact: 'Contact us',
@@ -629,11 +629,12 @@ export default {
     all: 'All',
     new: 'New',
     consult: 'Ask to buy',
+    detail: 'Details',
     itemCount: '{count} items',
     categories: {
       subscription: {
         title: 'Subscriptions',
-        description: 'Monthly GPT and Claude plans with lapse coverage'
+        description: 'Official GPT, Claude and Gemini plans'
       },
       sms: {
         title: 'SMS codes',
@@ -647,10 +648,11 @@ export default {
     units: {
       month: '/ month',
       once: '/ code',
-      days25: '/ 25 days'
+      days25: '/ 25 days',
+      months18: '/ 18 months'
     },
     terms: {
-      subscription: 'Plans include lapse coverage: if a subscription lapses, the remaining days are refunded as a price difference. Account bans are not covered. This page is for information only; online ordering is not available.',
+      subscription: 'GPT and Claude plans include lapse coverage: if a subscription lapses, the remaining days are refunded as a price difference. Account bans are not covered. Gemini activation links can only be refunded or replaced within 24 hours of delivery; see the purchase notes in the inquiry dialog. This page is for information only; online ordering is not available.',
       sms: 'Before buying, confirm the platform, region, and number availability with us. Availability is subject to the time of order. This page is for information only; online ordering is not available.'
     },
     products: {
@@ -678,6 +680,31 @@ export default {
         feature2: 'Long context and higher limits',
         feature3: 'Lapse coverage included'
       },
+      geminiPro18m: {
+        name: 'Gemini 4 Argon 18-month Pro activation link',
+        subtitle: 'Google · Activation link',
+        feature1: 'All Gemini Pro benefits, incl. Antigravity',
+        feature2: 'Only for accounts with no subscription',
+        feature3: 'Activate within 24 hours of delivery',
+        detail: {
+          notice: {
+            title: 'Before you buy (do not order if any item is not met)',
+            body: '1. Your Google account must sign in normally and have no subscription of any kind: any Gemini plan, Google One / AI plans, family group sharing, or free trials. If any one of these exists, the link will not work. This product cannot be stacked on an existing subscription; please use a clean account.\n2. Only the activation link is sold. Google account registration and usage tutorials are not included; beginners please order with care.\n3. The 24 hours after delivery is the only valid window: the link must be used within 24 hours, and refunds or replacements are only accepted within these 24 hours.'
+          },
+          warranty: {
+            title: 'After-sales and warranty scope',
+            body: 'Only one thing is guaranteed: the link is valid after delivery (the link is guaranteed unused within 24 hours).\nThe link itself will not fail; an eligible account can always be activated. Whether it works after activation, and for how long, depends on your own Google account and is not covered:\n· Account issues are not covered: unsupported region, no access, risk control or suspension are determined by your Google account.\n· The subscription covers all Gemini Pro benefits, including Antigravity. If a particular account cannot use it, that is a limit of the account, not a missing benefit.\n· Usage duration is not covered: once activated, whether you used it for 1 hour or the full 18 months, it is not grounds for a refund or reissue.\nIf you do not accept this scope, please do not order.'
+          },
+          steps: {
+            title: 'Activation (3 steps)',
+            body: 'Before opening the link, switch your network to a US or JP route that matches your account region for the best success rate.\n1. Sign in with an eligible Google account and make sure the browser is using that account\n2. Open the activation link you received\n3. Click claim / activate on the page, done'
+          },
+          faq: {
+            title: 'Troubleshooting (suggestions for account issues, not guaranteed to work)',
+            body: 'Q1: "Not available in your location"\nThe page says: Sorry, Google One storage plans are not available in your location.\nCause: your Google account country/region is not supported, common for mainland China, Hong Kong, Russia, etc.\nFix: open https://policies.google.com/country-association-form , check the current country, change it to US or JP (recommended, most complete features), then sign in again and retry.\nNote: the change is not immediate, wait a while before retrying; search or ask an AI for detailed steps; Google rate-limits region changes, so repeated changes may fail; some cases require a payment method from that region.\n\nQ2: Gemini page will not open / no access\nCause: the account has not enabled the Gemini entry yet.\nFix: visit https://gemini.google.com/gems/create first, wait for it to load, then open Gemini again; it should work now.\n\nQ3: Page keeps loading or fails\nCause: network route.\nFix: make sure your network can reach Google services; switch routes, preferably US or JP, matching your account region.\n\nQ4: Will my account be banned if the subscription drops?\nA: Usually not. The subscription is not directly tied to bans, which mostly relate to Google risk control, IP and similar factors.\n\nQ5: Cannot sign in to or use Antigravity?\nA: The subscription normally covers all Gemini Pro benefits, Antigravity included; there is no such thing as this subscription not including Antigravity. If your account cannot sign in or use it, the cause is the account itself: permissions, region, Google staged rollout, and so on. This is an account issue, not a subscription issue, unrelated to this product, and not grounds for a refund or replacement.'
+          }
+        }
+      },
       codexUsSimOnce: {
         name: 'Codex US physical SIM, single code',
         subtitle: 'Codex · Phone verification',
@@ -704,6 +731,7 @@ export default {
       copyInquiry: 'Copy inquiry message',
       wechatCopied: 'WeChat ID copied',
       inquiryCopied: 'Inquiry message copied',
+      readDetail: 'Please read the product details and confirm your account is eligible before ordering',
       inquiry: 'Hi, I would like to buy {name} at CNY {price} {unit}. Please confirm how to proceed.',
       generalInquiry: 'Hi, I would like to ask about products in the AI Product Center.'
     }
