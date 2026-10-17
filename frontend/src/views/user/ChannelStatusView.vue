@@ -33,6 +33,7 @@ import { ref, reactive, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
+import { useChannelStatusStore } from '@/stores/channelStatus'
 import { extractApiErrorMessage } from '@/utils/apiError'
 import {
   list as listChannelMonitorViews,
@@ -54,9 +55,11 @@ const STATUS_REFRESH_INTERVAL_SECONDS = 300
 const { t } = useI18n()
 const appStore = useAppStore()
 const authStore = useAuthStore()
+const channelStatusStore = useChannelStatusStore()
 
 // ── State ──
-const items = ref<UserMonitorView[]>([])
+// 列表放在 store 中跨页面保留，再次进入时直接展示上一次结果
+const items = computed(() => channelStatusStore.items)
 const loading = ref(false)
 const showOrder = ref(false)
 const currentWindow = ref<MonitorWindow>('7d')
@@ -91,7 +94,7 @@ async function reload(silent = false) {
   try {
     const res = await listChannelMonitorViews({ signal: ctrl.signal })
     if (ctrl.signal.aborted || abortController !== ctrl) return
-    items.value = res.items || []
+    channelStatusStore.setItems(res.items || [])
   } catch (err: unknown) {
     const e = err as { name?: string; code?: string }
     if (e?.name === 'AbortError' || e?.code === 'ERR_CANCELED') return
@@ -170,7 +173,8 @@ watch(
 )
 
 onMounted(() => {
-  void reload(false)
+  // 已有缓存时静默刷新，不显示加载态
+  void reload(channelStatusStore.loaded)
   if (appStore.cachedPublicSettings?.channel_monitor_enabled !== false) {
     autoRefresh.setEnabled(true)
   }

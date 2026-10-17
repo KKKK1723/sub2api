@@ -435,14 +435,42 @@ func (r *channelMonitorRepository) ListLatestForMonitorIDs(ctx context.Context, 
 	if len(ids) == 0 {
 		return out, nil
 	}
+	// 明细保留 30 天，直接对全部历史做 DISTINCT ON 需要全表排序（30 万行约 3 秒）。
+	// 启用中的监控每轮都会写明细，先只在近期窗口内取最新；窗口内没有任何记录的监控
+	// （已停用或长时间未运行）再单独回退到该监控的全量历史，仍能拿到最后一次状态。
+	// 有近期记录的监控不再返回窗口外的旧组合（已删除的探针、已更换的模型），
+	// 避免过期记录在 indexLatestByModel（同一模型取最后一条）中覆盖当前状态。
+	// 最终按原有顺序输出。
 	const q = `
-		SELECT DISTINCT ON (monitor_id, probe_index, model)
-		    monitor_id, probe_index, model, status, latency_ms, ping_latency_ms, checked_at
-		FROM channel_monitor_histories
-		WHERE monitor_id = ANY($1)
-		ORDER BY monitor_id, probe_index, model, checked_at DESC
+		WITH recent AS (
+		    SELECT DISTINCT ON (monitor_id, probe_index, model)
+		        monitor_id, probe_index, model, status, latency_ms, ping_latency_ms, checked_at
+		    FROM channel_monitor_histories
+		    WHERE monitor_id = ANY($1)
+		      AND checked_at >= NOW() - ($2::int * INTERVAL '1 second')
+		    ORDER BY monitor_id, probe_index, model, checked_at DESC
+		),
+		stale AS (
+		    SELECT id
+		    FROM unnest($1::bigint[]) AS id
+		    WHERE NOT EXISTS (SELECT 1 FROM recent r WHERE r.monitor_id = id)
+		),
+		older AS (
+		    SELECT DISTINCT ON (h.monitor_id, h.probe_index, h.model)
+		        h.monitor_id, h.probe_index, h.model, h.status, h.latency_ms, h.ping_latency_ms, h.checked_at
+		    FROM channel_monitor_histories h
+		    WHERE h.monitor_id IN (SELECT id FROM stale)
+		    ORDER BY h.monitor_id, h.probe_index, h.model, h.checked_at DESC
+		)
+		SELECT monitor_id, probe_index, model, status, latency_ms, ping_latency_ms, checked_at
+		FROM (
+		    SELECT * FROM recent
+		    UNION ALL
+		    SELECT * FROM older
+		) latest
+		ORDER BY monitor_id, probe_index, model
 	`
-	rows, err := r.db.QueryContext(ctx, q, pq.Array(ids))
+	rows, err := r.db.QueryContext(ctx, q, pq.Array(ids), int(latestRecentWindow/time.Second))
 	if err != nil {
 		return nil, fmt.Errorf("query latest batch: %w", err)
 	}
@@ -468,7 +496,7 @@ func (r *channelMonitorRepository) ListLatestForMonitorIDs(ctx context.Context, 
 // ListRecentHistoryForMonitors 为多个 monitor 批量取各自"指定模型"最近 N 条历史（按 checked_at DESC，最新在前）。
 // primaryModels[monitorID] 指定该监控要过滤的模型名；monitor 不在 primaryModels 中的记录不返回。
 // 通过 CTE + unnest(两个 int8/text 数组) 构造 (monitor_id, model) 白名单，
-// 再用 ROW_NUMBER() OVER (PARTITION BY monitor_id) 取各自前 N 条。
+// 再用 LATERAL + LIMIT 按索引取各自前 N 条。
 //
 // 返回值：map[monitorID] -> []*ChannelMonitorHistoryEntry（不含 message，减少网络开销）。
 // 空 ids / 空 primaryModels 返回空 map，不报错。
@@ -485,27 +513,23 @@ func (r *channelMonitorRepository) ListRecentHistoryForMonitors(
 	}
 	perMonitorLimit = clampTimelineLimit(perMonitorLimit)
 
+	// 每个 (monitor_id, model) 用 LATERAL + LIMIT 走 idx_channel_monitor_histories_monitor_model_checked
+	// 索引只读最近 N 条；原 ROW_NUMBER 写法需要扫描并排序这些监控的全部历史。
 	const q = `
 		WITH targets AS (
 		    SELECT unnest($1::bigint[]) AS monitor_id,
 		           unnest($2::text[])   AS model
-		),
-		ranked AS (
-		    SELECT h.monitor_id,
-		           h.model,
-		           h.status,
-		           h.latency_ms,
-		           h.ping_latency_ms,
-		           h.checked_at,
-		           ROW_NUMBER() OVER (PARTITION BY h.monitor_id, h.model ORDER BY h.checked_at DESC) AS rn
-		    FROM channel_monitor_histories h
-		    JOIN targets t
-		      ON t.monitor_id = h.monitor_id AND t.model = h.model
 		)
-		SELECT monitor_id, model, status, latency_ms, ping_latency_ms, checked_at
-		FROM ranked
-		WHERE rn <= $3
-		ORDER BY monitor_id, checked_at DESC
+		SELECT t.monitor_id, h.model, h.status, h.latency_ms, h.ping_latency_ms, h.checked_at
+		FROM targets t
+		CROSS JOIN LATERAL (
+		    SELECT model, status, latency_ms, ping_latency_ms, checked_at
+		    FROM channel_monitor_histories
+		    WHERE monitor_id = t.monitor_id AND model = t.model
+		    ORDER BY checked_at DESC
+		    LIMIT $3
+		) h
+		ORDER BY t.monitor_id, h.checked_at DESC
 	`
 	rows, err := r.db.QueryContext(ctx, q, pq.Array(pairIDs), pq.Array(pairModels), perMonitorLimit)
 	if err != nil {
@@ -550,6 +574,10 @@ func buildMonitorModelPairs(ids []int64, primaryModels map[int64]string) ([]int6
 	}
 	return pairIDs, pairModels
 }
+
+// latestRecentWindow ListLatestForMonitorIDs 优先扫描的近期窗口。
+// 最大检测间隔 3600s，加上抖动后两次检测最多间隔约 2 小时，6 小时可保证启用中的监控在窗口内必有记录。
+const latestRecentWindow = 6 * time.Hour
 
 // timelineLimit* 批量 timeline 查询的 perMonitorLimit 夹紧范围。
 // 下限 1 表示至少返回最近一条；上限 200 控制单次响应体与 SQL 内存占用（ROW_NUMBER 窗口上限）。

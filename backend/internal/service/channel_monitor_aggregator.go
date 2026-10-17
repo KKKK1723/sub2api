@@ -25,15 +25,28 @@ func (s *ChannelMonitorService) BatchMonitorStatusSummary(
 	extrasByID map[int64][]string,
 	probeModelsByID map[int64][]string,
 ) map[int64]MonitorStatusSummary {
-	out := make(map[int64]MonitorStatusSummary, len(ids))
 	if len(ids) == 0 {
-		return out
+		return make(map[int64]MonitorStatusSummary)
 	}
 	latestMap, err := s.repo.ListLatestForMonitorIDs(ctx, ids)
 	if err != nil {
 		slog.Warn("channel_monitor: batch load latest failed", "error", err)
 		latestMap = map[int64][]*ChannelMonitorLatest{}
 	}
+	return s.batchStatusSummaryWithLatest(ctx, ids, latestMap, primaryByID, extrasByID, probeModelsByID)
+}
+
+// batchStatusSummaryWithLatest 用调用方已查好的 latest 拼 summary，只额外查一次 7d 可用率。
+// ListUserView 同时需要 latest 构造主状态，复用同一份结果，避免重复执行 latest 批量查询。
+func (s *ChannelMonitorService) batchStatusSummaryWithLatest(
+	ctx context.Context,
+	ids []int64,
+	latestMap map[int64][]*ChannelMonitorLatest,
+	primaryByID map[int64]string,
+	extrasByID map[int64][]string,
+	probeModelsByID map[int64][]string,
+) map[int64]MonitorStatusSummary {
+	out := make(map[int64]MonitorStatusSummary, len(ids))
 	availMap, err := s.repo.ComputeAvailabilityForMonitors(ctx, ids, monitorAvailability7Days)
 	if err != nil {
 		slog.Warn("channel_monitor: batch compute availability failed", "error", err)
@@ -70,8 +83,8 @@ func (s *ChannelMonitorService) ListUserView(ctx context.Context) ([]*UserMonito
 	}
 
 	ids, primaryByID, extrasByID, probeModelsByID := collectMonitorIndexes(monitors)
-	summaries := s.BatchMonitorStatusSummary(ctx, ids, primaryByID, extrasByID, probeModelsByID)
 	latestMap := s.batchLatest(ctx, ids)
+	summaries := s.batchStatusSummaryWithLatest(ctx, ids, latestMap, primaryByID, extrasByID, probeModelsByID)
 	timelineMap := s.batchTimeline(ctx, ids, primaryByID)
 
 	views := make([]*UserMonitorView, 0, len(monitors))

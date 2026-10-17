@@ -563,7 +563,8 @@ export default {
         operational: '所有服务运行正常',
         degraded: '部分服务性能下降',
         outage: '部分服务中断',
-        empty: '暂无监控数据'
+        empty: '暂无监控数据',
+        loading: '正在获取状态…'
       },
       healthyGroups: '正常分组',
       avgAvailability: '平均可用性 · {window}',

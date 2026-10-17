@@ -558,7 +558,8 @@ export default {
         operational: 'All systems operational',
         degraded: 'Partial performance degradation',
         outage: 'Partial outage',
-        empty: 'No monitoring data'
+        empty: 'No monitoring data',
+        loading: 'Fetching status…'
       },
       healthyGroups: 'Healthy groups',
       avgAvailability: 'Avg availability · {window}',
