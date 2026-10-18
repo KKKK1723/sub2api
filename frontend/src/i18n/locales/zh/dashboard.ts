@@ -559,6 +559,7 @@ export default {
       },
       sortOrder: '调整分组顺序',
       overallLabel: '整体状态',
+      platformOverallLabel: '{platform} 整体状态',
       overall: {
         operational: '所有服务运行正常',
         degraded: '部分服务性能下降',
