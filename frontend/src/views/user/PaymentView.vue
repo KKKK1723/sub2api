@@ -1,49 +1,41 @@
 <template>
   <AppLayout>
     <main class="recharge-page">
-      <header class="recharge-hero">
-        <p class="eyebrow">Sub2API · Account</p>
-        <h1>充值与订阅</h1>
-        <p class="intro">站点小范围运营，充值请联系站长。</p>
-      </header>
-
-      <section class="contact-grid" aria-label="站长联系方式">
-        <article class="contact-card">
-          <div class="contact-copy">
+      <section class="recharge-hero">
+        <p class="eyebrow">Sub2API · Recharge</p>
+        <h1><em>{{ t('payment.recharge.headlineAny') }}</em><br>{{ t('payment.recharge.headlineRefund') }}</h1>
+        <p class="intro">{{ t('payment.recharge.intro') }}</p>
+        <div class="promises">
+          <div class="promise">
+            <div class="promise-icon" aria-hidden="true">¥</div>
             <div>
-              <p class="contact-label">联系渠道</p>
-              <h2>QQ 联系</h2>
-              <p class="account">2052436429</p>
-              <button class="copy-button" type="button" @click="copyContact('2052436429')">
-                复制 QQ <span aria-hidden="true">↗</span>
-              </button>
+              <b>{{ t('payment.recharge.anyAmountTitle') }}</b>
+              <span>{{ t('payment.recharge.anyAmountDesc') }}</span>
             </div>
-            <p class="contact-note">备注：站点充值</p>
           </div>
-          <div class="qr-panel">
-            <img class="qr-image" src="/contact/qq.png" alt="QQ 联系二维码">
-          </div>
-        </article>
-
-        <article class="contact-card">
-          <div class="contact-copy">
+          <div class="promise">
+            <div class="promise-icon" aria-hidden="true">↩</div>
             <div>
-              <p class="contact-label">联系渠道</p>
-              <h2>微信联系</h2>
-              <p class="account">Taokkkkkkkboy</p>
-              <button class="copy-button" type="button" @click="copyContact('Taokkkkkkkboy')">
-                复制微信号 <span aria-hidden="true">↗</span>
-              </button>
+              <b>{{ t('payment.recharge.refundTitle') }}</b>
+              <span>{{ t('payment.recharge.refundDesc') }}</span>
             </div>
-            <p class="contact-note">备注：站点充值</p>
           </div>
-          <div class="qr-panel">
-            <img class="qr-image" src="/contact/wechat.png" alt="微信联系二维码">
-          </div>
-        </article>
+        </div>
       </section>
 
-      <p class="page-footer">充值到账后可在账户余额中查看变更记录。</p>
+      <aside class="wechat-card">
+        <div class="wechat-head">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 4C4.6 4 1 7 1 10.7c0 2.1 1.2 4 3 5.2L3.3 18l2.6-1.3c.9.3 2 .4 3 .4h.6a5.6 5.6 0 0 1-.2-1.5c0-3.5 3.4-6.3 7.6-6.3h.6C16.7 6.2 13.2 4 9 4Zm-3 4.4a1 1 0 1 1 0 2 1 1 0 0 1 0-2Zm6 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2Zm4.9 2.2c-3.5 0-6.2 2.3-6.2 5.1s2.8 5.2 6.2 5.2c.7 0 1.5-.1 2.2-.4l2.1 1.1-.6-1.8c1.5-1 2.5-2.5 2.5-4.1 0-2.8-2.8-5.1-6.2-5.1Zm-2.2 2.9a.8.8 0 1 1 0 1.6.8.8 0 0 1 0-1.6Zm4.4 0a.8.8 0 1 1 0 1.6.8.8 0 0 1 0-1.6Z"/></svg>
+          {{ t('payment.recharge.wechatTitle') }}
+        </div>
+        <div class="wechat-body">
+          <img class="qr-image" src="/contact/wechat.png" :alt="t('payment.recharge.wechatQrAlt')">
+          <p class="account">{{ WECHAT_ID }}</p>
+          <button class="copy-button" type="button" @click="copyContact(WECHAT_ID)">
+            {{ t('payment.recharge.copyWechat') }}
+          </button>
+        </div>
+      </aside>
     </main>
 
     <div v-if="toastMessage" class="copy-toast" role="status" aria-live="polite">
@@ -54,8 +46,12 @@
 
 <script setup lang="ts">
 import { onUnmounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import AppLayout from '@/components/layout/AppLayout.vue'
 
+const WECHAT_ID = 'Taokkkkkkkboy'
+
+const { t } = useI18n()
 const toastMessage = ref('')
 let toastTimer: ReturnType<typeof setTimeout> | undefined
 
@@ -74,9 +70,9 @@ async function copyContact(value: string) {
       document.execCommand('copy')
       input.remove()
     }
-    toastMessage.value = `已复制：${value}`
+    toastMessage.value = t('payment.recharge.copied', { value })
   } catch {
-    toastMessage.value = `请手动复制：${value}`
+    toastMessage.value = t('payment.recharge.copyManually', { value })
   }
 
   if (toastTimer) clearTimeout(toastTimer)
@@ -98,23 +94,33 @@ onUnmounted(() => {
   --muted: #687582;
   --line: #dfe6eb;
   --accent: #1b8f9a;
-  --qr-bg: #edf3f7;
+  --wechat: #07c160;
+  --wechat-soft: #e9f9f0;
+  display: grid;
   min-height: calc(100vh - 9rem);
   margin: -0.25rem;
-  padding: clamp(2rem, 5vw, 4.5rem) clamp(1rem, 4vw, 3rem) 3.5rem;
+  padding: clamp(2rem, 5vw, 4rem) clamp(1rem, 4vw, 3rem);
   border-radius: 1.5rem;
   color: var(--ink);
   background: var(--page-bg);
+  gap: clamp(1.5rem, 4vw, 3.5rem);
+  grid-template-columns: minmax(0, 1.1fr) minmax(18rem, 0.9fr);
+  align-items: center;
 }
 
-.recharge-hero {
-  max-width: 42rem;
-  margin: 0 auto clamp(2rem, 5vw, 3.5rem);
-  text-align: center;
+:global(.dark) .recharge-page {
+  --page-bg: #111827;
+  --card-bg: #1f2937;
+  --ink: #f3f4f6;
+  --muted: #9ca3af;
+  --line: #374151;
+  --accent: #2dd4bf;
+  --wechat: #22c55e;
+  --wechat-soft: rgba(34, 197, 94, 0.12);
 }
 
 .eyebrow {
-  margin: 0 0 0.75rem;
+  margin: 0 0 1rem;
   color: var(--accent);
   font-size: 0.75rem;
   font-weight: 700;
@@ -123,119 +129,123 @@ onUnmounted(() => {
 }
 
 h1 {
-  margin: 0 0 0.85rem;
-  font-size: clamp(2.25rem, 5vw, 3.75rem);
-  line-height: 1.1;
+  margin: 0;
+  font-size: clamp(2.4rem, 5.5vw, 4rem);
+  line-height: 1.12;
   letter-spacing: 0;
 }
 
+h1 em {
+  color: var(--wechat);
+  font-style: normal;
+}
+
 .intro {
-  margin: 0;
+  max-width: 30rem;
+  margin: 1.25rem 0 2rem;
   color: var(--muted);
   font-size: 1.05rem;
   line-height: 1.75;
 }
 
-.contact-grid {
+.promises {
   display: grid;
-  max-width: 70rem;
-  margin: 0 auto;
-  gap: 1.5rem;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 30rem;
+  gap: 0.9rem;
 }
 
-.contact-card {
+.promise {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.9rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.9rem;
+  background: var(--card-bg);
+}
+
+.promise-icon {
   display: grid;
-  min-width: 0;
-  min-height: 31rem;
+  flex: none;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  border-radius: 0.6rem;
+  color: var(--wechat);
+  background: var(--wechat-soft);
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.promise b {
+  display: block;
+  margin-bottom: 0.2rem;
+}
+
+.promise span {
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.wechat-card {
   overflow: hidden;
   border: 1px solid var(--line);
+  border-radius: 1.25rem;
   background: var(--card-bg);
-  box-shadow: 0 1rem 2.5rem rgba(43, 58, 68, 0.08);
-  grid-template-columns: minmax(0, 0.92fr) minmax(15rem, 1.08fr);
+  box-shadow: 0 1.25rem 3rem rgba(43, 58, 68, 0.12);
 }
 
-.contact-copy {
+.wechat-head {
   display: flex;
-  min-width: 0;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: clamp(1.75rem, 4vw, 3rem) clamp(1.5rem, 4vw, 2.75rem) 2.5rem;
-}
-
-.contact-label {
-  margin: 0 0 1.5rem;
-  color: var(--accent);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-h2 {
-  margin: 0 0 0.7rem;
-  font-size: clamp(1.8rem, 3vw, 2.45rem);
-  line-height: 1.2;
-}
-
-.account {
-  margin: 0;
-  overflow-wrap: anywhere;
-  color: var(--ink);
-  font-family: "SFMono-Regular", Consolas, monospace;
-  font-size: 1rem;
-}
-
-.copy-button {
-  display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  margin-top: 2rem;
-  padding: 0.6rem 0;
-  border: 0;
-  color: var(--accent);
-  background: transparent;
-  font: inherit;
-  font-size: 0.9rem;
+  gap: 0.6rem;
+  padding: 1rem 1.25rem;
+  color: #ffffff;
+  background: var(--wechat);
   font-weight: 700;
-  cursor: pointer;
 }
 
-.copy-button:hover { color: var(--ink); }
-.copy-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
-
-.contact-note {
-  margin: 2rem 0 0;
-  padding-top: 1rem;
-  border-top: 1px solid var(--line);
-  color: var(--ink);
-  font-size: 0.9rem;
-  font-weight: 600;
+.wechat-head svg {
+  width: 1.4rem;
+  height: 1.4rem;
 }
 
-.qr-panel {
-  display: grid;
-  min-width: 0;
-  place-items: center;
-  padding: 2rem;
-  background: var(--qr-bg);
+.wechat-body {
+  padding: 1.5rem;
+  text-align: center;
 }
 
 .qr-image {
   display: block;
-  width: min(100%, 22rem);
+  width: min(100%, 17rem);
   height: auto;
-  max-height: 25rem;
-  object-fit: contain;
+  margin: 0 auto;
+  border-radius: 0.5rem;
 }
 
-.page-footer {
-  max-width: 70rem;
-  margin: 2rem auto 0;
-  color: var(--muted);
-  font-size: 0.82rem;
-  text-align: center;
+.account {
+  margin: 1.25rem 0 0.25rem;
+  overflow-wrap: anywhere;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 1.05rem;
 }
+
+.copy-button {
+  width: 100%;
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  border: 0;
+  border-radius: 0.7rem;
+  color: var(--wechat);
+  background: var(--wechat-soft);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.copy-button:hover { filter: brightness(0.96); }
+.copy-button:focus-visible { outline: 2px solid var(--wechat); outline-offset: 3px; }
 
 .copy-toast {
   position: fixed;
@@ -252,8 +262,8 @@ h2 {
 }
 
 @media (max-width: 820px) {
-  .contact-grid { grid-template-columns: 1fr; }
-  .contact-card { min-height: 0; }
+  .recharge-page { grid-template-columns: 1fr; }
+  .wechat-card { width: 100%; max-width: 24rem; margin: 0 auto; }
 }
 
 @media (max-width: 560px) {
@@ -262,11 +272,5 @@ h2 {
     padding: 2rem 0.75rem 2.5rem;
     border-radius: 1rem;
   }
-
-  .contact-card { display: flex; flex-direction: column; }
-  .contact-copy { padding: 2rem 1.5rem 1.5rem; }
-  .qr-panel { order: 2; padding: 1.5rem; }
-  .contact-note { order: 3; margin-top: 1.5rem; }
-  .page-footer { margin-top: 1.5rem; }
 }
 </style>

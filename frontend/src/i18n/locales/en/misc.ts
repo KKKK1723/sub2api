@@ -287,6 +287,20 @@ export default {
   // Payment System
   payment: {
     title: 'Recharge / Subscription',
+    recharge: {
+      headlineAny: 'Top up any amount',
+      headlineRefund: 'Refund anytime',
+      intro: 'This is a small community site. Please contact the admin on WeChat to top up.',
+      anyAmountTitle: 'No minimum',
+      anyAmountDesc: 'Top up as little as you need, no need to pay a lot at once',
+      refundTitle: 'Refund anytime',
+      refundDesc: 'Unused balance can be refunded anytime, just ask the admin',
+      wechatTitle: 'Contact admin on WeChat',
+      wechatQrAlt: 'WeChat contact QR code',
+      copyWechat: 'Copy WeChat ID',
+      copied: 'Copied: {value}',
+      copyManually: 'Please copy manually: {value}'
+    },
     amountLabel: 'Amount',
     paymentAmount: 'Payment Amount',
     creditedBalance: 'Credited Balance',

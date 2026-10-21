@@ -311,6 +311,20 @@ export default {
   // Payment System
   payment: {
     title: '充值/订阅',
+    recharge: {
+      headlineAny: '充多少都行',
+      headlineRefund: '随时可退',
+      intro: '站点小范围运营，充值请微信联系站长。',
+      anyAmountTitle: '金额不限',
+      anyAmountDesc: '几块钱也能充，按需充值，不用一次充很多',
+      refundTitle: '随时可退',
+      refundDesc: '没用完的余额随时找站长退，不设门槛',
+      wechatTitle: '微信联系站长',
+      wechatQrAlt: '微信联系二维码',
+      copyWechat: '复制微信号',
+      copied: '已复制：{value}',
+      copyManually: '请手动复制：{value}'
+    },
     amountLabel: '充值金额',
     paymentAmount: '支付金额',
     creditedBalance: '到账余额',
