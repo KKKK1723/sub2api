@@ -1062,6 +1062,79 @@ html.kc-public body {
 :where(.kc-public) .sms-contact {
   margin-top: 27px;
 }
+:where(.kc-public) .sms-plans {
+  max-width: 480px;
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
+:where(.kc-public) .sms-plans-title {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+:where(.kc-public) .sms-plans ul {
+  display: grid;
+  gap: 10px;
+}
+:where(.kc-public) .sms-plan {
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  align-items: center;
+  gap: 4px 14px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--page);
+  text-align: left;
+  transition:
+    border-color 0.25s,
+    transform 0.25s;
+}
+:where(.kc-public) .sms-plan:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+:where(.kc-public) .sms-plan > img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+:where(.kc-public) .sms-plan-info {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+:where(.kc-public) .sms-plan-info strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+:where(.kc-public) .sms-plan-info span {
+  font-size: 12px;
+  color: var(--muted);
+}
+:where(.kc-public) .sms-plan-price {
+  white-space: nowrap;
+  text-align: right;
+  font-size: 12px;
+  color: var(--muted);
+}
+:where(.kc-public) .sms-plan-price strong {
+  margin: 0 4px 0 2px;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--ink);
+}
+:where(.kc-public) .sms-plan-action {
+  grid-column: 2 / -1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent);
+}
 
 :where(.kc-public) .faq-layout {
   display: grid;

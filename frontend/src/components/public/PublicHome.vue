@@ -392,6 +392,27 @@
                 </div>
               </li>
             </ol>
+            <div class="sms-plans" data-reveal>
+              <p class="sms-plans-title">{{ c.smsPlansTitle }}</p>
+              <ul>
+                <li v-for="plan in smsPlans" :key="plan.id">
+                  <button class="sms-plan" @click="openContact('sms', null, plan)">
+                    <img :src="plan.logo" alt="" class="mono-logo" />
+                    <span class="sms-plan-info"
+                      ><strong>{{ plan.platform }} · {{ plan.name[locale] }}</strong
+                      ><span>{{ plan.note[locale] }}</span></span
+                    >
+                    <span class="sms-plan-price"
+                      ><span>¥</span><strong>{{ plan.price }}</strong
+                      ><span>{{ plan.unit[locale] }}</span></span
+                    >
+                    <span class="sms-plan-action"
+                      >{{ c.smsConsult }}<Icon name="arrowRight" size="sm"
+                    /></span>
+                  </button>
+                </li>
+              </ul>
+            </div>
             <button
               class="text-button sms-contact"
               data-reveal
@@ -518,7 +539,11 @@
         <h2 id="contact-title">
           {{
             contactProduct?.name ||
-            (contactType === 'sms' ? c.sms : c.contactTitle)
+            (contactSmsPlan
+              ? `${contactSmsPlan.platform} ${contactSmsPlan.name[locale]}`
+              : contactType === 'sms'
+                ? c.sms
+                : c.contactTitle)
           }}
         </h2>
         <p class="dialog-subtitle">
@@ -535,6 +560,15 @@
               >¥ {{ contactProduct.price }}
               <small>{{ c.perMonth }}</small></strong
             ><span>{{ c.monthly }}</span>
+          </div>
+        </div>
+        <div v-else-if="contactSmsPlan" class="dialog-product">
+          <img :src="contactSmsPlan.logo" alt="" />
+          <div>
+            <strong
+              >¥ {{ contactSmsPlan.price }}
+              <small>{{ contactSmsPlan.unit[locale] }}</small></strong
+            ><span>{{ contactSmsPlan.note[locale] }}</span>
           </div>
         </div>
         <p v-if="contactProduct" class="dialog-terms">{{ c.productNotice }}</p>
@@ -591,7 +625,7 @@ import HeroFlow from './HeroFlow.vue'
 import ToolsMarquee from './ToolsMarquee.vue'
 import SmsFlow from './SmsFlow.vue'
 const wechatImage = '/contact/wechat.png'
-import { site, products, providers, copy } from './content'
+import { site, products, smsPlans, providers, copy } from './content'
 import { usePublicPage, syncPublicLocale, syncPublicTheme } from './usePublicPage'
 
 const { locale, isDark } = usePublicPage()
@@ -635,6 +669,7 @@ const themeChanging = ref(false),
 const contactDialog = ref(null),
   contactOpen = ref(false),
   contactProduct = ref(null),
+  contactSmsPlan = ref(null),
   contactType = ref('general')
 const copied = ref(''),
   toastMessage = ref(''),
@@ -675,6 +710,13 @@ const inquiryText = computed(() => {
       `你好，我想咨询 ${contactProduct.value.name}，页面价格为 ¥${contactProduct.value.price}/月，请确认开通方式和售后说明。`,
       `Hi, I am interested in ${contactProduct.value.name} at CNY ${contactProduct.value.price}/month. Please confirm activation details and coverage.`,
     )
+  if (contactSmsPlan.value) {
+    const plan = contactSmsPlan.value
+    return tr(
+      `你好，我想购买 ${plan.platform} ${plan.name.zh}，页面价格为 ¥${plan.price} ${plan.unit.zh}，请确认可用号码和下单方式。`,
+      `Hi, I would like to buy ${plan.platform} ${plan.name.en} at CNY ${plan.price} ${plan.unit.en}. Please confirm number availability and how to order.`,
+    )
+  }
   if (contactType.value === 'sms')
     return tr(
       '你好，我想购买 Claude / ChatGPT 的短信验证码，用于完成手机号验证。请确认支持的平台、价格、可用号码和下单方式。',
@@ -742,9 +784,10 @@ async function toggleTheme(event) {
   }
 }
 
-function openContact(type, product = null) {
+function openContact(type, product = null, smsPlan = null) {
   contactType.value = type
   contactProduct.value = product
+  contactSmsPlan.value = smsPlan
   contactOpen.value = true
   nextTick(() => contactDialog.value.showModal())
 }

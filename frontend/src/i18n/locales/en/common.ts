@@ -166,7 +166,7 @@ export default {
     dashboard: 'Dashboard',
     announcements: 'Announcements',
     apiKeys: 'API Keys',
-    aiProducts: 'AI Products',
+    aiProducts: 'AI Product Center',
     batchImage: 'Batch Images',
     usage: 'Usage',
     redeem: 'Redeem',
