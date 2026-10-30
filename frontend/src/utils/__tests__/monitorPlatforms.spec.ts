@@ -20,31 +20,36 @@ describe('按平台展示监控', () => {
     expect(groupMonitorPlatforms([])).toEqual([])
   })
 
-  it('平台切换只显示对应分组，切换视图和刷新时保留选择，平台消失时回退', async () => {
+  it('默认显示全部平台，筛选只显示对应分组，切换视图和刷新时保留选择，平台消失时回退全部', async () => {
     const wrapper = mount(MonitorStatusBoard, {
-      props: { items: [item(1, 'openai'), item(2, 'deepseek', 'failed')], window: '7d', countdownSeconds: 180,
-        intervalSeconds: 180, loading: false, detailCache: {}, isAdmin: true, probeCache: {}, probeLoading: {} },
+      props: { items: [item(1, 'openai'), item(2, 'deepseek', 'failed')], window: '7d', countdownSeconds: 300,
+        intervalSeconds: 300, loading: false, detailCache: {}, isAdmin: true, probeCache: {}, probeLoading: {} },
       global: { plugins: [createI18n({ legacy: false, locale: 'zh', messages: { zh: {} } })], stubs: { ProviderIcon: true, Icon: true } }
     })
-    expect(wrapper.findAll('.status-board__platforms button')).toHaveLength(2)
-    expect(wrapper.findAll('.platform-section')).toHaveLength(1)
-    expect(wrapper.get('.platform-section').text()).toContain('group-1')
-    expect(wrapper.get('.platform-section').text()).not.toContain('group-2')
-    await wrapper.findAll('.status-board__platforms button')[1]!.trigger('click')
-    expect(wrapper.get('.platform-section').text()).toContain('group-2')
-    expect(wrapper.get('.platform-section').text()).not.toContain('group-1')
-    expect(wrapper.text()).toContain('3 min')
-    await wrapper.findAll('button').find(b => b.text() === '探针状态')!.trigger('click')
-    expect(wrapper.findAll('.probe-group')).toHaveLength(1)
-    expect(wrapper.get('.probe-group').text()).toContain('group-2')
+    // 测试环境使用 vue-i18n 运行时版本，不编译文案，t() 直接返回 key
+    const sectionsText = () => wrapper.findAll('.board-section').map(section => section.text()).join('\n')
+    // 「全部平台」+ 两个平台
+    expect(wrapper.findAll('.board-platforms button')).toHaveLength(3)
+    expect(wrapper.findAll('.board-section')).toHaveLength(2)
+    expect(wrapper.text()).toContain('channelStatus.board.overall.outage')
+    expect(wrapper.text()).toContain('300s')
+    await wrapper.findAll('.board-platforms button')[2]!.trigger('click')
+    expect(wrapper.findAll('.board-section')).toHaveLength(1)
+    expect(sectionsText()).toContain('group-2')
+    expect(sectionsText()).not.toContain('group-1')
+    await wrapper.findAll('button').find(b => b.text() === 'channelStatus.board.views.probes')!.trigger('click')
+    expect(wrapper.findAll('.board-probe-group')).toHaveLength(1)
+    expect(wrapper.get('.board-probe-group').text()).toContain('group-2')
     await wrapper.setProps({ items: [item(1, 'openai'), item(2, 'deepseek', 'failed')] })
-    expect(wrapper.get('.probe-group').text()).toContain('group-2')
-    await wrapper.findAll('button').find(b => b.text() === '分组状态')!.trigger('click')
-    expect(wrapper.get('.platform-section').text()).toContain('group-2')
+    expect(wrapper.get('.board-probe-group').text()).toContain('group-2')
+    await wrapper.findAll('button').find(b => b.text() === 'channelStatus.board.views.groups')!.trigger('click')
+    expect(sectionsText()).toContain('group-2')
     await wrapper.setProps({ items: [item(1, 'openai')] })
-    expect(wrapper.get('.platform-section').text()).toContain('group-1')
+    expect(wrapper.findAll('.board-section')).toHaveLength(1)
+    expect(sectionsText()).toContain('group-1')
+    expect(wrapper.text()).toContain('channelStatus.board.overall.operational')
     await wrapper.setProps({ items: [] })
-    expect(wrapper.find('.status-board__platforms').exists()).toBe(false)
-    expect(wrapper.text()).toContain('暂无可展示的分组')
+    expect(wrapper.find('.board-platforms').exists()).toBe(false)
+    expect(wrapper.text()).toContain('channelStatus.board.empty')
   })
 })

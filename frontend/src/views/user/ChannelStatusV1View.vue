@@ -49,7 +49,7 @@ import type { MonitorWindow } from '@/components/user/monitor/MonitorHero.vue'
 import MonitorDetailDialog from '@/components/user/MonitorDetailDialog.vue'
 import { useAutoRefresh } from '@/composables/useAutoRefresh'
 
-const STATUS_REFRESH_INTERVAL_SECONDS = 180
+const STATUS_REFRESH_INTERVAL_SECONDS = 300
 
 const { t } = useI18n()
 const appStore = useAppStore()

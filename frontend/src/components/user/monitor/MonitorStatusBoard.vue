@@ -1,216 +1,319 @@
 <template>
   <section class="status-board">
-    <div class="status-board__hero">
-      <div class="status-board__hero-orbit" aria-hidden="true"><span></span></div>
-      <div class="status-board__hero-content">
-        <span class="status-board__eyebrow"><i></i>实时监控</span>
-        <h1>监控服务运行正常</h1>
-        <p>状态将在 {{ countdownSeconds }} 秒后刷新</p>
-        <div class="status-board__hero-stat">
-          <span>刷新周期</span>
-          <strong>{{ Math.round(intervalSeconds / 60) }} min</strong>
-          <small>自动</small>
-        </div>
-      </div>
-    </div>
-
-    <div class="status-board__toolbar">
-      <div class="status-board__views" role="tablist" aria-label="监控视图">
+    <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+      <p class="text-sm text-gray-500 dark:text-dark-400">
+        {{ t('channelStatus.board.subtitle', { minutes: Math.round(intervalSeconds / 60) }) }}
+      </p>
+      <div v-if="isAdmin" class="flex items-center gap-2">
         <button
           type="button"
-          role="tab"
-          :aria-selected="activeView === 'groups'"
-          :class="{ active: activeView === 'groups' }"
-          @click="selectView('groups')"
+          class="flex h-9 w-9 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 transition-colors hover:text-gray-900 dark:border-dark-700 dark:bg-dark-900 dark:text-dark-400 dark:hover:text-white"
+          :title="t('channelStatus.board.sortOrder')"
+          :aria-label="t('channelStatus.board.sortOrder')"
+          @click="emit('sort-order')"
         >
-          分组状态
-        </button>
-        <button
-          v-if="isAdmin"
-          type="button"
-          role="tab"
-          :aria-selected="activeView === 'probes'"
-          :class="{ active: activeView === 'probes' }"
-          @click="selectView('probes')"
-        >
-          探针状态
-        </button>
-      </div>
-      <div class="status-board__actions">
-        <button v-if="isAdmin" type="button" class="status-board__sort" title="调整分组顺序" aria-label="调整分组顺序" @click="emit('sort-order')">
           <Icon name="arrowsUpDown" size="md" />
         </button>
-        <div class="status-board__windows" role="tablist" aria-label="可用性时间范围">
+        <div class="inline-flex rounded-xl border border-gray-200 bg-white p-1 dark:border-dark-700 dark:bg-dark-900" role="tablist">
           <button
-            v-for="option in windowOptions"
-            :key="option.value"
+            v-for="view in viewOptions"
+            :key="view"
             type="button"
-            :class="{ active: window === option.value }"
-            @click="emit('update:window', option.value)"
+            role="tab"
+            :aria-selected="activeView === view"
+            class="rounded-lg px-3.5 py-1.5 text-sm font-medium transition-colors"
+            :class="activeView === view
+              ? 'bg-gray-900 text-white dark:bg-white dark:text-dark-950'
+              : 'text-gray-500 hover:text-gray-800 dark:text-dark-400 dark:hover:text-dark-200'"
+            @click="selectView(view)"
           >
-            {{ option.label }}
+            {{ t(`channelStatus.board.views.${view}`) }}
           </button>
         </div>
       </div>
     </div>
 
-    <nav v-if="platformSections.length" class="status-board__platforms" aria-label="平台分组">
-      <button
-        v-for="platform in platformSections"
-        :key="platform.value"
-        type="button"
-        :aria-pressed="selectedPlatform === platform.value"
-        :class="{ active: selectedPlatform === platform.value }"
-        @click="selectedPlatform = platform.value"
+    <!-- 指标卡：整体状态 / 正常分组 / 平均可用性 / 平均延迟 / 刷新倒计时 -->
+    <div class="mb-6 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-[1.4fr_repeat(4,1fr)]">
+      <div
+        class="board-kpi board-kpi--overall col-span-2 flex items-center gap-3.5 md:col-span-3 xl:col-span-1"
+        :class="`tone-${summary.level}`"
       >
-        <ProviderIcon :provider="platform.value" :size="18" />
-        <span>{{ platform.label }}</span>
-        <small>{{ platform.items.length }}</small>
-      </button>
-    </nav>
-
-    <div v-if="activeView === 'groups'" class="status-board__panel">
-      <div class="status-board__panel-head">
-        <div>
-          <h2>分组状态</h2>
-          <p>每个分组显示最近 5 小时探测结果</p>
+        <span class="board-pulse" aria-hidden="true"></span>
+        <div class="relative min-w-0">
+          <small>{{ t('channelStatus.board.overallLabel') }}</small>
+          <strong class="text-lg">{{ t(`channelStatus.board.overall.${summary.overallKey}`) }}</strong>
         </div>
-        <span class="status-board__panel-note">{{ selectedItems.length }} 个分组</span>
       </div>
-
-      <div v-if="loading && items.length === 0" class="status-board__empty">正在加载监控状态…</div>
-      <div v-else-if="items.length === 0" class="status-board__empty">暂无可展示的分组</div>
-      <div v-else>
-        <section v-for="platform in selectedSections" :key="platform.value" class="platform-section">
-          <h3 class="platform-section__title"><ProviderIcon :provider="platform.value" :size="20" />{{ platform.label }} 平台 <small>{{ platform.items.length }} 个分组</small></h3>
-          <div class="status-board__rows">
-        <button
-          v-for="item in platform.items"
-          :key="item.id"
-          type="button"
-          class="status-row"
-          @click="emit('cardClick', item)"
-          @mouseenter="emit('cardHover', item)"
-        >
-          <span class="status-row__name">
-            <span class="status-row__provider" :class="providerClass(item.provider)">
-              <ProviderIcon :provider="item.provider" :size="18" />
-            </span>
-            <span>
-              <strong>{{ item.group_name || item.name }}</strong>
-            </span>
-          </span>
-
-          <span class="status-row__timeline" aria-label="最近 5 小时状态">
-            <span
-              v-for="(point, index) in timelinePoints(item)"
-              :key="`${item.id}-${index}`"
-              class="status-cell"
-              :class="statusCellClass(point.status)"
-            >
-              <span v-if="point.checked_at" class="status-cell__tooltip">
-                <strong>{{ formatCheckedAt(point.checked_at) }}</strong>
-                <span>状态：{{ statusLabel(point.status) }}</span>
-                <span>延迟：{{ formatLatency(point.latency_ms) }} ms</span>
-                <span>可用性：{{ formatAvailability(item) }}</span>
-              </span>
-            </span>
-          </span>
-
-          <span class="status-row__metrics">
-            <span class="status-row__metric status-row__metric--status">
-              <i :class="statusDotClass(item.primary_status)"></i>
-              <strong>{{ statusLabel(item.primary_status) }}</strong>
-            </span>
-            <span class="status-row__metric">
-              <strong>{{ formatAvailability(item) }}</strong>
-              <small>可用性</small>
-            </span>
-            <span class="status-row__metric">
-              <strong>{{ formatLatency(item.primary_latency_ms) }} ms</strong>
-              <small>延迟</small>
-            </span>
-          </span>
-        </button>
-          </div>
-        </section>
+      <div class="board-kpi">
+        <small>{{ t('channelStatus.board.healthyGroups') }}</small>
+        <strong class="font-mono">{{ summary.green }}<em>/ {{ summary.total }}</em></strong>
+        <div class="mt-2.5 flex h-1.5 overflow-hidden rounded-full bg-gray-100 dark:bg-dark-800">
+          <span class="bg-emerald-500 dark:bg-emerald-400" :style="{ width: ratioWidth(summary.green) }"></span>
+          <span class="bg-amber-500 dark:bg-amber-400" :style="{ width: ratioWidth(summary.yellow) }"></span>
+          <span class="bg-red-500 dark:bg-red-400" :style="{ width: ratioWidth(summary.red) }"></span>
+        </div>
       </div>
-
-      <div class="status-board__legend">
-        <span><i class="green"></i>正常</span>
-        <span><i class="yellow"></i>降级</span>
-        <span><i class="red"></i>失败</span>
-        <span class="status-board__legend-range">← 过去 5 小时&emsp;现在 →</span>
+      <div class="board-kpi">
+        <small>{{ t('channelStatus.board.avgAvailability', { window: windowLabel }) }}</small>
+        <strong class="font-mono">{{ formatPercent(summary.avgAvailability) }}</strong>
+      </div>
+      <div class="board-kpi">
+        <small>{{ t('channelStatus.board.avgLatency') }}</small>
+        <strong class="font-mono">{{ formatLatency(summary.avgLatency) }}<em>ms</em></strong>
+      </div>
+      <div class="board-kpi flex items-center gap-3">
+        <span class="board-ring" :style="{ '--ratio': countdownRatio }" aria-hidden="true"></span>
+        <div>
+          <small>{{ t('channelStatus.board.nextRefresh') }}</small>
+          <strong class="font-mono">{{ countdownSeconds }}<em>s</em></strong>
+        </div>
       </div>
     </div>
 
-    <div v-else class="probe-board">
-      <div class="probe-board__summary">
-        <div>
-          <h2>探针状态</h2>
-          <p>管理员可查看每个分组的独立探针、接口和最近一次探测结果</p>
-        </div>
-        <span>{{ probeHealthyCount }} / {{ probeTotalCount }} 正常</span>
+    <div class="mb-1 flex flex-wrap items-center justify-between gap-3">
+      <nav v-if="platformSections.length" class="board-platforms flex flex-wrap gap-2" :aria-label="t('channelStatus.board.allPlatforms')">
+        <button
+          v-for="option in platformOptions"
+          :key="option.value"
+          type="button"
+          class="board-chip"
+          :class="{ active: selectedPlatform === option.value }"
+          :aria-pressed="selectedPlatform === option.value"
+          @click="selectedPlatform = option.value"
+        >
+          <ProviderIcon v-if="option.value !== ALL_PLATFORMS" :provider="option.value" :size="15" />
+          {{ option.label }}
+          <small>{{ option.count }}</small>
+        </button>
+      </nav>
+      <div
+        v-if="activeView === 'groups'"
+        class="inline-flex rounded-xl border border-gray-200 bg-white p-[3px] dark:border-dark-700 dark:bg-dark-900"
+        role="tablist"
+      >
+        <button
+          v-for="option in windowOptions"
+          :key="option.value"
+          type="button"
+          role="tab"
+          :aria-selected="window === option.value"
+          class="rounded-lg px-3 py-1 text-xs transition-colors"
+          :class="window === option.value
+            ? 'bg-gray-100 font-semibold text-gray-900 dark:bg-dark-800 dark:text-white'
+            : 'text-gray-500 hover:text-gray-800 dark:text-dark-400 dark:hover:text-dark-200'"
+          @click="emit('update:window', option.value)"
+        >
+          {{ option.label }}
+        </button>
       </div>
+    </div>
 
-      <div v-if="items.length === 0" class="status-board__empty">暂无可展示的分组</div>
-      <div v-else class="probe-board__groups">
-        <section v-for="platform in selectedSections" :key="platform.value" class="platform-section">
-          <h3 class="platform-section__title"><ProviderIcon :provider="platform.value" :size="20" />{{ platform.label }} 平台 <small>{{ platform.items.length }} 个分组</small></h3>
-        <article v-for="item in platform.items" :key="item.id" class="probe-group">
-          <header class="probe-group__head">
-            <div class="probe-group__title">
-              <span class="status-row__provider" :class="providerClass(item.provider)">
-                <ProviderIcon :provider="item.provider" :size="18" />
-              </span>
-              <div>
-                <h3>{{ item.group_name || item.name }}</h3>
+    <!-- 分组状态 -->
+    <template v-if="activeView === 'groups'">
+      <div v-if="loading && items.length === 0" class="board-empty">{{ t('channelStatus.board.loading') }}</div>
+      <div v-else-if="items.length === 0" class="board-empty">{{ t('channelStatus.board.empty') }}</div>
+      <template v-else>
+        <section v-for="platform in visibleSections" :key="platform.value" class="board-section">
+          <h3 class="mb-3 mt-6 flex items-center gap-2 text-[15px] font-semibold text-gray-900 dark:text-white">
+            <ProviderIcon :provider="platform.value" :size="16" />
+            {{ platform.label }}
+            <small class="text-xs font-normal text-gray-500 dark:text-dark-400">{{ t('channelStatus.board.groupCount', { count: platform.items.length }) }}</small>
+          </h3>
+          <div class="grid grid-cols-1 gap-3.5 md:grid-cols-2 xl:grid-cols-3">
+            <article
+              v-for="item in platform.items"
+              :key="item.id"
+              class="board-card"
+              :class="`tone-${toneOf(item.primary_status)}`"
+              role="button"
+              tabindex="0"
+              @click="emit('cardClick', item)"
+              @keydown.enter="emit('cardClick', item)"
+              @mouseenter="emit('cardHover', item)"
+            >
+              <div class="flex items-center gap-2.5">
+                <span class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[10px] bg-gray-100 text-gray-700 dark:bg-dark-800 dark:text-dark-200">
+                  <ProviderIcon :provider="item.provider" :size="18" />
+                </span>
+                <div class="min-w-0">
+                  <strong class="block truncate text-sm font-semibold text-gray-900 dark:text-white">{{ item.group_name || item.name }}</strong>
+                  <code class="block truncate text-[11px] text-gray-400 dark:text-dark-500">{{ item.primary_model }}</code>
+                </div>
+                <span class="board-pill"><i></i>{{ statusLabel(item.primary_status) }}</span>
               </div>
-            </div>
-            <span class="probe-group__count">{{ probesFor(item.id).length }} 个探针</span>
-          </header>
 
-          <div v-if="probeLoading[item.id]" class="probe-group__empty">正在加载探针状态…</div>
-          <div v-else-if="probesFor(item.id).length === 0" class="probe-group__empty">暂无探针数据</div>
-          <div v-else class="probe-list">
-            <div v-for="(probe, index) in probesFor(item.id)" :key="`${probe.endpoint}-${index}`" class="probe-item">
-              <div class="probe-item__identity">
-                <span class="probe-item__index">{{ String(index + 1).padStart(2, '0') }}</span>
-                <strong>{{ probe.name || `探针 ${index + 1}` }}</strong>
+              <div class="mb-2 mt-[18px] flex items-end justify-between gap-3">
+                <div>
+                  <strong class="block font-mono text-[26px] font-semibold tracking-tight text-gray-900 dark:text-white">{{ formatAvailability(item) }}</strong>
+                  <small class="text-[11px] text-gray-500 dark:text-dark-400">{{ t('channelStatus.board.availability', { window: windowLabel }) }}</small>
+                </div>
+                <div class="text-right">
+                  <strong class="block font-mono text-lg font-semibold text-gray-900 dark:text-white">
+                    {{ formatLatency(item.primary_latency_ms) }}<small class="text-[11px] font-normal text-gray-400"> ms</small>
+                  </strong>
+                  <small class="text-[11px] text-gray-500 dark:text-dark-400">
+                    {{ t('channelStatus.board.latency') }} · {{ t('channelStatus.board.ping', { value: formatLatency(item.primary_ping_latency_ms) }) }}
+                  </small>
+                </div>
               </div>
-              <div class="probe-item__endpoint" :title="probe.endpoint">
-                <span>{{ probe.endpoint || '未配置接口' }}</span>
-                <small>API Key：{{ probe.api_key || probe.api_key_masked || '未返回' }}</small>
+
+              <!-- 最近 5 小时延迟曲线，失败时段铺红底 -->
+              <svg class="board-spark" :viewBox="`0 0 ${SPARK_WIDTH} ${SPARK_HEIGHT}`" preserveAspectRatio="none" aria-hidden="true">
+                <defs>
+                  <linearGradient :id="`spark-${item.id}`" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0" stop-color="currentColor" stop-opacity=".25" />
+                    <stop offset="1" stop-color="currentColor" stop-opacity="0" />
+                  </linearGradient>
+                </defs>
+                <rect
+                  v-for="band in sparkOf(item).fails"
+                  :key="band.x"
+                  class="board-spark__fail"
+                  :x="band.x"
+                  y="0"
+                  :width="band.width"
+                  :height="SPARK_HEIGHT"
+                />
+                <path :d="sparkOf(item).area" :fill="`url(#spark-${item.id})`" />
+                <path class="board-spark__line" :d="sparkOf(item).line" vector-effect="non-scaling-stroke" />
+              </svg>
+
+              <div class="board-strip" :aria-label="t('channelStatus.board.timelineLabel')">
+                <span
+                  v-for="(point, index) in timelinePoints(item)"
+                  :key="`${item.id}-${index}`"
+                  class="board-cell"
+                  :class="[`cell-${toneOf(point.status)}`, tooltipAlign(index)]"
+                >
+                  <span v-if="point.checked_at" class="board-tip">
+                    <strong>{{ formatCheckedAt(point.checked_at) }}</strong>
+                    <span>{{ t('channelStatus.board.tooltip.status', { value: statusLabel(point.status) }) }}</span>
+                    <span>{{ t('channelStatus.board.tooltip.latency', { value: formatLatency(point.latency_ms) }) }}</span>
+                    <span>{{ t('channelStatus.board.tooltip.ping', { value: formatLatency(point.ping_latency_ms) }) }}</span>
+                  </span>
+                </span>
               </div>
-              <div class="probe-item__latency">
-                <strong>{{ formatLatency(probe.latency_ms) }} ms</strong>
-                <small>延迟</small>
+              <div class="mt-1.5 flex justify-between text-[10px] text-gray-400 dark:text-dark-500">
+                <span>{{ t('channelStatus.board.hoursAgo') }}</span>
+                <span>{{ t('channelStatus.board.now') }}</span>
               </div>
-              <span class="probe-item__status" :class="probeStatusClass(probe.status || '')">{{ statusLabel(probe.status || '') }}</span>
-              <span class="probe-item__enabled" :class="{ off: !probe.enabled }">{{ probe.enabled ? '已启用' : '已停用' }}</span>
-            </div>
+
+              <div
+                v-if="item.extra_models?.length"
+                class="mt-3 flex flex-wrap gap-1.5 border-t border-dashed border-gray-200 pt-3 dark:border-dark-700"
+              >
+                <span
+                  v-for="model in modelsOf(item)"
+                  :key="model.model"
+                  class="inline-flex items-center gap-1 rounded-md bg-gray-100 px-1.5 py-0.5 text-[11px] text-gray-500 dark:bg-dark-800 dark:text-dark-400"
+                >
+                  <i class="board-dot" :class="`tone-${toneOf(model.status)}`"></i>{{ model.model }}
+                </span>
+              </div>
+            </article>
           </div>
-
-          <footer v-if="!probeLoading[item.id] && probesFor(item.id).length" class="probe-group__foot">
-            <span>探针总体状态</span>
-            <strong :class="probeStatusClass(probeOverallStatus(item.id))">{{ statusLabel(probeOverallStatus(item.id)) }}</strong>
-          </footer>
-        </article>
         </section>
+      </template>
+    </template>
+
+    <!-- 探针状态（管理员） -->
+    <div v-else class="mt-5">
+      <div class="mb-4 flex items-center justify-between gap-3">
+        <div>
+          <h2 class="text-sm font-semibold text-gray-900 dark:text-white">{{ t('channelStatus.board.probes.title') }}</h2>
+          <p class="mt-1 text-xs text-gray-500 dark:text-dark-400">{{ t('channelStatus.board.probes.description') }}</p>
+        </div>
+        <span class="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
+          {{ t('channelStatus.board.probes.healthy', { healthy: probeHealthyCount, total: probeTotalCount }) }}
+        </span>
       </div>
+
+      <div v-if="items.length === 0" class="board-empty">{{ t('channelStatus.board.empty') }}</div>
+      <template v-else>
+        <section v-for="platform in visibleSections" :key="platform.value" class="mb-6 grid gap-3">
+          <h3 class="flex items-center gap-2 text-[15px] font-semibold text-gray-900 dark:text-white">
+            <ProviderIcon :provider="platform.value" :size="16" />
+            {{ platform.label }}
+            <small class="text-xs font-normal text-gray-500 dark:text-dark-400">{{ t('channelStatus.board.groupCount', { count: platform.items.length }) }}</small>
+          </h3>
+          <article
+            v-for="item in platform.items"
+            :key="item.id"
+            class="board-probe-group overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-dark-800 dark:bg-dark-900"
+          >
+            <header class="flex items-center justify-between gap-3 border-b border-gray-100 px-[18px] py-3.5 dark:border-dark-800">
+              <div class="flex min-w-0 items-center gap-2.5">
+                <span class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[10px] bg-gray-100 text-gray-700 dark:bg-dark-800 dark:text-dark-200">
+                  <ProviderIcon :provider="item.provider" :size="16" />
+                </span>
+                <strong class="truncate text-sm text-gray-900 dark:text-white">{{ item.group_name || item.name }}</strong>
+              </div>
+              <span class="text-xs text-gray-400 dark:text-dark-500">{{ t('channelStatus.board.probes.count', { count: probesFor(item.id).length }) }}</span>
+            </header>
+
+            <div v-if="probeLoading[item.id]" class="board-empty !py-8">{{ t('channelStatus.board.probes.loading') }}</div>
+            <div v-else-if="probesFor(item.id).length === 0" class="board-empty !py-8">{{ t('channelStatus.board.probes.empty') }}</div>
+            <div v-else class="px-[18px] py-1">
+              <div
+                v-for="(probe, index) in probesFor(item.id)"
+                :key="`${probe.endpoint}-${index}`"
+                class="board-probe"
+                :class="{ 'opacity-60': !probe.enabled }"
+              >
+                <div class="flex min-w-0 items-center gap-2.5">
+                  <span class="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md bg-gray-100 font-mono text-[10px] font-bold text-gray-500 dark:bg-dark-800 dark:text-dark-400">
+                    {{ String(index + 1).padStart(2, '0') }}
+                  </span>
+                  <strong class="truncate text-xs text-gray-900 dark:text-white">{{ probe.name || t('channelStatus.board.probes.unnamed', { index: index + 1 }) }}</strong>
+                </div>
+                <div class="min-w-0 font-mono text-[11px]" :title="probe.endpoint">
+                  <span class="block break-all text-gray-600 dark:text-dark-300">{{ probe.endpoint || t('channelStatus.board.probes.noEndpoint') }}</span>
+                  <small class="mt-0.5 block break-all text-gray-400 dark:text-dark-500">
+                    {{ t('channelStatus.board.probes.apiKey', { value: probe.api_key || probe.api_key_masked || t('channelStatus.board.probes.noKey') }) }}
+                  </small>
+                </div>
+                <div class="text-right">
+                  <strong class="block font-mono text-xs text-gray-900 dark:text-white">{{ formatLatency(probe.latency_ms) }} ms</strong>
+                  <small class="text-[10px] text-gray-400 dark:text-dark-500">{{ t('channelStatus.board.latency') }}</small>
+                </div>
+                <span class="board-pill !ml-0 justify-self-end" :class="`tone-${toneOf(probe.status || '')}`"><i></i>{{ statusLabel(probe.status || '') }}</span>
+                <span
+                  class="justify-self-end text-[11px]"
+                  :class="probe.enabled ? 'text-gray-500 dark:text-dark-400' : 'text-red-500 dark:text-red-400'"
+                >
+                  {{ probe.enabled ? t('channelStatus.board.probes.enabled') : t('channelStatus.board.probes.disabled') }}
+                </span>
+              </div>
+            </div>
+
+            <footer
+              v-if="!probeLoading[item.id] && probesFor(item.id).length"
+              class="flex items-center justify-between gap-2 border-t border-gray-100 px-[18px] py-2.5 text-xs text-gray-500 dark:border-dark-800 dark:text-dark-400"
+            >
+              <span>{{ t('channelStatus.board.probes.overall') }}</span>
+              <span class="board-pill !ml-0" :class="`tone-${toneOf(probeOverallStatus(item.id))}`"><i></i>{{ statusLabel(probeOverallStatus(item.id)) }}</span>
+            </footer>
+          </article>
+        </section>
+      </template>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import Icon from '@/components/icons/Icon.vue'
-import type { MonitorProbe, MonitorStatus, Provider } from '@/api/admin/channelMonitor'
+import type { MonitorProbe, MonitorStatus } from '@/api/admin/channelMonitor'
 import type { MonitorTimelinePoint, UserMonitorDetail, UserMonitorView } from '@/api/channelMonitor'
 import ProviderIcon from './ProviderIcon.vue'
 import type { MonitorWindow } from './MonitorHero.vue'
 import { groupMonitorPlatforms } from '@/utils/monitorPlatforms'
 import { useChannelMonitorFormat } from '@/composables/useChannelMonitorFormat'
+
+type Tone = 'green' | 'yellow' | 'red' | 'empty'
+type ViewKey = 'groups' | 'probes'
 
 const props = defineProps<{
   items: UserMonitorView[]
@@ -232,29 +335,73 @@ const emit = defineEmits<{
   (event: 'sort-order'): void
 }>()
 
+const { t, locale } = useI18n()
 const { statusLabel, formatLatency, formatPercent } = useChannelMonitorFormat()
-const platformSections = computed(() => groupMonitorPlatforms(props.items))
-const selectedPlatform = ref('')
-watch(platformSections, sections => {
-  if (!sections.some(section => section.value === selectedPlatform.value)) {
-    selectedPlatform.value = sections[0]?.value ?? ''
-  }
-}, { immediate: true })
-const selectedSections = computed(() => platformSections.value.filter(section => section.value === selectedPlatform.value))
-const selectedItems = computed(() => selectedSections.value[0]?.items ?? [])
-const activeView = ref<'groups' | 'probes'>('groups')
-const windowOptions: { value: MonitorWindow; label: string }[] = [
-  { value: '7d', label: '7 天' },
-  { value: '15d', label: '15 天' },
-  { value: '30d', label: '30 天' },
-]
 
-const probeTotalCount = computed(() => selectedItems.value.reduce((sum, item) => sum + probesFor(item.id).length, 0))
-const probeHealthyCount = computed(() => selectedItems.value.reduce((sum, item) => {
+// 时间线固定 60 个点（每 5 分钟一次，覆盖最近 5 小时），不足时左侧补空
+const TIMELINE_POINTS = 60
+const SPARK_WIDTH = 300
+const SPARK_HEIGHT = 56
+const ALL_PLATFORMS = 'all'
+
+const viewOptions: ViewKey[] = ['groups', 'probes']
+const activeView = ref<ViewKey>('groups')
+
+const windowOptions = computed<{ value: MonitorWindow; label: string }[]>(() => [
+  { value: '7d', label: t('channelStatus.windowTab.7d') },
+  { value: '15d', label: t('channelStatus.windowTab.15d') },
+  { value: '30d', label: t('channelStatus.windowTab.30d') },
+])
+const windowLabel = computed(() => t(`channelStatus.windowTab.${props.window}`))
+
+const platformSections = computed(() => groupMonitorPlatforms(props.items))
+const selectedPlatform = ref(ALL_PLATFORMS)
+watch(platformSections, sections => {
+  if (selectedPlatform.value !== ALL_PLATFORMS && !sections.some(section => section.value === selectedPlatform.value)) {
+    selectedPlatform.value = ALL_PLATFORMS
+  }
+})
+const platformOptions = computed(() => [
+  { value: ALL_PLATFORMS, label: t('channelStatus.board.allPlatforms'), count: props.items.length },
+  ...platformSections.value.map(section => ({ value: section.value, label: section.label, count: section.items.length })),
+])
+const visibleSections = computed(() =>
+  selectedPlatform.value === ALL_PLATFORMS
+    ? platformSections.value
+    : platformSections.value.filter(section => section.value === selectedPlatform.value)
+)
+const visibleItems = computed(() => visibleSections.value.flatMap(section => section.items))
+
+// 汇总始终基于全部分组，不随平台筛选变化
+const summary = computed(() => {
+  const counts: Record<Tone, number> = { green: 0, yellow: 0, red: 0, empty: 0 }
+  props.items.forEach(item => counts[toneOf(item.primary_status)]++)
+  const availabilities = props.items.map(availabilityValue).filter((v): v is number => v != null)
+  const latencies = props.items.map(item => item.primary_latency_ms).filter((v): v is number => v != null)
+  const level: Tone = props.items.length === 0 ? 'empty' : counts.red ? 'red' : counts.yellow ? 'yellow' : 'green'
+  const overallKey = { green: 'operational', yellow: 'degraded', red: 'outage', empty: 'empty' }[level]
+  return {
+    ...counts,
+    total: props.items.length,
+    level,
+    overallKey,
+    avgAvailability: availabilities.length ? availabilities.reduce((a, b) => a + b, 0) / availabilities.length : null,
+    avgLatency: latencies.length ? latencies.reduce((a, b) => a + b, 0) / latencies.length : null,
+  }
+})
+
+const countdownRatio = computed(() => (props.intervalSeconds > 0 ? Math.min(1, props.countdownSeconds / props.intervalSeconds) : 0))
+
+function ratioWidth(count: number): string {
+  return `${summary.value.total ? (count / summary.value.total) * 100 : 0}%`
+}
+
+const probeTotalCount = computed(() => visibleItems.value.reduce((sum, item) => sum + probesFor(item.id).length, 0))
+const probeHealthyCount = computed(() => visibleItems.value.reduce((sum, item) => {
   return sum + probesFor(item.id).filter(probe => probe.enabled && (!probe.status || probe.status === 'operational')).length
 }, 0))
 
-function selectView(view: 'groups' | 'probes') {
+function selectView(view: ViewKey) {
   activeView.value = view
   if (view === 'probes') emit('probe-view')
 }
@@ -271,30 +418,81 @@ function availabilityValue(item: UserMonitorView): number | null {
 }
 
 function formatAvailability(item: UserMonitorView): string {
-  const value = availabilityValue(item)
-  return value == null ? '-' : formatPercent(value)
+  return formatPercent(availabilityValue(item))
 }
 
+// 接口返回的时间线是新到旧，展示时改为旧到新
 function timelinePoints(item: UserMonitorView): MonitorTimelinePoint[] {
-  const points = [...(item.timeline ?? [])].slice(0, 60).reverse()
-  while (points.length < 60) points.unshift({ status: '' as MonitorStatus, latency_ms: null, ping_latency_ms: null, checked_at: '' })
+  const points = [...(item.timeline ?? [])].slice(0, TIMELINE_POINTS).reverse()
+  while (points.length < TIMELINE_POINTS) points.unshift({ status: '' as MonitorStatus, latency_ms: null, ping_latency_ms: null, checked_at: '' })
   return points
 }
 
-function statusCellClass(status: MonitorStatus | ''): string {
+function toneOf(status: MonitorStatus | ''): Tone {
   if (status === 'failed' || status === 'error') return 'red'
   if (status === 'degraded') return 'yellow'
   if (status === 'operational') return 'green'
   return 'empty'
 }
 
-function statusDotClass(status: MonitorStatus | ''): string {
-  return `status-dot status-dot--${statusCellClass(status)}`
+function modelsOf(item: UserMonitorView) {
+  return [{ model: item.primary_model, status: item.primary_status }, ...(item.extra_models ?? [])]
 }
 
-function probeStatusClass(status: MonitorStatus | ''): string {
-  const tone = statusCellClass(status)
-  return tone === 'empty' ? '' : `probe-status--${tone}`
+// 靠两端的格子把提示框向内对齐，避免超出卡片可视范围
+function tooltipAlign(index: number): string {
+  if (index < 8) return 'tip-start'
+  if (index >= TIMELINE_POINTS - 8) return 'tip-end'
+  return ''
+}
+
+interface Spark {
+  line: string
+  area: string
+  fails: { x: number; width: number }[]
+}
+
+// 按 60 个时间点生成延迟折线；无延迟（失败或未采样）的点断开，失败点铺红底
+function buildSpark(item: UserMonitorView): Spark {
+  const points = timelinePoints(item)
+  const values = points.map(point => point.latency_ms).filter((v): v is number => v != null)
+  const step = SPARK_WIDTH / (TIMELINE_POINTS - 1)
+  const fails = points.flatMap((point, index) =>
+    toneOf(point.status) === 'red' ? [{ x: Math.max(0, index * step - step / 2), width: step }] : []
+  )
+  if (!values.length) return { line: '', area: '', fails }
+
+  const max = Math.max(...values) * 1.1
+  const min = Math.min(...values) * 0.9
+  const range = max - min || 1
+  const segments: string[][] = [[]]
+  points.forEach((point, index) => {
+    if (point.latency_ms == null) {
+      if (segments[segments.length - 1].length) segments.push([])
+      return
+    }
+    const x = (index * step).toFixed(1)
+    const y = (SPARK_HEIGHT - 4 - ((point.latency_ms - min) / range) * (SPARK_HEIGHT - 8)).toFixed(1)
+    segments[segments.length - 1].push(`${x},${y}`)
+  })
+  const filled = segments.filter(segment => segment.length)
+  const line = filled.map(segment => `M${segment.join('L')}`).join('')
+  const area = filled.map(segment => {
+    const first = segment[0].split(',')[0]
+    const last = segment[segment.length - 1].split(',')[0]
+    return `M${first},${SPARK_HEIGHT}L${segment.join('L')}L${last},${SPARK_HEIGHT}Z`
+  }).join('')
+  return { line, area, fails }
+}
+
+const sparkCache = computed(() => {
+  const cache: Record<number, Spark> = {}
+  props.items.forEach(item => { cache[item.id] = buildSpark(item) })
+  return cache
+})
+
+function sparkOf(item: UserMonitorView): Spark {
+  return sparkCache.value[item.id] ?? { line: '', area: '', fails: [] }
 }
 
 function probeOverallStatus(id: number): MonitorStatus | '' {
@@ -307,70 +505,359 @@ function probeOverallStatus(id: number): MonitorStatus | '' {
 }
 
 function formatCheckedAt(value: string): string {
-  if (!value) return '未采样'
   const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
-}
-
-function providerClass(provider: Provider | string): string {
-  return `provider-${provider}`
+  return Number.isNaN(date.getTime())
+    ? value
+    : date.toLocaleString(locale.value, { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 </script>
 
 <style scoped>
-.platform-section + .platform-section { border-top: 1px solid var(--line); }
-.platform-section__title { display: flex; align-items: center; gap: 10px; padding: 18px 20px; font-size: 15px; font-weight: 700; }
-.platform-section__title small { margin-left: auto; color: var(--muted); font-size: 12px; font-weight: 400; }
-.probe-board__groups .platform-section { display: grid; gap: 12px; }
+/* 状态色：卡片、胶囊、圆点共用 --c */
+.tone-green { --c: #10b981; }
+.tone-yellow { --c: #f59e0b; }
+.tone-red { --c: #ef4444; }
+.tone-empty { --c: #94a3b8; }
+:global(.dark) .tone-green { --c: #34d399; }
+:global(.dark) .tone-yellow { --c: #fbbf24; }
+:global(.dark) .tone-red { --c: #f87171; }
+:global(.dark) .tone-empty { --c: #64748b; }
 
-.status-board__sort { display: inline-flex; width: 34px; height: 34px; flex: 0 0 34px; align-items: center; justify-content: center; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--muted); }
-.status-board__sort:hover { color: var(--ink); border-color: var(--muted); }
-.status-board { --canvas: #f5f7fb; --surface: #fff; --line: #e5e9f0; --ink: #172033; --muted: #667085; --navy: #172a46; --cyan: #1ca6a8; --green: #168653; --green-soft: #e9f9f1; --yellow: #d89a22; --yellow-soft: #fff3df; --red: #c74d58; --red-soft: #fdecee; color: var(--ink); }
-.status-board__hero { position: relative; display: flex; min-height: 248px; margin: 0 0 22px; overflow: hidden; align-items: center; justify-content: center; padding: 34px 32px; border-radius: 16px; background: linear-gradient(115deg, #142842 0%, #1b4760 52%, #168f92 100%); color: #fff; text-align: center; box-shadow: 0 20px 42px rgba(18,58,81,.2); }
-.status-board__hero-content { position: relative; z-index: 1; }
-.status-board__hero h1 { font-size: 32px; line-height: 1.2; }
-.status-board__hero p { margin-top: 9px; color: rgba(255,255,255,.72); font-size: 13px; }
-.status-board__eyebrow { display: inline-flex; align-items: center; gap: 7px; margin-bottom: 12px; padding: 5px 10px; border: 1px solid rgba(199,232,109,.28); border-radius: 999px; background: rgba(255,255,255,.08); color: rgba(255,255,255,.82); font-size: 11px; font-weight: 750; }
-.status-board__eyebrow i { width: 7px; height: 7px; border-radius: 50%; background: #c7e86d; box-shadow: 0 0 0 4px rgba(199,232,109,.14); }
-.status-board__hero-stat { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; margin-top: 22px; min-width: 140px; }
-.status-board__hero-stat span { color: rgba(255,255,255,.58); font-size: 10px; }
-.status-board__hero-stat strong { font: 700 19px ui-monospace, monospace; }
-.status-board__hero-stat small { color: #c7e86d; font-size: 10px; }
-.status-board__hero-orbit { position: absolute; left: 50%; top: 50%; width: 164px; height: 164px; border: 1px solid rgba(199,232,109,.48); border-radius: 50%; opacity: .2; transform: translate(-50%, -50%); }
-.status-board__hero-orbit span { position: absolute; inset: 27px; border: 1px solid rgba(255,255,255,.19); border-radius: 50%; }
-.status-board__toolbar { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 18px; border-bottom: 1px solid var(--line); }
-.status-board__views, .status-board__actions, .status-board__windows { display: flex; align-items: center; gap: 8px; }
-.status-board__views button { padding: 0 14px 11px; border: 0; background: transparent; color: #778398; font-size: 12px; font-weight: 700; }
-.status-board__views button.active { color: var(--navy); box-shadow: inset 0 -2px var(--cyan); }
-.status-board__platforms { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 18px; padding: 2px 2px 8px; }
-.status-board__platforms button { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 8px; padding: 9px 14px; border: 1px solid var(--line); border-radius: 8px; background: transparent; color: var(--muted); font-size: 13px; font-weight: 600; white-space: nowrap; }
-.status-board__platforms button.active { border-color: var(--cyan); background: #e9f8f7; color: var(--navy); }
-.status-board__platforms button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
-.status-board__platforms small { font-size: 11px; opacity: .7; }
-.status-board__windows { padding: 3px; border: 1px solid var(--line); border-radius: 9px; background: #f8fafc; }
-.status-board__windows button { padding: 4px 9px; border: 0; border-radius: 6px; background: transparent; color: #7b8796; font-size: 10px; }
-.status-board__windows button.active { background: #fff; color: var(--navy); box-shadow: 0 1px 4px rgba(23,42,70,.1); font-weight: 750; }
-.status-board__panel { overflow: hidden; border: 1px solid var(--line); border-radius: 13px; background: var(--surface); box-shadow: 0 18px 48px rgba(23,42,70,.08); }
-.status-board__panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 17px 19px; border-bottom: 1px solid var(--line); }
-.status-board__panel-head h2, .probe-board__summary h2 { font-size: 14px; }
-.status-board__panel-head p, .probe-board__summary p { margin-top: 3px; color: var(--muted); font-size: 11px; }
-.status-board__panel-note { color: #9aa5b4; font-size: 11px; }
-.status-board__rows { padding: 0 19px; }
-.status-row { display: grid; grid-template-columns: 190px minmax(0, 1fr) 220px; gap: 14px; align-items: center; width: 100%; min-height: 92px; border: 0; border-bottom: 1px solid #eff2f6; background: transparent; text-align: left; }
-.status-row:last-child { border-bottom: 0; }
-.status-row__name, .probe-group__title { display: flex; min-width: 0; align-items: center; gap: 11px; }
-.status-row__provider { display: grid; width: 36px; height: 36px; flex: 0 0 auto; place-items: center; border-radius: 11px; }
-.provider-openai { background: #e7f7ef; color: #07885f; }.provider-anthropic { background: #fff0e4; color: #b36b3c; }.provider-gemini { background: #eaf1fb; color: #5677aa; }.provider-grok { background: #eef0f2; color: #59636c; }
-.status-row__name strong { display: block; overflow: hidden; color: var(--navy); font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }.status-row__name small { display: block; overflow: hidden; margin-top: 4px; color: var(--muted); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
-.status-row__timeline { display: grid; grid-template-columns: repeat(60, minmax(7px, 1fr)); gap: 3px; min-width: 0; align-items: center; }
-.status-cell { position: relative; height: 34px; min-width: 7px; border-radius: 5px; }.status-cell.green { background: #35b67e; }.status-cell.yellow { background: #e0a327; }.status-cell.red { background: #d85a63; }.status-cell.empty { background: #e9eef0; }
-.status-cell__tooltip { position: absolute; bottom: calc(100% + 10px); left: 50%; z-index: 30; display: none; min-width: 130px; padding: 8px 10px; border-radius: 7px; background: #172a46; color: #fff; box-shadow: 0 9px 22px rgba(23,42,70,.2); font-size: 10px; line-height: 1.45; transform: translateX(-50%); white-space: nowrap; }.status-cell__tooltip::after { content: ''; position: absolute; bottom: -5px; left: 50%; width: 8px; height: 8px; background: #172a46; transform: translateX(-50%) rotate(45deg); }.status-cell__tooltip strong, .status-cell__tooltip span { display: block; }.status-cell__tooltip strong { margin-bottom: 3px; color: #c7e86d; }.status-cell:hover { z-index: 20; }.status-cell:hover .status-cell__tooltip { display: block; }
-.status-row__metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; align-items: center; text-align: center; }.status-row__metric { min-width: 0; }.status-row__metric strong { display: block; overflow: hidden; color: var(--navy); font: 700 13px ui-monospace, monospace; text-overflow: ellipsis; white-space: nowrap; }.status-row__metric small { display: block; margin-top: 3px; color: #9aa5b4; font-size: 9px; }.status-row__metric--status { display: flex; align-items: center; justify-content: center; gap: 5px; }.status-dot { width: 6px; height: 6px; flex: 0 0 auto; border-radius: 50%; }.status-dot--green { background: var(--green); }.status-dot--yellow { background: var(--yellow); }.status-dot--red { background: var(--red); }.status-dot--empty { background: #a9b4bf; }.status-row__metric--status strong { font-family: inherit; font-size: 10px; }
-.status-board__legend { display: flex; align-items: center; gap: 14px; padding: 15px 19px; color: #9aa5b4; font-size: 10px; }.status-board__legend span { display: inline-flex; align-items: center; }.status-board__legend i { width: 7px; height: 7px; margin-right: 4px; border-radius: 2px; }.status-board__legend i.green { background: #35b67e; }.status-board__legend i.yellow { background: #e0a327; }.status-board__legend i.red { background: #d85a63; }.status-board__legend-range { margin-left: auto; }
-.status-board__empty, .probe-group__empty { padding: 45px 20px; color: var(--muted); font-size: 12px; text-align: center; }
-.probe-board__summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 15px; }.probe-board__summary > span { padding: 5px 9px; border-radius: 999px; background: var(--green-soft); color: var(--green); font-size: 10px; font-weight: 800; }.probe-board__groups { display: grid; gap: 14px; }.probe-group { overflow: hidden; border: 1px solid var(--line); border-radius: 13px; background: var(--surface); box-shadow: 0 18px 48px rgba(23,42,70,.08); }.probe-group__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 15px 18px; border-bottom: 1px solid var(--line); }.probe-group__title h3 { overflow: hidden; color: var(--navy); font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }.probe-group__title small, .probe-group__count { color: #9aa5b4; font-size: 10px; }.probe-list { padding: 5px 18px 8px; }.probe-item { display: grid; grid-template-columns: minmax(150px,1.2fr) minmax(180px,1.6fr) 90px 76px 64px; gap: 14px; align-items: center; min-height: 59px; border-bottom: 1px solid #eff2f6; }.probe-item:last-child { border-bottom: 0; }.probe-item__identity { display: flex; min-width: 0; align-items: center; gap: 9px; }.probe-item__index { display: grid; width: 24px; height: 24px; flex: 0 0 auto; place-items: center; border-radius: 7px; background: #eef3f4; color: #62727d; font-size: 10px; font-weight: 800; }.probe-item__identity strong, .probe-item__endpoint span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.probe-item__identity strong { color: var(--ink); font-size: 12px; }.probe-item__endpoint span, .probe-item__endpoint small { display: block; }.probe-item__endpoint span { color: var(--muted); font: 10px ui-monospace, monospace; }.probe-item__endpoint small { overflow: hidden; margin-top: 3px; color: #8b98a7; font: 10px ui-monospace, monospace; text-overflow: ellipsis; white-space: nowrap; }.probe-item__latency { text-align: right; }.probe-item__latency strong { display: block; color: var(--navy); font: 700 12px ui-monospace, monospace; }.probe-item__latency small { display: block; margin-top: 2px; color: #9aa5b4; font-size: 9px; }.probe-item__status { justify-self: end; padding: 4px 8px; border-radius: 999px; background: var(--green-soft); color: var(--green); font-size: 10px; font-weight: 800; }.probe-item__status.probe-status--yellow { background: var(--yellow-soft); color: var(--yellow); }.probe-item__status.probe-status--red { background: var(--red-soft); color: var(--red); }.probe-item__enabled { justify-self: end; color: #78909c; font-size: 10px; }.probe-item__enabled.off { color: #b45f64; }.probe-group__foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 18px; border-top: 1px solid var(--line); color: #8995a3; font-size: 10px; }.probe-group__foot strong { padding: 3px 8px; border-radius: 999px; background: var(--green-soft); color: var(--green); font-size: 10px; }.probe-group__foot strong.probe-status--yellow { background: var(--yellow-soft); color: var(--yellow); }.probe-group__foot strong.probe-status--red { background: var(--red-soft); color: var(--red); }
-.probe-item__endpoint { min-width: 0; }
-.probe-item__endpoint span, .probe-item__endpoint small { overflow: visible; overflow-wrap: anywhere; word-break: break-word; white-space: normal; text-overflow: clip; }
-@media (max-width: 900px) { .status-row { grid-template-columns: 165px minmax(0,1fr) 190px; }.probe-item { grid-template-columns: minmax(130px,1fr) minmax(160px,1.4fr) 80px 70px 60px; gap: 8px; } }
-@media (max-width: 700px) { .status-board__toolbar { align-items: flex-start; flex-direction: column; }.status-board__actions { width: 100%; justify-content: space-between; }.status-row { grid-template-columns: 150px minmax(620px,1fr) 180px; min-width: 980px; }.status-board__panel { overflow-x: auto; }.status-board__panel-head, .status-board__legend { min-width: 980px; }.probe-board { overflow-x: auto; }.probe-board__groups { min-width: 760px; }.status-board__hero { min-height: 270px; }.status-board__hero h1 { font-size: 26px; } }
+.board-kpi {
+  position: relative;
+  overflow: hidden;
+  padding: 16px 18px;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: #fff;
+}
+:global(.dark) .board-kpi {
+  border-color: #1e293b;
+  background: #0f172a;
+}
+.board-kpi small {
+  display: block;
+  color: #64748b;
+  font-size: 12px;
+}
+.board-kpi strong {
+  display: block;
+  margin-top: 6px;
+  color: #0f172a;
+  font-size: 26px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+.board-kpi strong em {
+  margin-left: 2px;
+  color: #94a3b8;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 500;
+}
+:global(.dark) .board-kpi small {
+  color: #94a3b8;
+}
+:global(.dark) .board-kpi strong {
+  color: #f1f5f9;
+}
+.board-kpi--overall::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, color-mix(in srgb, var(--c) 12%, transparent), transparent 70%);
+}
+.board-kpi--overall strong {
+  margin-top: 2px;
+  font-size: 18px;
+}
+
+/* 整体状态呼吸点 */
+.board-pulse {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+}
+.board-pulse::before,
+.board-pulse::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  background: var(--c);
+}
+.board-pulse::before {
+  inset: 12px;
+}
+.board-pulse::after {
+  inset: 0;
+  opacity: 0.18;
+  animation: board-ring 2s ease-out infinite;
+}
+
+/* 刷新倒计时圆环 */
+.board-ring {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: conic-gradient(#0d9488 calc(var(--ratio) * 360deg), #f1f5f9 0);
+  -webkit-mask: radial-gradient(circle, transparent 15px, #000 16px);
+  mask: radial-gradient(circle, transparent 15px, #000 16px);
+}
+:global(.dark) .board-ring {
+  background: conic-gradient(#2dd4bf calc(var(--ratio) * 360deg), #1e293b 0);
+}
+
+.board-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 13px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 500;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.board-chip small {
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  font-size: 11px;
+}
+.board-chip.active {
+  border-color: #0d9488;
+  color: #0f172a;
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+}
+:global(.dark) .board-chip {
+  border-color: #1e293b;
+  background: #0f172a;
+  color: #94a3b8;
+}
+:global(.dark) .board-chip small {
+  background: #1e293b;
+}
+:global(.dark) .board-chip.active {
+  border-color: #2dd4bf;
+  color: #f1f5f9;
+  box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.15);
+}
+
+/* 分组卡片：顶部状态色条用内阴影实现，保留 overflow 可见以显示时间线提示 */
+.board-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 18px;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: inset 0 3px var(--c);
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.board-card:hover,
+.board-card:focus-visible {
+  transform: translateY(-3px);
+  box-shadow: inset 0 3px var(--c), 0 16px 40px rgba(15, 23, 42, 0.1);
+  outline: none;
+}
+.board-card.tone-red {
+  border-color: color-mix(in srgb, var(--c) 45%, #e2e8f0);
+}
+:global(.dark) .board-card {
+  border-color: #1e293b;
+  background: #0f172a;
+}
+:global(.dark) .board-card:hover,
+:global(.dark) .board-card:focus-visible {
+  box-shadow: inset 0 3px var(--c), 0 16px 40px rgba(0, 0, 0, 0.35);
+}
+:global(.dark) .board-card.tone-red {
+  border-color: color-mix(in srgb, var(--c) 45%, #1e293b);
+}
+
+.board-pill {
+  margin-left: auto;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--c) 14%, transparent);
+  color: var(--c);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.board-pill i,
+.board-dot {
+  width: 6px;
+  height: 6px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--c);
+}
+.board-dot {
+  width: 5px;
+  height: 5px;
+}
+.tone-red .board-pill i {
+  animation: board-blink 1s infinite;
+}
+
+.board-spark {
+  display: block;
+  width: 100%;
+  height: 56px;
+  color: var(--c);
+}
+.board-spark__line {
+  fill: none;
+  stroke: var(--c);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+.board-spark__fail {
+  fill: rgba(239, 68, 68, 0.14);
+}
+
+.board-strip {
+  display: grid;
+  grid-template-columns: repeat(60, minmax(0, 1fr));
+  gap: 1.5px;
+  margin-top: 10px;
+}
+.board-cell {
+  position: relative;
+  height: 10px;
+  border-radius: 2px;
+  background: #e2e8f0;
+}
+.board-cell.cell-green { background: rgba(16, 185, 129, 0.75); }
+.board-cell.cell-yellow { background: #f59e0b; }
+.board-cell.cell-red { background: #ef4444; }
+:global(.dark) .board-cell { background: #1e293b; }
+:global(.dark) .board-cell.cell-green { background: rgba(52, 211, 153, 0.75); }
+:global(.dark) .board-cell.cell-yellow { background: #fbbf24; }
+:global(.dark) .board-cell.cell-red { background: #f87171; }
+.board-cell:hover {
+  z-index: 20;
+  outline: 1px solid #0f172a;
+}
+:global(.dark) .board-cell:hover {
+  outline-color: #f1f5f9;
+}
+.board-tip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  z-index: 30;
+  display: none;
+  min-width: 140px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #0f172a;
+  color: #fff;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.25);
+  font-size: 11px;
+  line-height: 1.55;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.board-tip strong,
+.board-tip span {
+  display: block;
+}
+.board-tip strong {
+  margin-bottom: 2px;
+  color: #5eead4;
+}
+.board-cell.tip-start .board-tip {
+  left: 0;
+  transform: none;
+}
+.board-cell.tip-end .board-tip {
+  right: 0;
+  left: auto;
+  transform: none;
+}
+.board-cell:hover .board-tip {
+  display: block;
+}
+
+.board-empty {
+  margin-top: 20px;
+  padding: 48px 20px;
+  border: 1px dashed #e2e8f0;
+  border-radius: 16px;
+  color: #64748b;
+  font-size: 13px;
+  text-align: center;
+}
+:global(.dark) .board-empty {
+  border-color: #1e293b;
+  color: #94a3b8;
+}
+
+.board-probe {
+  display: grid;
+  grid-template-columns: minmax(130px, 1.1fr) minmax(180px, 1.8fr) 80px 72px 56px;
+  gap: 14px;
+  align-items: center;
+  min-height: 58px;
+  border-bottom: 1px solid #f1f5f9;
+}
+.board-probe:last-child {
+  border-bottom: 0;
+}
+:global(.dark) .board-probe {
+  border-color: #1e293b;
+}
+
+@keyframes board-ring {
+  from {
+    transform: scale(0.5);
+    opacity: 0.4;
+  }
+  to {
+    transform: scale(1.1);
+    opacity: 0;
+  }
+}
+@keyframes board-blink {
+  50% {
+    opacity: 0.2;
+  }
+}
+@media (max-width: 700px) {
+  .board-probe {
+    grid-template-columns: minmax(0, 1fr) 72px;
+    gap: 8px;
+    padding: 10px 0;
+  }
+  .board-probe > :nth-child(2) {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .board-probe > :nth-child(3),
+  .board-probe > :nth-child(5) {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .board-pulse::after,
+  .tone-red .board-pill i {
+    animation: none;
+  }
+  .board-card {
+    transition: none;
+  }
+}
 </style>
