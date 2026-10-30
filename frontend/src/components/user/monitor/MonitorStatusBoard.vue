@@ -111,7 +111,18 @@
 
     <!-- 分组状态 -->
     <template v-if="activeView === 'groups'">
-      <div v-if="loading && items.length === 0" class="board-empty">{{ t('channelStatus.board.loading') }}</div>
+      <div
+        v-if="initialLoading"
+        class="mt-6 grid grid-cols-1 gap-3.5 md:grid-cols-2 xl:grid-cols-3"
+        aria-busy="true"
+        :aria-label="t('channelStatus.board.loading')"
+      >
+        <div
+          v-for="n in 6"
+          :key="n"
+          class="h-[264px] animate-pulse rounded-2xl border border-gray-200 bg-white dark:border-dark-800 dark:bg-dark-900"
+        ></div>
+      </div>
       <div v-else-if="items.length === 0" class="board-empty">{{ t('channelStatus.board.empty') }}</div>
       <template v-else>
         <section v-for="platform in visibleSections" :key="platform.value" class="board-section">
@@ -372,6 +383,9 @@ const visibleSections = computed(() =>
 )
 const visibleItems = computed(() => visibleSections.value.flatMap(section => section.items))
 
+// 首次加载且尚无数据时显示骨架屏，避免把“加载中”误显示为“暂无监控数据”
+const initialLoading = computed(() => props.loading && props.items.length === 0)
+
 // 汇总始终基于全部分组，不随平台筛选变化
 const summary = computed(() => {
   const counts: Record<Tone, number> = { green: 0, yellow: 0, red: 0, empty: 0 }
@@ -379,7 +393,7 @@ const summary = computed(() => {
   const availabilities = props.items.map(availabilityValue).filter((v): v is number => v != null)
   const latencies = props.items.map(item => item.primary_latency_ms).filter((v): v is number => v != null)
   const level: Tone = props.items.length === 0 ? 'empty' : counts.red ? 'red' : counts.yellow ? 'yellow' : 'green'
-  const overallKey = { green: 'operational', yellow: 'degraded', red: 'outage', empty: 'empty' }[level]
+  const overallKey = initialLoading.value ? 'loading' : { green: 'operational', yellow: 'degraded', red: 'outage', empty: 'empty' }[level]
   return {
     ...counts,
     total: props.items.length,
