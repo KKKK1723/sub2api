@@ -73,7 +73,7 @@ const autoRefresh = useAutoRefresh({
   intervals: [STATUS_REFRESH_INTERVAL_SECONDS],
   defaultInterval: STATUS_REFRESH_INTERVAL_SECONDS,
   defaultEnabled: true,
-  onRefresh: () => reload(true),
+  onRefresh: () => refresh(true),
   shouldPause: () => document.hidden || loading.value || showOrder.value,
 })
 const countdown = autoRefresh.countdown
@@ -102,6 +102,15 @@ async function reload(silent = false) {
       if (!silent) loading.value = false
       abortController = null
     }
+  }
+}
+
+async function refresh(silent = false) {
+  await reload(silent)
+  // After base reload, refresh any cached detail records so non-7d availability
+  // values stay in sync without forcing the user to switch tabs again.
+  if (currentWindow.value !== '7d') {
+    await Promise.all(items.value.map(it => loadDetail(it.id, true)))
   }
 }
 
