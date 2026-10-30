@@ -116,6 +116,14 @@ export default {
     }
   },
 
+  versionUpdate: {
+    title: '发现新版本',
+    description: '网站已更新，刷新后即可使用最新功能。',
+    refresh: '立即刷新',
+    later: '稍后',
+    close: '关闭'
+  },
+
   adminCompliance: {
     title: '部署与运营合规确认',
     blockingNotice: '继续使用控制台前，须完成部署与运营合规确认。',

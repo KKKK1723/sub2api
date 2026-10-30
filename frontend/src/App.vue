@@ -2,6 +2,7 @@
 import { RouterView, useRouter, useRoute } from 'vue-router'
 import { computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import Toast from '@/components/common/Toast.vue'
+import VersionUpdateNotice from '@/components/common/VersionUpdateNotice.vue'
 import NavigationProgress from '@/components/common/NavigationProgress.vue'
 import AdminComplianceDialog from '@/components/admin/AdminComplianceDialog.vue'
 import { resolveRouteDocumentTitle } from '@/router/title'
@@ -11,6 +12,7 @@ import { getSetupStatus } from '@/api/setup'
 import { updateFavicon } from '@/utils/branding'
 import { FeatureFlags, isFeatureFlagEnabled } from '@/utils/featureFlags'
 import { resolveSiteBillingMode } from '@/utils/siteBillingMode'
+import { startVersionUpdateCheck } from '@/utils/versionUpdate'
 
 const router = useRouter()
 const route = useRoute()
@@ -143,6 +145,7 @@ onBeforeUnmount(() => {
 
 onMounted(async () => {
   window.addEventListener('admin-compliance-required', onAdminComplianceRequired)
+  startVersionUpdateCheck()
 
   // Check if setup is needed
   try {
@@ -167,6 +170,7 @@ onMounted(async () => {
   <NavigationProgress />
   <RouterView />
   <Toast />
+  <VersionUpdateNotice />
   <AnnouncementPopup />
   <AdminComplianceDialog />
 </template>

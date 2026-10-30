@@ -13,6 +13,7 @@ import { useRoutePrefetch } from '@/composables/useRoutePrefetch'
 import { getSetupStatus } from '@/api/setup'
 import { resolveCompletedSetupRedirectPath } from './setupRedirect'
 import { resolveRouteDocumentTitle } from './title'
+import { checkForUpdate, shouldReloadOnNavigation } from '@/utils/versionUpdate'
 
 const DEV_PREVIEW_AUTH = import.meta.env.DEV && import.meta.env.VITE_DEV_BYPASS_AUTH === 'true'
 
@@ -849,7 +850,15 @@ function isBackendModePublicRouteAllowed(path: string, hasPendingAuthSession: bo
   return false
 }
 
-router.beforeEach(async (to, _from, next) => {
+router.beforeEach(async (to, from, next) => {
+  // 已检测到新版本：站内切换页面改为整页加载，用户无感知地拿到新版本。
+  // 首次导航（from 没有匹配路由）不处理，避免刚加载完又刷新。
+  if (shouldReloadOnNavigation(from.matched.length > 0 ? from.path : null, to.path)) {
+    window.location.assign(router.resolve(to).href)
+    next(false)
+    return
+  }
+
   // 开始导航加载状态
   navigationLoading.startNavigation()
 
@@ -1068,6 +1077,9 @@ router.afterEach((to) => {
   }
   // 触发路由预加载（在浏览器空闲时执行）
   routePrefetch.triggerPrefetch(to)
+
+  // 页面切换时顺带检测新版本（内部限流，最多每分钟请求一次）
+  void checkForUpdate()
 })
 
 /**

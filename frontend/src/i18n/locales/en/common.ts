@@ -116,6 +116,14 @@ export default {
     }
   },
 
+  versionUpdate: {
+    title: 'New version available',
+    description: 'The site has been updated. Refresh to get the latest features.',
+    refresh: 'Refresh now',
+    later: 'Later',
+    close: 'Close'
+  },
+
   adminCompliance: {
     title: 'Deployment and Operation Compliance Acknowledgment',
     blockingNotice: 'Deployment and operation compliance acknowledgment is required before continuing to use the console.',
