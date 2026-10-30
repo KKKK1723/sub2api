@@ -118,7 +118,7 @@ export default {
 
   versionUpdate: {
     title: '发现新版本',
-    description: '网站已更新，刷新后即可使用最新功能。',
+    description: '网站已更新，刷新页面即可使用最新功能。',
     refresh: '立即刷新',
     later: '稍后',
     close: '关闭'
