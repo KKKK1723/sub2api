@@ -8853,6 +8853,9 @@
               </div>
             </div>
           </div>
+
+          <!-- 账号与上游监控通知 -->
+          <AccountAlertNotifySettings />
         </div>
         <!-- /Tab: Email -->
 
@@ -9000,6 +9003,7 @@ import {
   type RechargeBonusMode,
   type RechargeBonusTierDraft,
 } from "@/utils/rechargeBonus";
+import AccountAlertNotifySettings from "@/views/admin/settings/AccountAlertNotifySettings.vue";
 import OpenAIFastPolicyUserSelector from "@/views/admin/settings/OpenAIFastPolicyUserSelector.vue";
 import { useClipboard } from "@/composables/useClipboard";
 import {
