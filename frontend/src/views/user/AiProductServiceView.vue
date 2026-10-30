@@ -127,14 +127,25 @@
               <span class="font-mono text-3xl font-semibold tracking-tight text-gray-900 dark:text-white">{{ product.price }}</span>
               <span class="text-sm text-gray-400 dark:text-dark-500">{{ t(`aiProducts.units.${product.unit}`) }}</span>
             </div>
-            <button
-              type="button"
-              class="product-buy flex w-full items-center justify-center gap-2 rounded-xl border py-2.5 text-sm font-semibold transition-colors"
-              @click="openContact(product)"
-            >
-              {{ t('aiProducts.consult') }}
-              <Icon name="arrowRight" size="sm" />
-            </button>
+            <div class="flex gap-2">
+              <button
+                v-if="product.hasDetail"
+                type="button"
+                class="product-detail flex flex-shrink-0 items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors"
+                @click="openDetail(product)"
+              >
+                <Icon name="document" size="sm" />
+                {{ t('aiProducts.detail') }}
+              </button>
+              <button
+                type="button"
+                class="product-buy flex w-full items-center justify-center gap-2 rounded-xl border py-2.5 text-sm font-semibold transition-colors"
+                @click="openContact(product)"
+              >
+                {{ t('aiProducts.consult') }}
+                <Icon name="arrowRight" size="sm" />
+              </button>
+            </div>
           </div>
         </article>
       </div>
@@ -172,6 +183,17 @@
         </div>
       </dl>
 
+      <button
+        v-if="contactProduct?.hasDetail"
+        type="button"
+        class="mt-3 flex w-full items-center gap-2 rounded-xl border border-amber-500/40 bg-amber-50 px-3 py-2.5 text-left text-xs text-amber-700 transition-colors hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-300 dark:hover:bg-amber-500/15"
+        @click="openDetail(contactProduct)"
+      >
+        <Icon name="exclamationTriangle" size="sm" class="flex-shrink-0" />
+        <span class="flex-1">{{ t('aiProducts.dialog.readDetail') }}</span>
+        <Icon name="arrowRight" size="xs" class="flex-shrink-0" />
+      </button>
+
       <div class="mt-4 flex items-center gap-4 rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-dark-700 dark:bg-dark-800">
         <img :src="wechatImage" :alt="t('aiProducts.dialog.scan')" class="h-24 w-24 flex-shrink-0 rounded-lg bg-white p-1" />
         <div class="min-w-0 flex-1">
@@ -194,6 +216,42 @@
         <Icon name="clipboard" size="sm" />{{ t('aiProducts.dialog.copyInquiry') }}
       </button>
     </BaseDialog>
+
+    <!-- 商品详情：购买条件、质保范围、激活步骤与常见问题 -->
+    <BaseDialog
+      :show="detailOpen"
+      :title="detailProduct ? productName(detailProduct) : ''"
+      width="normal"
+      close-on-click-outside
+      :z-index="60"
+      @close="detailOpen = false"
+    >
+      <div v-if="detailProduct" class="space-y-5">
+        <section v-for="section in detailKeys" :key="section">
+          <h4 class="mb-2 text-sm font-semibold text-gray-900 dark:text-white">
+            {{ t(`aiProducts.products.${detailProduct.id}.detail.${section}.title`) }}
+          </h4>
+          <p
+            class="whitespace-pre-line rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-3 text-sm leading-relaxed text-gray-600 dark:border-dark-700 dark:bg-dark-900 dark:text-dark-300"
+          >{{ t(`aiProducts.products.${detailProduct.id}.detail.${section}.body`) }}</p>
+        </section>
+      </div>
+      <template #footer>
+        <div class="flex items-center justify-between gap-3">
+          <span v-if="detailProduct" class="font-mono text-sm font-semibold text-gray-900 dark:text-white">
+            ¥{{ detailProduct.price }} {{ t(`aiProducts.units.${detailProduct.unit}`) }}
+          </span>
+          <button
+            type="button"
+            class="inline-flex items-center gap-2 rounded-xl bg-gray-900 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-dark-950"
+            @click="consultFromDetail"
+          >
+            {{ t('aiProducts.consult') }}
+            <Icon name="arrowRight" size="sm" />
+          </button>
+        </div>
+      </template>
+    </BaseDialog>
   </AppLayout>
 </template>
 
@@ -208,7 +266,7 @@ import { site } from '@/components/public/content'
 import { useClipboard } from '@/composables/useClipboard'
 
 type CategoryKey = 'subscription' | 'sms'
-type UnitKey = 'month' | 'once' | 'days25'
+type UnitKey = 'month' | 'once' | 'days25' | 'months18'
 
 interface Product {
   id: string
@@ -220,9 +278,11 @@ interface Product {
   unit: UnitKey
   logo?: string
   logoClass?: string
-  tone: 'openai' | 'claude' | 'sms'
+  tone: 'openai' | 'claude' | 'gemini' | 'sms'
   isNew?: boolean
   featured?: boolean
+  // 购买条件与售后规则较长，放在咨询弹窗中展示，文案见 aiProducts.products.<id>.detail
+  hasDetail?: boolean
 }
 
 const { t } = useI18n()
@@ -231,6 +291,7 @@ const { copyToClipboard } = useClipboard()
 
 const wechatImage = '/contact/wechat.png'
 const featureKeys = ['feature1', 'feature2', 'feature3'] as const
+const detailKeys = ['notice', 'warranty', 'steps', 'faq'] as const
 
 // 价格与开通方式由站长人工确认，页面仅做展示；顺序即展示顺序
 const products: Product[] = [
@@ -238,6 +299,7 @@ const products: Product[] = [
   { id: 'gptPro5x', category: 'subscription', vendor: 'OpenAI', name: 'GPT Pro 5x', price: 650, unit: 'month', logo: '/brands/openai.svg', logoClass: 'dark:invert', tone: 'openai' },
   { id: 'gptPro20x', category: 'subscription', vendor: 'OpenAI', name: 'GPT Pro 20x', price: 1099, unit: 'month', logo: '/brands/openai.svg', logoClass: 'dark:invert', tone: 'openai', isNew: true, featured: true },
   { id: 'claudePro', category: 'subscription', vendor: 'Anthropic', name: 'Claude Pro', price: 178, unit: 'month', logo: '/brands/claude.svg', logoClass: 'claude-logo', tone: 'claude' },
+  { id: 'geminiPro18m', category: 'subscription', vendor: 'Google', price: 28.8, unit: 'months18', logo: '/brands/gemini.svg', tone: 'gemini', isNew: true, hasDetail: true },
   { id: 'codexUsSimOnce', category: 'sms', vendor: 'Codex', price: 5.2, unit: 'once', tone: 'sms', isNew: true },
   { id: 'codexUs25d', category: 'sms', vendor: 'Codex', price: 28.8, unit: 'days25', tone: 'sms', isNew: true },
 ]
@@ -293,6 +355,21 @@ const inquiryText = computed(() => {
 function openContact(product: Product | null) {
   contactProduct.value = product
   contactOpen.value = true
+}
+
+const detailOpen = ref(false)
+const detailProduct = ref<Product | null>(null)
+
+function openDetail(product: Product) {
+  detailProduct.value = product
+  detailOpen.value = true
+}
+
+// 详情弹窗层级高于咨询弹窗；从咨询弹窗进入时，关闭详情即回到原咨询弹窗
+function consultFromDetail() {
+  const product = detailProduct.value
+  detailOpen.value = false
+  if (product) openContact(product)
 }
 
 // 卡片聚光效果跟随指针位置
@@ -367,6 +444,9 @@ function trackPointer(event: PointerEvent) {
 .product-card.claude {
   --tone: #c2410c;
 }
+.product-card.gemini {
+  --tone: #2563eb;
+}
 .product-card.sms {
   --tone: #b45309;
 }
@@ -375,6 +455,9 @@ function trackPointer(event: PointerEvent) {
 }
 :global(.dark) .product-card.claude {
   --tone: #f0875f;
+}
+:global(.dark) .product-card.gemini {
+  --tone: #60a5fa;
 }
 :global(.dark) .product-card.sms {
   --tone: #fbbf24;
@@ -407,6 +490,18 @@ function trackPointer(event: PointerEvent) {
   border-color: var(--tone);
   background: color-mix(in srgb, var(--tone) 10%, #f8fafc);
   color: var(--tone);
+}
+.product-detail {
+  border-color: rgba(15, 23, 42, 0.14);
+  color: #475569;
+}
+.product-detail:hover {
+  border-color: var(--tone);
+  color: var(--tone);
+}
+:global(.dark) .product-detail {
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #cbd5e1;
 }
 :global(.dark) .product-buy {
   border-color: rgba(255, 255, 255, 0.14);
