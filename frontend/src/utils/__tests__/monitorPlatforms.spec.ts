@@ -20,7 +20,7 @@ describe('按平台展示监控', () => {
     expect(groupMonitorPlatforms([])).toEqual([])
   })
 
-  it('默认显示全部平台，筛选只显示对应分组，切换视图和刷新时保留选择，平台消失时回退全部', async () => {
+  it('默认显示全部平台，筛选只显示对应分组且指标随之变化，切换视图和刷新时保留选择，平台消失时回退全部', async () => {
     const wrapper = mount(MonitorStatusBoard, {
       props: { items: [item(1, 'openai'), item(2, 'deepseek', 'failed')], window: '7d', countdownSeconds: 300,
         intervalSeconds: 300, loading: false, detailCache: {}, isAdmin: true, probeCache: {}, probeLoading: {} },
@@ -33,7 +33,13 @@ describe('按平台展示监控', () => {
     expect(wrapper.findAll('.board-section')).toHaveLength(2)
     expect(wrapper.text()).toContain('channelStatus.board.overall.outage')
     expect(wrapper.text()).toContain('300s')
+    expect(wrapper.text()).toContain('channelStatus.board.overallLabel')
+    // 指标卡跟随平台筛选：只看 OpenAI 时整体正常，只看 DeepSeek 时整体中断
+    await wrapper.findAll('.board-platforms button')[1]!.trigger('click')
+    expect(wrapper.text()).toContain('channelStatus.board.overall.operational')
+    expect(wrapper.text()).toContain('channelStatus.board.platformOverallLabel')
     await wrapper.findAll('.board-platforms button')[2]!.trigger('click')
+    expect(wrapper.text()).toContain('channelStatus.board.overall.outage')
     expect(wrapper.findAll('.board-section')).toHaveLength(1)
     expect(sectionsText()).toContain('group-2')
     expect(sectionsText()).not.toContain('group-1')

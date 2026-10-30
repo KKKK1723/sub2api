@@ -592,6 +592,7 @@ export default {
       },
       sortOrder: 'Reorder groups',
       overallLabel: 'Overall status',
+      platformOverallLabel: '{platform} status',
       overall: {
         operational: 'All systems operational',
         degraded: 'Partial performance degradation',

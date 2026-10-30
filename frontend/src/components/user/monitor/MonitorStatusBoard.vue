@@ -41,7 +41,7 @@
       >
         <span class="board-pulse" aria-hidden="true"></span>
         <div class="relative min-w-0">
-          <small>{{ t('channelStatus.board.overallLabel') }}</small>
+          <small>{{ overallLabel }}</small>
           <strong class="text-lg">{{ t(`channelStatus.board.overall.${summary.overallKey}`) }}</strong>
         </div>
       </div>
@@ -383,20 +383,29 @@ const visibleSections = computed(() =>
 )
 const visibleItems = computed(() => visibleSections.value.flatMap(section => section.items))
 
+// 选中具体平台时，整体状态标题带上平台名，提示指标卡的统计范围
+const overallLabel = computed(() => {
+  const platform = platformSections.value.find(section => section.value === selectedPlatform.value)
+  return platform
+    ? t('channelStatus.board.platformOverallLabel', { platform: platform.label })
+    : t('channelStatus.board.overallLabel')
+})
+
 // 首次加载且尚无数据时显示骨架屏，避免把“加载中”误显示为“暂无监控数据”
 const initialLoading = computed(() => props.loading && props.items.length === 0)
 
-// 汇总始终基于全部分组，不随平台筛选变化
+// 汇总跟随平台筛选：选「全部平台」统计所有分组，选某个平台只统计该平台分组
 const summary = computed(() => {
+  const scoped = visibleItems.value
   const counts: Record<Tone, number> = { green: 0, yellow: 0, red: 0, empty: 0 }
-  props.items.forEach(item => counts[toneOf(item.primary_status)]++)
-  const availabilities = props.items.map(availabilityValue).filter((v): v is number => v != null)
-  const latencies = props.items.map(item => item.primary_latency_ms).filter((v): v is number => v != null)
-  const level: Tone = props.items.length === 0 ? 'empty' : counts.red ? 'red' : counts.yellow ? 'yellow' : 'green'
+  scoped.forEach(item => counts[toneOf(item.primary_status)]++)
+  const availabilities = scoped.map(availabilityValue).filter((v): v is number => v != null)
+  const latencies = scoped.map(item => item.primary_latency_ms).filter((v): v is number => v != null)
+  const level: Tone = scoped.length === 0 ? 'empty' : counts.red ? 'red' : counts.yellow ? 'yellow' : 'green'
   const overallKey = initialLoading.value ? 'loading' : { green: 'operational', yellow: 'degraded', red: 'outage', empty: 'empty' }[level]
   return {
     ...counts,
-    total: props.items.length,
+    total: scoped.length,
     level,
     overallKey,
     avgAvailability: availabilities.length ? availabilities.reduce((a, b) => a + b, 0) / availabilities.length : null,
