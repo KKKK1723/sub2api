@@ -64,7 +64,7 @@
       </div>
 
       <!-- 厂商筛选 -->
-      <div class="mb-4 flex items-center justify-between gap-3">
+      <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div class="inline-flex rounded-xl border border-gray-200 bg-white p-1 dark:border-dark-700 dark:bg-dark-900">
           <button
             v-for="vendor in vendorFilters"
@@ -79,7 +79,12 @@
             {{ vendor === 'all' ? t('aiProducts.all') : vendor }}
           </button>
         </div>
-        <span class="font-mono text-xs text-gray-400 dark:text-dark-500">{{ t('aiProducts.itemCount', { count: padCount(visibleProducts.length) }) }}</span>
+        <div class="flex items-center gap-3">
+          <span class="inline-flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
+            <Icon name="infoCircle" size="xs" class="flex-shrink-0" />{{ t('aiProducts.priceNotice') }}
+          </span>
+          <span class="font-mono text-xs text-gray-400 dark:text-dark-500">{{ t('aiProducts.itemCount', { count: padCount(visibleProducts.length) }) }}</span>
+        </div>
       </div>
 
       <!-- 商品卡片 -->
@@ -172,9 +177,12 @@
             <dt class="text-gray-500 dark:text-dark-400">{{ t('aiProducts.dialog.product') }}</dt>
             <dd class="font-semibold text-gray-900 dark:text-white">{{ productName(contactProduct) }}</dd>
           </div>
-          <div class="flex items-center justify-between py-2.5">
-            <dt class="text-gray-500 dark:text-dark-400">{{ t('aiProducts.dialog.price') }}</dt>
-            <dd class="font-mono font-semibold text-gray-900 dark:text-white">¥{{ contactProduct.price }} {{ t(`aiProducts.units.${contactProduct.unit}`) }}</dd>
+          <div class="py-2.5">
+            <div class="flex items-center justify-between">
+              <dt class="text-gray-500 dark:text-dark-400">{{ t('aiProducts.dialog.price') }}</dt>
+              <dd class="font-mono font-semibold text-gray-900 dark:text-white">¥{{ contactProduct.price }} {{ t(`aiProducts.units.${contactProduct.unit}`) }}</dd>
+            </div>
+            <p class="mt-1 text-right text-xs text-amber-600 dark:text-amber-400">{{ t('aiProducts.dialog.priceNotice') }}</p>
           </div>
         </template>
         <div class="flex items-center justify-between py-2.5">
