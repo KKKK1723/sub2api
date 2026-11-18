@@ -135,10 +135,9 @@ export const copy = {
     help: '常见问题',
     console: '控制台',
     eyebrow: '让 AI 的每一种用法，都更简单',
-    headline: '模型 API，AI 订阅，',
-    headlineAccent: '还有接码服务。',
-    heroDescription:
-      '开发接入、日常创作、手机验证。按你的需求选择，剩下的交给我们。',
+    headline: 'AI中转站，AI模型官方订阅，',
+    headlineAccent: '还有接码服务',
+    heroDescription: '中转站与GPT/Claude官方订阅任你选择，剩下的交给我们',
     browse: '挑选 AI官方订阅',
     getKey: '获取 API Key',
     serviceApi: '接入你的应用与工具',

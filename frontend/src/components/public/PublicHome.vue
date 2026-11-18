@@ -138,7 +138,7 @@
             <a href="#subscriptions" class="button button-ink"
               >{{ c.browse }}<Icon name="arrowRight" size="sm" /></a
             ><a href="/keys" class="button button-glass"
-              ><Icon name="terminal" size="sm" />{{ c.getKey }}</a
+              ><Icon name="terminal" size="sm" />{{ tr('进入中转站', c.getKey) }}</a
             >
           </div>
         </div>
