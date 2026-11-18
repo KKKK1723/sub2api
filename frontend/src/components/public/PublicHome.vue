@@ -206,10 +206,13 @@
           <div class="section-heading" data-reveal>
             <div>
               <p class="section-label"><span></span>{{ c.catalogLabel }}</p>
-              <h2>{{ c.catalogTitle }}</h2>
-              <p v-if="locale === 'zh'" class="section-description">
-                --- 直接充到你gpt/claude 账号上！！！（官方订阅）
-              </p>
+              <h2>
+                {{ c.catalogTitle }}<span
+                  v-if="locale === 'zh'"
+                  class="text-base font-medium sm:text-lg"
+                  > --- 直接充到你gpt/claude 账号上！！！（官方订阅）</span
+                >
+              </h2>
               <p class="section-description">{{ c.catalogDescription }}</p>
             </div>
             <div
