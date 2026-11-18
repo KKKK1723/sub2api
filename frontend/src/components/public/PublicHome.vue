@@ -207,6 +207,9 @@
             <div>
               <p class="section-label"><span></span>{{ c.catalogLabel }}</p>
               <h2>{{ c.catalogTitle }}</h2>
+              <p v-if="locale === 'zh'" class="section-description">
+                --- 直接充到你gpt/claude 账号上！！！（官方订阅）
+              </p>
               <p class="section-description">{{ c.catalogDescription }}</p>
             </div>
             <div
